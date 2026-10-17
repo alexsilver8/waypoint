@@ -67,8 +67,8 @@ function keepEditorFocus(event: ReactMouseEvent) {
 type Align = 'start' | 'center' | 'end';
 
 /**
- * Places a popover just above its anchor, kept inside the window. It's positioned against
- * the window rather than the toolbar, so a toolbar squeezed into a narrow window can scroll
+ * Places a menu just above its anchor, kept inside the window. It's positioned against the
+ * window rather than the format bar, so a bar squeezed into a narrow window can scroll
  * without cutting its menus off.
  */
 function usePopoverPlacement(
@@ -105,7 +105,7 @@ interface MenuItem {
   run(): void;
 }
 
-/** A toolbar button that opens a short menu above it. */
+/** A format bar button that opens a short menu above it. */
 function Menu({
   label,
   icon,
@@ -140,6 +140,8 @@ function Menu({
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
+        // Esc closes the menu, not the window.
+        event.stopPropagation();
         // Back where you were: the menu's button if you came from the keyboard, else the note.
         const fromMenu = list.current?.contains(document.activeElement);
         setOpen(false);
@@ -207,7 +209,7 @@ function Menu({
         }}
       >
         {icon}
-        <ChevronDown className="toolbar__chevron" size={12} strokeWidth={2.5} aria-hidden="true" />
+        <ChevronDown className="toolbar__chevron" size={11} strokeWidth={2.5} aria-hidden="true" />
       </button>
       {open && (
         <div
@@ -265,22 +267,29 @@ function Menu({
   );
 }
 
-/** Edits the address of the link under the cursor, or links the selection. */
-function LinkField({
-  editor,
-  anchor,
-  onClose,
-}: {
-  editor: Editor;
-  anchor: RefObject<HTMLElement | null>;
-  onClose(refocus: boolean): void;
-}) {
+const LINK_FIELD_WIDTH = 340;
+
+/**
+ * Edits the address of the link under the cursor, or links the selection. It opens just
+ * below what it links, like Raycast's, whether you pressed ⌘L or used the format bar.
+ */
+function LinkField({ editor, onClose }: { editor: Editor; onClose(refocus: boolean): void }) {
   const current = editor.getAttributes('link').href as string | undefined;
   const [value, setValue] = useState(current ?? '');
   const [invalid, setInvalid] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   const wrapper = useRef<HTMLDivElement>(null);
-  const placement = usePopoverPlacement(anchor, wrapper, 'center', true);
+  const [placement] = useState<CSSProperties>(() => {
+    const { from, to } = editor.state.selection;
+    const start = editor.view.coordsAtPos(from);
+    const end = editor.view.coordsAtPos(to);
+    const width = Math.min(LINK_FIELD_WIDTH, window.innerWidth - 16);
+    const left = Math.max(8, Math.min(start.left - 12, window.innerWidth - width - 8));
+    // Below the line, unless that runs off the window.
+    return end.bottom + 56 < window.innerHeight
+      ? { left, top: end.bottom + 6, width }
+      : { left, bottom: window.innerHeight - start.top + 6, width };
+  });
 
   useEffect(() => {
     input.current?.focus();
@@ -289,13 +298,13 @@ function LinkField({
 
   useEffect(() => {
     const onMouseDown = (event: MouseEvent) => {
-      const target = event.target as Node;
-      // The Link button toggles the field itself.
-      if (!wrapper.current?.contains(target) && !anchor.current?.contains(target)) onClose(false);
+      const target = event.target as HTMLElement;
+      // The format bar's Link button toggles the field itself.
+      if (!wrapper.current?.contains(target) && !target.closest('[data-link-toggle]')) onClose(false);
     };
     document.addEventListener('mousedown', onMouseDown);
     return () => document.removeEventListener('mousedown', onMouseDown);
-  }, [anchor, onClose]);
+  }, [onClose]);
 
   const remove = () => {
     editor.chain().focus().extendMarkRange('link').unsetLink().run();
@@ -371,14 +380,19 @@ function LinkField({
   );
 }
 
-function Toolbar({
+/** The format bar at the bottom of the window (⌥⌘,), with the note's length beside it. */
+function FormatBar({
   editor,
   linkOpen,
   setLinkOpen,
+  length,
+  onToggleCount,
 }: {
   editor: Editor;
   linkOpen: boolean;
   setLinkOpen(open: boolean): void;
+  length: string;
+  onToggleCount(): void;
 }) {
   const state = useEditorState({
     editor,
@@ -402,7 +416,6 @@ function Toolbar({
     }),
   });
   const disabled = !state.editable;
-  const linkAnchor = useRef<HTMLDivElement>(null);
   const chain = () => editor.chain().focus();
   const refocus = () => editor.commands.focus();
 
@@ -486,67 +499,68 @@ function Toolbar({
   );
 
   return (
-    <div
-      className="toolbar"
-      role="toolbar"
-      aria-label="Formatting"
-      onMouseDown={keepEditorFocus}
-      onKeyDown={moveAlongToolbar}
-    >
-      <Menu
-        label="Heading"
-        icon={<Heading size={17} />}
-        active={state.heading > 0}
-        disabled={disabled}
-        kind="radio"
-        items={headings}
-        onDismiss={refocus}
-      />
-      <Menu
-        label="Text style"
-        icon={<TextCursor size={17} />}
-        active={state.bold || state.italic || state.strike}
-        disabled={disabled}
-        kind="checkbox"
-        items={styles}
-        onDismiss={refocus}
-      />
-      <div className="toolbar__menu" ref={linkAnchor}>
-        {toggle('Link', [MOD, 'K'], <Link size={17} />, state.link || linkOpen, () => {
-          setLinkOpen(!linkOpen);
-          // Closing the field from its button: back to the note, not nowhere.
-          if (linkOpen) refocus();
-        })}
-        {linkOpen && (
-          <LinkField
-            editor={editor}
-            anchor={linkAnchor}
-            onClose={(refocusEditor) => {
-              setLinkOpen(false);
-              if (refocusEditor) refocus();
-            }}
-          />
+    <div className="format-bar">
+      <div
+        className="toolbar"
+        role="toolbar"
+        aria-label="Formatting"
+        onMouseDown={keepEditorFocus}
+        onKeyDown={moveAlongToolbar}
+      >
+        <Menu
+          label="Heading"
+          icon={<Heading size={16} />}
+          active={state.heading > 0}
+          disabled={disabled}
+          kind="radio"
+          items={headings}
+          onDismiss={refocus}
+        />
+        <Menu
+          label="Text style"
+          icon={<TextCursor size={16} />}
+          active={state.bold || state.italic || state.strike}
+          disabled={disabled}
+          kind="checkbox"
+          items={styles}
+          onDismiss={refocus}
+        />
+        <span className="toolbar__menu" data-link-toggle="">
+          {toggle('Link', [MOD, 'L'], <Link size={16} />, state.link || linkOpen, () => {
+            setLinkOpen(!linkOpen);
+            // Closing the field from its button: back to the note, not nowhere.
+            if (linkOpen) refocus();
+          })}
+        </span>
+        {toggle('Inline code', [MOD, 'E'], <Code size={16} />, state.code, () => chain().toggleCode().run())}
+        <span className="toolbar__divider" aria-hidden="true" />
+        {toggle('Code block', [MOD, ALT, 'C'], <SquareCode size={16} />, state.codeBlock, () =>
+          chain().toggleCodeBlock().run(),
         )}
+        {toggle('Quote', [MOD, SHIFT, 'B'], <TextQuote size={16} />, state.blockquote, () =>
+          chain().toggleBlockquote().run(),
+        )}
+        <span className="toolbar__divider" aria-hidden="true" />
+        <Menu
+          label="List"
+          icon={<List size={16} />}
+          active={state.list !== ''}
+          disabled={disabled}
+          kind="radio"
+          align="end"
+          items={lists}
+          onDismiss={refocus}
+        />
       </div>
-      {toggle('Inline code', [MOD, 'E'], <Code size={17} />, state.code, () => chain().toggleCode().run())}
-      <span className="toolbar__divider" aria-hidden="true" />
-      {toggle('Code block', [MOD, ALT, 'C'], <SquareCode size={17} />, state.codeBlock, () =>
-        chain().toggleCodeBlock().run(),
-      )}
-      {toggle('Quote', [MOD, SHIFT, 'B'], <TextQuote size={17} />, state.blockquote, () =>
-        chain().toggleBlockquote().run(),
-      )}
-      <span className="toolbar__divider" aria-hidden="true" />
-      <Menu
-        label="List"
-        icon={<List size={17} />}
-        active={state.list !== ''}
-        disabled={disabled}
-        kind="radio"
-        align="end"
-        items={lists}
-        onDismiss={refocus}
-      />
+      <button
+        type="button"
+        className="format-bar__count"
+        onMouseDown={keepEditorFocus}
+        onClick={onToggleCount}
+        title="Switch between characters and words"
+      >
+        {length}
+      </button>
     </div>
   );
 }
@@ -558,21 +572,52 @@ export interface NoteEditorProps {
   text: string;
   /** Bump to put the cursor at the end of the note. */
   focusRequest: number;
+  /** Bump to open the link field, as ⌘L does. */
+  linkRequest: number;
   onChange(markdown: string): void;
+  /** Show the format bar at the bottom of the window. */
+  formatBar: boolean;
+  /** The note's length, like "12 characters", shown at the end of the format bar. */
+  length: string;
+  onToggleCount(): void;
+  /** The editor once it's ready, for the window's actions: find, copy, format. */
+  onEditor(editor: Editor | null): void;
+  /** Whether the note is shown as Markdown because the editor can't show all of it. */
+  onSourceChange(source: boolean): void;
+  /** The window height the note would like: everything around it plus all of its text. */
+  onHeightChange(height: number): void;
+  /** The note's text size, which changes its height. */
+  zoom: number;
 }
 
 /**
  * Rich editing over plain Markdown: you see headings, lists and checkboxes, and the file
  * on disk stays Markdown any app can read.
  */
-export function NoteEditor({ noteId, text, focusRequest, onChange }: NoteEditorProps) {
+export function NoteEditor({
+  noteId,
+  text,
+  focusRequest,
+  linkRequest,
+  onChange,
+  formatBar,
+  length,
+  onToggleCount,
+  onEditor,
+  onSourceChange,
+  onHeightChange,
+  zoom,
+}: NoteEditorProps) {
   const [linkOpen, setLinkOpen] = useState(false);
   /** The note has Markdown the editor can't show, so it's edited as plain text instead. */
   const [source, setSource] = useState(false);
   const sourceRef = useRef(false);
   const sourceArea = useRef<HTMLTextAreaElement>(null);
+  const scroller = useRef<HTMLDivElement>(null);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+  const onHeightRef = useRef(onHeightChange);
+  onHeightRef.current = onHeightChange;
   /** What the editor holds, as Markdown, so a re-render with the same text leaves it alone. */
   const shownText = useRef<string | null>(null);
   const shownNote = useRef<string | null>(null);
@@ -607,6 +652,13 @@ export function NoteEditor({ noteId, text, focusRequest, onChange }: NoteEditorP
       onChangeRef.current(markdown);
     },
   });
+
+  useEffect(() => {
+    onEditor(editor);
+    return () => onEditor(null);
+  }, [editor, onEditor]);
+
+  useEffect(() => onSourceChange(source), [source, onSourceChange]);
 
   // Show another note, or edits made to this one elsewhere.
   useEffect(() => {
@@ -645,6 +697,47 @@ export function NoteEditor({ noteId, text, focusRequest, onChange }: NoteEditorP
     }
   }, [editor, focusRequest, noteId]);
 
+  useEffect(() => {
+    if (linkRequest > 0 && editor?.isEditable) setLinkOpen(true);
+  }, [editor, linkRequest]);
+
+  // How tall the window would need to be to show the whole note: what's around the note,
+  // plus the note's own height, measured to its last line so the window's height can't feed back in.
+  // A new text size (zoom) means measuring again.
+  useLayoutEffect(() => {
+    const box = scroller.current;
+    if (!editor || !box) return;
+    let frame = 0;
+    const measure = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const around = window.innerHeight - box.clientHeight;
+        if (sourceRef.current) {
+          onHeightRef.current(around + box.clientHeight);
+          return;
+        }
+        const dom = editor.view.dom as HTMLElement;
+        const last = dom.lastElementChild as HTMLElement | null;
+        const style = getComputedStyle(dom);
+        const top = dom.getBoundingClientRect().top;
+        const bottom = last
+          ? last.getBoundingClientRect().bottom - top + Number.parseFloat(getComputedStyle(last).marginBottom)
+          : Number.parseFloat(style.paddingTop);
+        onHeightRef.current(Math.ceil(around + bottom + Number.parseFloat(style.paddingBottom)));
+      });
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(box);
+    observer.observe(editor.view.dom);
+    editor.on('update', measure);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+      editor.off('update', measure);
+    };
+  }, [editor, zoom]);
+
   return (
     <>
       <main className="notes__body">
@@ -661,17 +754,41 @@ export function NoteEditor({ noteId, text, focusRequest, onChange }: NoteEditorP
             disabled={!noteId}
           />
         )}
-        <EditorContent editor={editor} className="notes__scroller" hidden={source} />
+        <EditorContent editor={editor} className="notes__scroller" hidden={source} ref={scroller} />
       </main>
-      <footer className="notes__footer">
-        {source ? (
-          <p className="notes__notice" role="status">
-            Shown as Markdown: this note has things the editor can’t show yet, like a table or front matter.
-          </p>
-        ) : (
-          editor && <Toolbar editor={editor} linkOpen={linkOpen} setLinkOpen={setLinkOpen} />
-        )}
-      </footer>
+      {editor && linkOpen && (
+        <LinkField
+          editor={editor}
+          onClose={(refocus) => {
+            setLinkOpen(false);
+            if (refocus) editor.commands.focus();
+          }}
+        />
+      )}
+      {formatBar && (
+        <footer className="notes__footer">
+          {source ? (
+            <p className="notes__notice" role="status">
+              Shown as Markdown: this note has things the editor can’t show yet, like a table or front matter.
+            </p>
+          ) : (
+            editor && (
+              <FormatBar
+                editor={editor}
+                linkOpen={linkOpen}
+                setLinkOpen={setLinkOpen}
+                length={length}
+                onToggleCount={onToggleCount}
+              />
+            )
+          )}
+        </footer>
+      )}
+      {!formatBar && source && (
+        <p className="notes__notice notes__notice--floating" role="status">
+          Shown as Markdown: this note has things the editor can’t show yet, like a table or front matter.
+        </p>
+      )}
     </>
   );
 }

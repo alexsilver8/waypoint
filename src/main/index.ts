@@ -2,7 +2,7 @@ import { existsSync, mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { app, nativeTheme, shell } from 'electron';
-import { NotesChannel } from '../shared/notes';
+import { NotesChannel, noteIdFromDeeplink, RECENTLY_DELETED_DAYS } from '../shared/notes';
 import type { Platform } from '../shared/types';
 import { AppIndex } from './apps/app-index';
 import { electronClipboard } from './clipboard/electron-source';
@@ -17,6 +17,7 @@ import { ExtensionHostClient } from './extensions/host-client';
 import { HotkeyManager } from './hotkey';
 import { handleIconProtocol, registerIconScheme } from './icon-protocol';
 import { registerIpc } from './ipc';
+import { captureDeeplinks, deeplinkIn, handleDeeplinks, registerDeeplinkScheme } from './notes/deeplink';
 import { registerNotesIpc } from './notes/ipc';
 import { NotesStore } from './notes/store';
 import { NotesWindow } from './notes/window';
@@ -35,6 +36,9 @@ if (process.env.WAYPOINT_USER_DATA) app.setPath('userData', process.env.WAYPOINT
 else if (existsSync(legacyData)) app.setPath('userData', legacyData);
 
 registerIconScheme();
+captureDeeplinks();
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 if (!app.requestSingleInstanceLock()) {
   // Running `waypoint` again toggles the existing instance (handy on Wayland,
@@ -75,6 +79,16 @@ async function main(): Promise<void> {
   registerNotesIpc(notesStore, notesWindow);
   notesStore.on('change', () => notesWindow.webContents?.send(NotesChannel.changed));
   void notesStore.watch();
+  // Recently Deleted keeps notes for 60 days; after that they go to the system Trash.
+  const purgeDeletedNotes = () => void notesStore.purgeOlderThan(RECENTLY_DELETED_DAYS * DAY_MS);
+  purgeDeletedNotes();
+  setInterval(purgeDeletedNotes, DAY_MS / 4).unref();
+  /** A waypoint://notes/<id> link opens that note, or just the Notes window if it's gone. */
+  const openDeeplink = (url: string) => {
+    const id = noteIdFromDeeplink(url);
+    if (!id) return;
+    void notesStore.get(id).then((note) => notesWindow.open(note?.id));
+  };
   const settingsWindow = new SettingsWindow();
 
   const registry: CommandRegistry = new CommandRegistry({
@@ -138,7 +152,13 @@ async function main(): Promise<void> {
     settingsIpc.notifyChanged();
   });
   notesStore.on('change', () => launcher.rootItemsChanged());
-  app.on('second-instance', () => launcher.show());
+  app.on('second-instance', (_event, argv) => {
+    const link = deeplinkIn(argv);
+    if (link) openDeeplink(link);
+    else launcher.show();
+  });
+  handleDeeplinks(openDeeplink);
+  registerDeeplinkScheme();
 
   const tray = new AppTray({
     hotkey: () => hotkeys.current,

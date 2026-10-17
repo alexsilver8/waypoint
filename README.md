@@ -15,7 +15,7 @@ Website: [waypoint.alexsilver.dev](https://waypoint.alexsilver.dev/)
 
 - **Finds everything from one box** — apps, commands, notes and copied text all show up as you type. <kbd>⇥</kbd>, or the icons down the left of the window, narrow the list to Apps, Commands, Notes or Clipboard, or to **Extensions**, which lists every extension with its commands so you can pick one without remembering its name. A preview beside the results shows the note or copied text you've selected.
 - **Opens apps** — finds installed applications on every platform.
-- **Keeps notes, as many as you want** — a floating Notes window with headings, checklists, links and code, plus search, autosave and a pin to keep it on top. Every note is a plain Markdown file, so you can sync, back up or edit them with anything. There's no limit on how many you keep.
+- **Keeps notes, as many as you want** — a floating Notes window that works like Raycast Notes: one note at a time in a small window that grows as you write, **Browse Notes** (<kbd>⌘</kbd> <kbd>P</kbd>), an action panel (<kbd>⌘</kbd> <kbd>K</kbd>), pinned notes, back and forward, find and replace, and Recently Deleted. Every note is a plain Markdown file, so you can sync, back up or edit them with anything. There's no limit on how many you keep.
 - **Calculates as you type** — `1200 * 1.077 + 2^5` shows `1,324.4`; <kbd>↵</kbd> copies it.
 - **Remembers your clipboard** — searchable history of copied text, skipping anything password managers mark as private.
 - **Searches the web** — anything that doesn't match falls back to Google, DuckDuckGo or any extension that offers itself.
@@ -47,7 +47,7 @@ Builds aren't code-signed yet, so your system will warn you the first time you o
 | <kbd>Esc</kbd> | Go back, clear the search, return to All, then close |
 | <kbd>⌘</kbd> <kbd>,</kbd> | Open settings |
 
-In the Notes window: <kbd>⌘</kbd> <kbd>N</kbd> new note, <kbd>⌘</kbd> <kbd>P</kbd> find a note, <kbd>⌘</kbd> <kbd>\</kbd> show or hide the list, <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>⌫</kbd> move the note to the Trash. Formatting shortcuts are listed in the [Notes](#notes) section.
+The Notes window has its own shortcuts, listed in the [Notes](#notes) section.
 
 On Windows and Linux, use <kbd>Ctrl</kbd> wherever you see <kbd>⌘</kbd>.
 
@@ -55,24 +55,45 @@ On Linux under Wayland, global shortcuts may not reach the app. Bind a shortcut 
 
 ## Notes
 
-![The Notes window](docs/images/notes.png)
+<img src="docs/images/notes.png" width="475" alt="The Notes window with Browse Notes open, listing a pinned note and the rest by when they were last open">
 
 Run **Create Note** to start writing, or **Open Notes** to bring the window back. Notes show up in the launcher's search as you type, matching anything in them, not just the title; press <kbd>⇥</kbd> to see only notes, newest first, with a preview of the one you've selected. **Search Notes** lists them all on their own. **Create Note** also appears under **Use “…” with** for anything you type, so you can type a thought into the launcher and save it straight away.
 
+The Notes window works like Raycast Notes. It shows one note at a time, floats above your other windows, and grows as the note gets longer, then shrinks back; the first line is the note's title, in the middle of the title bar. The three buttons at the top right are **Actions** (<kbd>⌘</kbd> <kbd>K</kbd>), **Browse Notes** (<kbd>⌘</kbd> <kbd>P</kbd>) and **New Note** (<kbd>⌘</kbd> <kbd>N</kbd>). **Browse Notes** lists every note with when you last had it open and how long it is, pinned notes first; the selected note has buttons to pin and delete it. <kbd>Esc</kbd> closes a popover, then the window.
+
+| Keys | |
+| --- | --- |
+| <kbd>⌘</kbd> <kbd>K</kbd> | Show every action, with its shortcut |
+| <kbd>⌘</kbd> <kbd>P</kbd> | Browse Notes |
+| <kbd>⌘</kbd> <kbd>N</kbd>, <kbd>⌘</kbd> <kbd>D</kbd> | New note, duplicate the note |
+| <kbd>⌘</kbd> <kbd>[</kbd>, <kbd>⌘</kbd> <kbd>]</kbd> | Go back and forward between the notes you've opened |
+| <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>P</kbd> | Pin or unpin the note; <kbd>⌘</kbd> <kbd>1</kbd>–<kbd>9</kbd> open the first nine pinned notes |
+| <kbd>⌘</kbd> <kbd>F</kbd> | Find and replace in the note (<kbd>↵</kbd> next, <kbd>⇧</kbd> <kbd>↵</kbd> previous) |
+| <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>C</kbd> | Copy the note, or the selected text, as Markdown, HTML or plain text |
+| <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>D</kbd> | Copy a `waypoint://` link that opens the note from anywhere |
+| <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>E</kbd> | Export the note as Markdown, HTML or plain text |
+| <kbd>⌘</kbd> <kbd>⌥</kbd> <kbd>,</kbd> | Show or hide the format bar, with the note's character or word count |
+| <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>/</kbd> | Turn window auto-resizing off or on |
+| <kbd>⌘</kbd> <kbd>=</kbd>, <kbd>⌘</kbd> <kbd>-</kbd>, <kbd>⌘</kbd> <kbd>0</kbd> | Make the text bigger, smaller, or its usual size |
+| <kbd>⌃</kbd> <kbd>X</kbd> (<kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>Backspace</kbd>) | Delete the note; <kbd>⌃</kbd> <kbd>⇧</kbd> <kbd>X</kbd> deletes them all, after asking |
+
+The action panel also turns **Always on Top** off and on, shows the note in Finder, and opens **Recently Deleted**: deleted notes wait there for 60 days, so you can bring one back with <kbd>↵</kbd>, then go to the system Trash.
+
 ### Formatting
 
-The toolbar at the bottom of the window formats the selection or the line you're on, and Markdown you type turns into formatting as you go: `# ` starts a heading, `- ` a list, `[ ] ` a checklist, `> ` a quote and ` ``` ` a code block.
+Markdown you type turns into formatting as you go: `# ` starts a heading, `- ` a list, `[ ] ` a checklist, `> ` a quote and ` ``` ` a code block. **Format...** in the action panel and the format bar (<kbd>⌘</kbd> <kbd>⌥</kbd> <kbd>,</kbd>) format the selection or the line you're on.
 
 | Keys | |
 | --- | --- |
 | <kbd>⌘</kbd> <kbd>⌥</kbd> <kbd>1</kbd>–<kbd>3</kbd>, <kbd>⌘</kbd> <kbd>⌥</kbd> <kbd>0</kbd> | Heading 1–3, back to text |
 | <kbd>⌘</kbd> <kbd>B</kbd>, <kbd>⌘</kbd> <kbd>I</kbd>, <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>S</kbd> | Bold, italic, strikethrough |
-| <kbd>⌘</kbd> <kbd>K</kbd> | Add or edit a link; <kbd>⌘</kbd>-click a link to open it |
+| <kbd>⌘</kbd> <kbd>L</kbd> | Add or edit a link; <kbd>⌘</kbd>-click a link to open it |
 | <kbd>⌘</kbd> <kbd>E</kbd>, <kbd>⌘</kbd> <kbd>⌥</kbd> <kbd>C</kbd> | Inline code, code block |
 | <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>B</kbd> | Quote |
 | <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>8</kbd>, <kbd>7</kbd>, <kbd>9</kbd> | Bulleted list, numbered list, checklist |
+| <kbd>⌘</kbd> <kbd>↵</kbd> | Tick or untick the checklist item you're on |
 
-Notes are saved as you type, one `.md` file per note, and what you see is what's in the file: the formatting is Markdown, so it reads the same in any editor. A note is only rewritten when you change it, and then in a tidy form (for example `*` bullets become `-`). Notes with Markdown the editor can't show yet, like tables, images or front matter, open as plain Markdown instead, so nothing in them is lost. Set `notesDirectory` to a synced folder (Dropbox, iCloud Drive, a git repo) to have them everywhere; Markdown files already in that folder show up as notes too. Notes you delete go to the system Trash.
+Notes are saved as you type, one `.md` file per note, and what you see is what's in the file: the formatting is Markdown, so it reads the same in any editor. A note is only rewritten when you change it, and then in a tidy form (for example `*` bullets become `-`). Notes with Markdown the editor can't show yet, like tables, images or front matter, open as plain Markdown instead, so nothing in them is lost. Set `notesDirectory` to a synced folder (Dropbox, iCloud Drive, a git repo) to have them everywhere; Markdown files already in that folder show up as notes too. Recently Deleted is the hidden `.deleted` folder inside it.
 
 ## Windows
 

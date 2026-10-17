@@ -144,7 +144,8 @@ test('creates a note and saves it as a Markdown file', async () => {
   const editor = notes.getByRole('textbox', { name: 'Note', exact: true });
   await expect(editor).toBeFocused();
   await editor.pressSequentially('Groceries\n- oat milk');
-  await expect(notes.locator('.notes__item[aria-current]')).toContainText('Groceries');
+  // The first line is the note's title, in the middle of the title bar.
+  await expect(notes.locator('.notes__title')).toHaveText('Groceries');
   // Typing "- " starts a list, saved as Markdown.
   await expect(editor.getByRole('listitem')).toHaveText('oat milk');
   await expect.poll(savedNotes).toEqual(['Groceries\n\n- oat milk']);
@@ -155,6 +156,12 @@ test('formats a note with the toolbar, shortcuts and Markdown', async () => {
   const [notes] = await Promise.all([app.waitForEvent('window'), page.keyboard.press('Enter')]);
   const editor = notes.getByRole('textbox', { name: 'Note', exact: true });
   await expect(editor).toBeFocused();
+
+  // The format bar is hidden until ⌥⌘, (Ctrl+Alt+, elsewhere) shows it.
+  await expect(notes.getByRole('toolbar', { name: 'Formatting' })).toHaveCount(0);
+  await notes.keyboard.press(`${mod}+Alt+Comma`);
+  await expect(notes.getByRole('toolbar', { name: 'Formatting' })).toBeVisible();
+  await expect(notes.locator('.format-bar__count')).toHaveText('0 characters');
 
   await notes.keyboard.type('Trip');
   await notes.getByRole('button', { name: 'Heading' }).click();
@@ -171,7 +178,7 @@ test('formats a note with the toolbar, shortcuts and Markdown', async () => {
   await notes.getByRole('button', { name: 'List' }).click();
   await notes.getByRole('menuitemradio', { name: /Checklist/ }).click();
   await notes.keyboard.type('Book trains ');
-  await notes.keyboard.press(`${mod}+k`);
+  await notes.keyboard.press(`${mod}+l`);
   const address = notes.getByRole('textbox', { name: 'Link address' });
   await expect(address).toBeFocused();
   await address.fill('sbb.ch');
@@ -199,9 +206,14 @@ test('keeps notes safe from what the editor would change', async () => {
   await page.keyboard.type('open notes');
   const [notes] = await Promise.all([app.waitForEvent('window'), page.keyboard.press('Enter')]);
   const editor = notes.getByRole('textbox', { name: 'Note', exact: true });
+  const openNote = async (title: RegExp) => {
+    await notes.getByRole('button', { name: 'Browse Notes' }).click();
+    await notes.getByRole('dialog', { name: 'Browse Notes' }).getByRole('option', { name: title }).click();
+    await expect(notes.getByRole('dialog', { name: 'Browse Notes' })).toHaveCount(0);
+  };
 
   // A table can't be shown formatted, so the note is edited as Markdown and keeps it.
-  await notes.getByRole('button', { name: /Budget/ }).click();
+  await openNote(/Budget/);
   await expect(editor).toHaveValue(note('budget.md'));
   await expect(notes.getByRole('status')).toContainText('Shown as Markdown');
   await editor.press('ControlOrMeta+End');
@@ -211,10 +223,10 @@ test('keeps notes safe from what the editor would change', async () => {
     .toBe('# Budget\n\n| item | cost |\n|---|---|\n| rent | 900 |\n| food | 300 |');
 
   // Opening a note doesn't turn file names into links.
-  await notes.getByRole('button', { name: /Fix main\.py/ }).click();
+  await openNote(/Fix main\.py/);
   await expect(editor).toContainText('Fix main.py');
   await expect(editor.getByRole('link')).toHaveCount(0);
-  await expect(notes.getByRole('toolbar', { name: 'Formatting' })).toBeVisible();
+  await expect(notes.getByText('Shown as Markdown')).toHaveCount(0);
 
   // An edit made elsewhere shows up, and undo can't bring back the old text over it.
   writeFileSync(join(userData, 'notes', 'todo.md'), 'Changed elsewhere');
@@ -310,7 +322,7 @@ test('finds notes from the root and shows a preview', async () => {
   await expect(page.getByRole('combobox')).toBeFocused();
 
   const [notes] = await Promise.all([app.waitForEvent('window'), page.keyboard.press('Enter')]);
-  await expect(notes.locator('.notes__item[aria-current]')).toContainText('Launch plan');
+  await expect(notes.locator('.notes__title')).toHaveText('Launch plan');
 });
 
 test('runs a result by its number', async () => {
@@ -339,7 +351,7 @@ test('numbers the rows in view once the list is scrolled', async () => {
   await expect(options.nth(2).locator('.keycap')).toHaveText([mod === 'Meta' ? '⌘' : 'Ctrl', '1']);
   const [notes] = await Promise.all([app.waitForEvent('window'), page.keyboard.press('2')]);
   await page.keyboard.up(mod);
-  await expect(notes.locator('.notes__item[aria-current]')).toContainText(fourth);
+  await expect(notes.locator('.notes__title')).toHaveText(fourth);
 });
 
 test('opens again where it was dragged', async () => {

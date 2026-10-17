@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
@@ -81,15 +81,71 @@ describe('NotesStore', () => {
     expect(notes.map((n) => n.id)).toEqual(['Groceries']);
   });
 
-  it('moves notes to the Trash, and only discards empty ones', async () => {
-    const { dir, store, trashed } = setup();
+  it('only discards empty notes', async () => {
+    const { dir, store } = setup();
     const kept = await store.create('keep me');
     const empty = await store.create('  \n');
     expect(await store.discardIfEmpty(kept.id)).toBe(false);
     expect(await store.discardIfEmpty(empty.id)).toBe(true);
     expect(existsSync(join(dir, `${empty.id}.md`))).toBe(false);
-    await store.trash(kept.id);
-    expect(trashed).toEqual([join(dir, `${kept.id}.md`)]);
+    expect((await store.list()).map((note) => note.id)).toEqual([kept.id]);
+  });
+
+  it('moves deleted notes to Recently Deleted, and brings them back', async () => {
+    const { dir, store, trashed } = setup();
+    const note = await store.create('# Groceries\n\n- oat milk');
+    const before = Date.now();
+    await store.delete(note.id);
+    expect(await store.list()).toEqual([]);
+    expect(existsSync(join(dir, '.deleted', `${note.id}.md`))).toBe(true);
+    const [deleted] = await store.listDeleted();
+    expect(deleted).toMatchObject({ id: note.id, text: '# Groceries\n\n- oat milk' });
+    expect(deleted?.deletedAt).toBeGreaterThanOrEqual(before - 1000);
+
+    const restored = await store.restore(note.id);
+    expect(restored).toMatchObject({ id: note.id, text: '# Groceries\n\n- oat milk' });
+    expect((await store.list()).map((n) => n.id)).toEqual([note.id]);
+    expect(await store.listDeleted()).toEqual([]);
+    expect(trashed).toEqual([]);
+  });
+
+  it('restores a note under a new name if its old one is taken', async () => {
+    const { dir, store } = setup();
+    await store.list();
+    writeFileSync(join(dir, 'Ideas.md'), 'old ideas');
+    await store.delete('Ideas');
+    writeFileSync(join(dir, 'Ideas.md'), 'new ideas');
+    const restored = await store.restore('Ideas');
+    expect(restored).toMatchObject({ id: 'Ideas-2', text: 'old ideas' });
+    expect(readFileSync(join(dir, 'Ideas.md'), 'utf8')).toBe('new ideas');
+  });
+
+  it('deletes notes for good by moving them from Recently Deleted to the Trash', async () => {
+    const { dir, store, trashed } = setup();
+    const note = await store.create('gone');
+    await store.delete(note.id);
+    await store.purge(note.id);
+    expect(trashed).toEqual([join(dir, '.deleted', `${note.id}.md`)]);
+  });
+
+  it('empties Recently Deleted of notes deleted long enough ago', async () => {
+    const { dir, store, trashed } = setup();
+    const old = await store.create('old');
+    const recent = await store.create('recent');
+    await store.delete(old.id);
+    await store.delete(recent.id);
+    const longAgo = new Date(Date.now() - 61 * 24 * 60 * 60 * 1000);
+    utimesSync(join(dir, '.deleted', `${old.id}.md`), longAgo, longAgo);
+    expect(await store.purgeOlderThan(60 * 24 * 60 * 60 * 1000)).toBe(1);
+    expect(trashed).toEqual([join(dir, '.deleted', `${old.id}.md`)]);
+  });
+
+  it('deletes every note at once', async () => {
+    const { store } = setup();
+    await Promise.all([store.create('one'), store.create('two'), store.create('three')]);
+    await store.deleteAll();
+    expect(await store.list()).toEqual([]);
+    expect(await store.listDeleted()).toHaveLength(3);
   });
 
   it('rejects ids that would escape the folder', async () => {
@@ -125,24 +181,14 @@ describe('NotesStore', () => {
   });
 
   it('never keeps a listing read while a note was being changed', async () => {
-    const dir = join(mkdtempSync(join(tmpdir(), 'notes-')), 'notes');
-    let finishTrash: (() => void) | undefined;
-    const store = new NotesStore(dir, async (path) => {
-      await new Promise<void>((resolve) => {
-        finishTrash = () => {
-          rmSync(path);
-          resolve();
-        };
-      });
-    });
+    const { store } = setup();
     const note = await store.create('# Going');
     await store.watch();
     try {
-      const trashing = store.trash(note.id);
-      // Listed mid-trash, the note is still on disk.
       expect(await store.list()).toHaveLength(1);
-      finishTrash?.();
-      await trashing;
+      // Listed while it's being deleted, the note may still be there; listed after, it's gone.
+      const [, during] = await Promise.all([store.delete(note.id), store.list()]);
+      expect(during.length).toBeLessThanOrEqual(1);
       expect(await store.list()).toHaveLength(0);
     } finally {
       store.unwatch();

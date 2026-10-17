@@ -5,6 +5,7 @@ import { Paragraph } from '@tiptap/extension-paragraph';
 import { Placeholder } from '@tiptap/extensions';
 import { Markdown, type MarkdownManager } from '@tiptap/markdown';
 import { StarterKit } from '@tiptap/starter-kit';
+import { Find } from './find';
 
 /**
  * How notes turn into Markdown and back. Notes are files people also open elsewhere, so
@@ -102,7 +103,7 @@ export function bareAutolinks(markdown: string): string {
     .join('\n');
 }
 
-/** ⌘K (Ctrl+K) edits the link under the cursor, or adds one. */
+/** ⌘L (Ctrl+L) edits the link under the cursor, or adds one, as in Raycast Notes. */
 const LinkShortcut = Extension.create<{ open: () => void }>({
   name: 'linkShortcut',
   addOptions() {
@@ -110,9 +111,33 @@ const LinkShortcut = Extension.create<{ open: () => void }>({
   },
   addKeyboardShortcuts() {
     return {
-      'Mod-k': () => {
+      'Mod-l': () => {
         this.options.open();
         return true;
+      },
+    };
+  },
+});
+
+/** ⌘↵ (Ctrl+Enter) ticks or unticks the checklist item the cursor is in; elsewhere it's a line break. */
+const TaskToggle = Extension.create({
+  name: 'taskToggle',
+  // Before the line break that ⌘↵ inserts otherwise.
+  priority: 1000,
+  addKeyboardShortcuts() {
+    return {
+      'Mod-Enter': () => {
+        const { $from } = this.editor.state.selection;
+        for (let depth = $from.depth; depth > 0; depth--) {
+          const node = $from.node(depth);
+          if (node.type.name !== 'taskItem') continue;
+          const position = $from.before(depth);
+          return this.editor.commands.command(({ tr }) => {
+            tr.setNodeMarkup(position, undefined, { ...node.attrs, checked: !node.attrs.checked });
+            return true;
+          });
+        }
+        return false;
       },
     };
   },
@@ -134,9 +159,11 @@ export function noteExtensions({ onLinkShortcut }: { onLinkShortcut(): void }): 
     Link.configure({ openOnClick: false, autolink: true, linkOnPaste: true, defaultProtocol: 'https' }),
     TaskList,
     TaskItem.configure({ nested: true }),
-    Placeholder.configure({ placeholder: 'Start writing…' }),
+    Placeholder.configure({ placeholder: 'Start writing...' }),
     Markdown.configure({ markedOptions: MARKED_OPTIONS }),
     LinkShortcut.configure({ open: onLinkShortcut }),
+    TaskToggle,
+    Find,
   ];
 }
 

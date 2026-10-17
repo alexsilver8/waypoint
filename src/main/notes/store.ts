@@ -1,12 +1,14 @@
 import { randomBytes } from 'node:crypto';
 import { EventEmitter } from 'node:events';
 import { type FSWatcher, watch } from 'node:fs';
-import { mkdir, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rename, rm, stat, utimes, writeFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
-import type { Note } from '../../shared/notes';
+import type { DeletedNote, Note } from '../../shared/notes';
 import { debounce } from '../json-file';
 
 const EXTENSION = '.md';
+/** Recently Deleted: a hidden folder beside the notes, so other apps and the list skip it. */
+const DELETED_FOLDER = '.deleted';
 /** How long a listing is trusted without word from the watcher, in case it misses a change. */
 const CACHE_MS = 10_000;
 
@@ -144,13 +146,93 @@ export class NotesStore extends EventEmitter<{ change: [] }> {
     return this.read(id);
   }
 
-  /** Moves a note to the system Trash, so a mistake can be undone. */
-  async trash(id: string): Promise<void> {
+  private deletedPathOf(id: string): string {
+    assertValidId(id);
+    return join(this.dir, DELETED_FOLDER, `${id}${EXTENSION}`);
+  }
+
+  /** `folder/id.md`, or `folder/id-2.md` and so on if that's taken. */
+  private async freePath(folder: string, id: string): Promise<string> {
+    for (let n = 1; ; n++) {
+      const candidate = join(folder, `${n === 1 ? id : `${id}-${n}`}${EXTENSION}`);
+      const taken = await stat(candidate).then(
+        () => true,
+        () => false,
+      );
+      if (!taken) return candidate;
+    }
+  }
+
+  /**
+   * Moves a note to Recently Deleted, where it stays for 60 days so a mistake can be undone.
+   * Its file's time becomes the time it was deleted.
+   */
+  async delete(id: string): Promise<void> {
+    const from = this.pathOf(id);
+    const folder = join(this.dir, DELETED_FOLDER);
     try {
-      await this.trashFile(this.pathOf(id));
+      await mkdir(folder, { recursive: true });
+      const to = await this.freePath(folder, id);
+      await rename(from, to);
+      const now = new Date();
+      await utimes(to, now, now);
     } finally {
       this.invalidate();
     }
+  }
+
+  /** Moves every note to Recently Deleted. */
+  async deleteAll(): Promise<void> {
+    for (const note of await this.readAll()) await this.delete(note.id);
+  }
+
+  /** Notes in Recently Deleted, most recently deleted first. */
+  async listDeleted(): Promise<DeletedNote[]> {
+    const folder = join(this.dir, DELETED_FOLDER);
+    const entries = await readdir(folder, { withFileTypes: true }).catch(() => []);
+    const notes = await Promise.all(
+      entries
+        .filter((entry) => entry.isFile() && entry.name.endsWith(EXTENSION) && !entry.name.startsWith('.'))
+        .map(async (entry): Promise<DeletedNote | undefined> => {
+          const path = join(folder, entry.name);
+          try {
+            const [text, info] = await Promise.all([readFile(path, 'utf8'), stat(path)]);
+            return { id: entry.name.slice(0, -EXTENSION.length), text, deletedAt: info.mtimeMs };
+          } catch {
+            return undefined;
+          }
+        }),
+    );
+    return notes.filter((note): note is DeletedNote => note !== undefined).sort((a, b) => b.deletedAt - a.deletedAt);
+  }
+
+  /** Brings a note back from Recently Deleted, under a new name if its old one is taken. */
+  async restore(id: string): Promise<Note> {
+    const from = this.deletedPathOf(id);
+    await mkdir(this.dir, { recursive: true });
+    const to = await this.freePath(this.dir, id);
+    try {
+      await rename(from, to);
+    } finally {
+      this.invalidate();
+    }
+    return this.read(basename(to, EXTENSION));
+  }
+
+  /** Deletes a note in Recently Deleted for good, by moving it to the system Trash. */
+  async purge(id: string): Promise<void> {
+    await this.trashFile(this.deletedPathOf(id));
+  }
+
+  /** Moves notes deleted longer ago than `maxAgeMs` from Recently Deleted to the system Trash. */
+  async purgeOlderThan(maxAgeMs: number, now = Date.now()): Promise<number> {
+    const expired = (await this.listDeleted()).filter((note) => now - note.deletedAt > maxAgeMs);
+    for (const note of expired) {
+      await this.purge(note.id).catch((error: unknown) =>
+        console.warn('[notes] Could not purge a deleted note:', error),
+      );
+    }
+    return expired.length;
   }
 
   /** Deletes a note for good, but only if there's nothing in it. */
