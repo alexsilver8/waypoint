@@ -10,7 +10,7 @@ export default defineConfig({
           index: resolve('src/main/index.ts'),
           // Runs in a separate utility process; see src/main/extensions/host-client.ts.
           'extension-host': resolve('src/extension-host/index.ts'),
-          // @waypoint/api, for extensions that use it without installing it; see src/extension-host/api.ts.
+          // @waypoint-org/api, for extensions that use it without installing it; see src/extension-host/api.ts.
           'waypoint-api': resolve('packages/api/src/index.ts'),
         },
       },

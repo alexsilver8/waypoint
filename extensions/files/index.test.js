@@ -8,7 +8,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 const home = mkdtempSync(join(tmpdir(), 'files-home-'));
 const downloads = join(home, 'Downloads');
-/** @type {import('@waypoint/api').Extension} */
+/** @type {import('@waypoint-org/api').Extension} */
 let extension;
 
 /** @param {number} ms */

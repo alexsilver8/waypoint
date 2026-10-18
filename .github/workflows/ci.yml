@@ -36,7 +36,7 @@ jobs:
         run: pnpm run test
       - name: Build
         run: pnpm run build
-      - name: Build @waypoint/api
+      - name: Build @waypoint-org/api
         run: pnpm run build:api
 
   e2e:

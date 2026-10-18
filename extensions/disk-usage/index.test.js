@@ -7,7 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 const home = mkdtempSync(join(tmpdir(), 'disk-usage-home-'));
 const MB = 1_000_000;
-/** @type {import('@waypoint/api').Extension} */
+/** @type {import('@waypoint-org/api').Extension} */
 let extension;
 
 /** @param {string} path @param {number} size */
@@ -53,10 +53,10 @@ async function settled(command, query, options) {
     view = await extension.commands[command]?.view?.(ctx(query, options));
   }
   expect(view?.loading).toBeFalsy();
-  return /** @type {import('@waypoint/api').ListView} */ (view);
+  return /** @type {import('@waypoint-org/api').ListView} */ (view);
 }
 
-/** @param {import('@waypoint/api').ListView} view */
+/** @param {import('@waypoint-org/api').ListView} view */
 const titles = (view) => view.sections[0]?.items.map((item) => item.title);
 
 describe('Disk Usage', () => {

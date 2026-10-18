@@ -38,7 +38,9 @@ function context() {
   });
 }
 
-const keepAwake = /** @type {import('@waypoint/api').CommandImplementation<any>} */ (extension.commands['keep-awake']);
+const keepAwake = /** @type {import('@waypoint-org/api').CommandImplementation<any>} */ (
+  extension.commands['keep-awake']
+);
 
 describe('Keep Awake on Windows', () => {
   it('asks Waypoint to keep the PC awake for a while, and to let it sleep again', async () => {

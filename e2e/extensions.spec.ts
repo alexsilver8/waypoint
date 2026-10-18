@@ -46,7 +46,7 @@ function addWakeLockExtension(userData: string) {
 }
 
 /**
- * Extensions of the test's own that use @waypoint/api without installing it, as an ES module and
+ * Extensions of the test's own that use @waypoint-org/api without installing it, as an ES module and
  * as CommonJS, and one that brings its own copy.
  */
 function addApiExtensions(userData: string) {
@@ -62,7 +62,7 @@ function addApiExtensions(userData: string) {
     );
   };
   add('api-helpers', 'Try API Helpers', {
-    'index.js': `import { Action, Icon, defineExtension, item, list } from '@waypoint/api';
+    'index.js': `import { Action, Icon, defineExtension, item, list } from '@waypoint-org/api';
       export default defineExtension({
         commands: {
           show: {
@@ -72,7 +72,7 @@ function addApiExtensions(userData: string) {
                 item({
                   title: 'Built with helpers',
                   icon: Icon.builtin('sparkles', 'purple'),
-                  actions: [Action.copy('from @waypoint/api', { title: 'Copy Text', shortcut: 'mod+shift+c' })],
+                  actions: [Action.copy('from @waypoint-org/api', { title: 'Copy Text', shortcut: 'mod+shift+c' })],
                 }),
               ],
             }),
@@ -84,20 +84,20 @@ function addApiExtensions(userData: string) {
     'api-commonjs',
     'Try API from CommonJS',
     {
-      'index.js': `const { defineExtension, item, list } = require('@waypoint/api');
+      'index.js': `const { defineExtension, item, list } = require('@waypoint-org/api');
         module.exports = defineExtension({ commands: { show: { view: () => list({ title: 'CommonJS', items: [item({ title: 'Required from CommonJS' })] }) } } });`,
     },
     'commonjs',
   );
   add('api-own-copy', 'Try Own API Copy', {
-    'index.js': `import { list } from '@waypoint/api';
+    'index.js': `import { list } from '@waypoint-org/api';
       export default { commands: { show: { view: () => list() } } };`,
-    'node_modules/@waypoint/api/package.json': JSON.stringify({
-      name: '@waypoint/api',
+    'node_modules/@waypoint-org/api/package.json': JSON.stringify({
+      name: '@waypoint-org/api',
       type: 'module',
       exports: './index.js',
     }),
-    'node_modules/@waypoint/api/index.js': `export const list = () => ({
+    'node_modules/@waypoint-org/api/index.js': `export const list = () => ({
       type: 'list',
       title: 'Own copy',
       sections: [{ items: [{ id: 'own', title: 'Its own copy', actions: [] }] }],
@@ -277,7 +277,7 @@ test('holds an extension’s wake lock in Waypoint itself, so it lasts when the 
   expect(await blocking()).toBe(false);
 });
 
-test('gives extensions @waypoint/api when they use it without installing it', async () => {
+test('gives extensions @waypoint-org/api when they use it without installing it', async () => {
   await open('Try API from CommonJS');
   await expect(page.getByRole('option', { name: /Required from CommonJS/ })).toBeVisible();
 
@@ -291,7 +291,7 @@ test('gives extensions @waypoint/api when they use it without installing it', as
   await expect(page.getByRole('option', { name: /Built with helpers/ })).toBeVisible();
   // The action the helpers built works like any other, shortcut and all.
   await page.keyboard.press(`${mod}+Shift+c`);
-  await expect.poll(clipboardText).toBe('from @waypoint/api');
+  await expect.poll(clipboardText).toBe('from @waypoint-org/api');
 });
 
 test('shows what takes up space in a folder, and opens the folders in it', async () => {

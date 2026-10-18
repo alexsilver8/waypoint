@@ -7,7 +7,7 @@
     "lib": ["ES2023"],
     "types": ["node"],
     // The package's source, so the types are checked without building it first.
-    "paths": { "@waypoint/api": ["./packages/api/src/index.ts"] }
+    "paths": { "@waypoint-org/api": ["./packages/api/src/index.ts"] }
   },
   "include": [
     "extensions/**/*.js",

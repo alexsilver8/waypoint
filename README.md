@@ -297,14 +297,14 @@ First-launch setup only opens on a fresh install. To see it while working on it,
 - `src/renderer` — the launcher, Notes, Settings and setup windows. Root search and the calculator run here, so typing never waits on IPC.
 - `src/shared` — types, fuzzy matching and the calculator, shared by all three.
 - `extensions` — the extensions that come with Waypoint, in plain JavaScript checked through JSDoc. `pnpm extensions:data` refreshes the gitmoji and emoji lists from their packages.
-- `packages/api` — `@waypoint/api`, the types and helpers for extension authors. Waypoint gives it to extensions that don't install it themselves.
+- `packages/api` — `@waypoint-org/api`, the types and helpers for extension authors. Waypoint gives it to extensions that don't install it themselves.
 - `website` — the landing page: plain HTML, CSS and JavaScript with no build step. Serve the folder to preview it (`npx serve website`); pushes to `main` publish it to GitHub Pages.
 
 Built-in commands implement the same interface as extensions, so anything a built-in can do, an extension can too.
 
 ## Roadmap
 
-- `@waypoint/api` on npm, so editors get its types without a copy of this repo
+- `@waypoint-org/api` on npm, so editors get its types without a copy of this repo
 - Snippets that expand as you type in any app
 - Code-signed, auto-updating releases
 

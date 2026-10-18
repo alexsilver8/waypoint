@@ -19,12 +19,12 @@ import {
   toRepository,
 } from './github.js';
 
-/** @typedef {import('@waypoint/api').Extension} Extension */
-/** @typedef {import('@waypoint/api').ExtensionContext} Context */
-/** @typedef {import('@waypoint/api').ListItem} ListItem */
-/** @typedef {import('@waypoint/api').ListView} ListView */
-/** @typedef {import('@waypoint/api').Action} Action */
-/** @typedef {import('@waypoint/api').ActionResult} ActionResult */
+/** @typedef {import('@waypoint-org/api').Extension} Extension */
+/** @typedef {import('@waypoint-org/api').ExtensionContext} Context */
+/** @typedef {import('@waypoint-org/api').ListItem} ListItem */
+/** @typedef {import('@waypoint-org/api').ListView} ListView */
+/** @typedef {import('@waypoint-org/api').Action} Action */
+/** @typedef {import('@waypoint-org/api').ActionResult} ActionResult */
 /** @typedef {import('./github.js').Issue} Issue */
 /** @typedef {import('./github.js').Repository} Repository */
 

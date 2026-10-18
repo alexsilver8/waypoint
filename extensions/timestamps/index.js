@@ -3,9 +3,9 @@
 // format you need.
 import { formatMoment, parseMoment } from './time.js';
 
-/** @typedef {import('@waypoint/api').Extension} Extension */
-/** @typedef {import('@waypoint/api').ExtensionContext} Context */
-/** @typedef {import('@waypoint/api').ListView} ListView */
+/** @typedef {import('@waypoint-org/api').Extension} Extension */
+/** @typedef {import('@waypoint-org/api').ExtensionContext} Context */
+/** @typedef {import('@waypoint-org/api').ListView} ListView */
 
 /** @type {Record<import('./time.js').Source, string>} */
 const READ_AS = {

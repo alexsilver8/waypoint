@@ -2,9 +2,9 @@
 // "Use “…” with", so anything typed into the launcher can be looked up.
 import { parseResults, searchUrl } from './mdn.js';
 
-/** @typedef {import('@waypoint/api').Extension} Extension */
-/** @typedef {import('@waypoint/api').ExtensionContext} Context */
-/** @typedef {import('@waypoint/api').ListView} ListView */
+/** @typedef {import('@waypoint-org/api').Extension} Extension */
+/** @typedef {import('@waypoint-org/api').ExtensionContext} Context */
+/** @typedef {import('@waypoint-org/api').ListView} ListView */
 /** @typedef {import('./mdn.js').Doc} Doc */
 
 const PLACEHOLDER = 'Search MDN Web Docs…';

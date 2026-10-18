@@ -5,19 +5,30 @@
 // detail view or a form, `no-view` commands just do something, and `onAction` handles the
 // "callback" actions that a command's items offer, and its forms when they're submitted.
 //
-// The helpers come from @waypoint/api. Waypoint provides it when the extension runs, so there's
-// nothing to install; `npm install --save-dev @waypoint/api` gives your editor its types too.
+// The helpers come from @waypoint-org/api. Waypoint provides it when the extension runs, so there's
+// nothing to install; `npm install --save-dev @waypoint-org/api` gives your editor its types too.
 // Every helper returns a plain object, so `Action.copy(text)` and `{ type: 'copy', text }` are
 // the same, and you can mix the two.
 import { randomUUID } from 'node:crypto';
-import { Action, defineExtension, detail, field, form, formValues, Icon, item, list, metadata } from '@waypoint/api';
+import {
+  Action,
+  defineExtension,
+  detail,
+  field,
+  form,
+  formValues,
+  Icon,
+  item,
+  list,
+  metadata,
+} from '@waypoint-org/api';
 
-/** @typedef {import('@waypoint/api').ExtensionContext} Context */
-/** @typedef {import('@waypoint/api').ListView} ListView */
-/** @typedef {import('@waypoint/api').DetailView} DetailView */
-/** @typedef {import('@waypoint/api').FormView} FormView */
-/** @typedef {import('@waypoint/api').ActionResult} ActionResult */
-/** @typedef {import('@waypoint/api').Json} Json */
+/** @typedef {import('@waypoint-org/api').ExtensionContext} Context */
+/** @typedef {import('@waypoint-org/api').ListView} ListView */
+/** @typedef {import('@waypoint-org/api').DetailView} DetailView */
+/** @typedef {import('@waypoint-org/api').FormView} FormView */
+/** @typedef {import('@waypoint-org/api').ActionResult} ActionResult */
+/** @typedef {import('@waypoint-org/api').Json} Json */
 /** @typedef {{ id: string, text: string, done: boolean, notes?: string, priority?: string }} Todo */
 
 /**

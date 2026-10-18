@@ -1,13 +1,13 @@
-# @waypoint/api
+# @waypoint-org/api
 
 Types and helpers for writing [Waypoint](https://github.com/alexsilver8/waypoint) extensions: the shape of every view, item and action, and small functions that build them with less to type.
 
 Waypoint gives this package to extensions as they run, so an extension can import it without installing anything. Install it for your editor's completions and type checks:
 
 ```sh
-npm install --save-dev @waypoint/api
+npm install --save-dev @waypoint-org/api
 # or
-pnpm add -D @waypoint/api
+pnpm add -D @waypoint-org/api
 ```
 
 A copy in your extension's `node_modules` is the one your extension gets, instead of Waypoint's.
@@ -17,7 +17,7 @@ A copy in your extension's `node_modules` is the one your extension gets, instea
 ```js
 // @ts-check
 import { randomUUID } from 'node:crypto';
-import { Action, Icon, defineExtension, item, list } from '@waypoint/api';
+import { Action, Icon, defineExtension, item, list } from '@waypoint-org/api';
 
 const uuids = () =>
   list({
@@ -41,7 +41,7 @@ export default defineExtension({
 });
 ```
 
-`require('@waypoint/api')` works the same in CommonJS. Each helper returns a plain object, so they mix with object literals: `Action.copy(text)` is `{ type: 'copy', text }`.
+`require('@waypoint-org/api')` works the same in CommonJS. Each helper returns a plain object, so they mix with object literals: `Action.copy(text)` is `{ type: 'copy', text }`.
 
 | Helper | Builds |
 | --- | --- |

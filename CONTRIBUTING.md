@@ -34,7 +34,7 @@ Thanks for taking the time to contribute! 🎉
 | `src/extension-host` | Runs third-party extensions in a utility process |
 | `src/renderer` | The launcher, Notes, Settings and first-launch setup windows (React) |
 | `src/shared` | Types and logic used everywhere: fuzzy search, calculator, the extension API |
-| `packages/api` | `@waypoint/api`, the npm package for extension authors: the extension API's types (from `src/shared`, bundled at build) and helpers. The extension host gives it to extensions that don't install it. |
+| `packages/api` | `@waypoint-org/api`, the npm package for extension authors: the extension API's types (from `src/shared`, bundled at build) and helpers. The extension host gives it to extensions that don't install it. |
 | `examples/extensions` | Example extensions, loaded automatically by `pnpm dev` |
 | `e2e` | Playwright tests that drive the built app |
 

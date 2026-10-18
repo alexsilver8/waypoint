@@ -1,5 +1,5 @@
 {
-  "name": "@waypoint/api",
+  "name": "@waypoint-org/api",
   "version": "0.0.1",
   "description": "Types and helpers for writing Waypoint extensions.",
   "keywords": [
