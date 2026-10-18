@@ -2183,9 +2183,9 @@ h2 {
 .included-glow {
   position: absolute;
   left: 50%;
-  top: 58%;
-  width: min(760px, 90%);
-  height: 300px;
+  top: 60%;
+  width: min(820px, 90%);
+  height: 440px;
   border-radius: 50%;
   background: var(--amber);
   filter: blur(150px);
@@ -2381,8 +2381,8 @@ h2 {
 }
 
 /* ── Details: a bento of the smaller things ───────────────
- * Two wide cards beside a tall one, three across, then one the full width. Each card draws a
- * corner of the app with its own panes, and its words sit bottom-left on a wash of the card colour.
+ * Two wide cards beside a tall one, then three across. Each card draws a corner of the app with
+ * its own panes, and its words sit bottom-left on a wash of the card colour.
  */
 
 /* Straight after the hero. */
@@ -2525,16 +2525,6 @@ h2 {
   grid-column: 5 / 7;
   grid-row: 3;
   height: 260px;
-}
-
-.bento-anywhere {
-  --glow: var(--blue);
-  --gx: 50%;
-  --gy: 40%;
-  --home: 64px;
-  grid-column: 1 / -1;
-  grid-row: 4;
-  height: 320px;
 }
 
 .bento-visual {
@@ -3168,8 +3158,7 @@ h2 {
   clip-path: polygon(0 0, 58% 0, 42% 100%, 0 100%);
 }
 
-.th-dark,
-.aw-launcher {
+.th-dark {
   --th-pane: var(--pane);
   --th-border: var(--pane-border);
   --th-sheen: var(--pane-sheen);
@@ -3182,9 +3171,6 @@ h2 {
   --th-selected: var(--l-selected);
   --th-selected-border: var(--l-selected-border);
   --th-selected-shadow: var(--l-selected-shadow);
-}
-
-.th-dark {
   background: linear-gradient(160deg, #1c1d29, #101015);
   box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12);
   clip-path: polygon(58% 0, 100% 0, 100% 100%, 42% 100%);
@@ -3298,102 +3284,6 @@ h2 {
   height: 13px;
 }
 
-/* Put it anywhere: the card is a display. Its vertical center, its middle and where the
-   launcher opens (along the panes' top edge) are drawn as guides, as the app draws them while you
-   drag; the launcher glides in and snaps to two of them, which light up. Hovering drags it away. */
-.aw-line {
-  position: absolute;
-  background: rgb(255 255 255 / 0.26);
-  transition:
-    background-color 0.25s ease 0.85s,
-    box-shadow 0.25s ease 0.85s;
-}
-
-.aw-center {
-  left: 50%;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-}
-
-.aw-home,
-.aw-middle {
-  left: 0;
-  right: 0;
-  height: 1px;
-}
-
-.aw-home {
-  top: var(--home);
-}
-
-.aw-middle {
-  top: 50%;
-}
-
-.aw-snap {
-  background: var(--badge);
-  box-shadow: 0 0 10px rgb(139 155 255 / 0.9);
-}
-
-.aw-launcher {
-  position: absolute;
-  left: 50%;
-  top: var(--home);
-  display: flex;
-  gap: 6px;
-  width: min(380px, calc(100% - 48px));
-  color: var(--th-ink);
-  font-size: 12.5px;
-  white-space: nowrap;
-  transform: translateX(-50%);
-  transition: transform 1s var(--ease-out) 0.25s;
-}
-
-.aw-launcher .th-dock,
-.aw-launcher .th-search,
-.aw-launcher .th-sheet {
-  box-shadow:
-    inset 0 1px 0 var(--th-sheen),
-    var(--th-shadow),
-    0 24px 50px rgb(0 0 0 / 0.45);
-}
-
-.aw-pointer {
-  position: absolute;
-  left: 62%;
-  top: 14px;
-  width: 22px;
-  height: 22px;
-  fill: #fff;
-  stroke: rgb(0 0 0 / 0.75);
-  stroke-width: 1.3;
-  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.4));
-}
-
-/* While hovered, and before it's in view: dragged off the guides, which dim. */
-.bento-anywhere:hover .aw-launcher {
-  transform: translate(calc(-50% + 72px), 34px);
-  transition-delay: 0s;
-}
-
-.js .bento-anywhere:not(.is-in) .aw-launcher {
-  transform: translate(calc(-50% + 72px), 34px);
-  transition-delay: 0s;
-}
-
-.bento-anywhere:hover .aw-snap {
-  background: rgb(255 255 255 / 0.26);
-  box-shadow: none;
-  transition-delay: 0s;
-}
-
-.js .bento-anywhere:not(.is-in) .aw-snap {
-  background: rgb(255 255 255 / 0.26);
-  box-shadow: none;
-  transition-delay: 0s;
-}
-
 .bento-more {
   position: relative;
   margin-top: 44px;
@@ -3431,8 +3321,7 @@ h2 {
   .bento-keys,
   .bento-with,
   .bento-actions,
-  .bento-theme,
-  .bento-anywhere {
+  .bento-theme {
     grid-column: 1 / -1;
     grid-row: auto;
   }
@@ -3482,11 +3371,6 @@ h2 {
   .bento-settings,
   .bento-theme {
     height: 260px;
-  }
-
-  .bento-anywhere {
-    --home: 40px;
-    height: 300px;
   }
 
   .bento-card {
