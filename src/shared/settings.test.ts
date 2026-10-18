@@ -46,6 +46,14 @@ describe('normalizeSettings', () => {
     ]);
   });
 
+  it('expands snippets as you type only once turned on', () => {
+    expect(DEFAULT_SETTINGS.snippetExpansion).toBe(false);
+    expect(normalizeSettings({ snippetExpansion: true }).settings.snippetExpansion).toBe(true);
+    expect(normalizeSettings({ snippetExpansion: 1 }).problems).toEqual([
+      'Ignoring invalid value for "snippetExpansion".',
+    ]);
+  });
+
   it('rejects non-object settings', () => {
     expect(normalizeSettings([1, 2]).problems).toHaveLength(1);
   });

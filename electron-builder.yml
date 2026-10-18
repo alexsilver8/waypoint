@@ -10,6 +10,12 @@ files:
   - resources/**
   - package.json
   - '!**/*.map'
+# uiohook-napi (the keyboard hook that expands snippets as you type) ships a prebuilt Node-API
+# binary for each system, which works with any Electron, so there's nothing to compile. Native
+# code can't load from inside the app's archive, so it's kept beside it.
+npmRebuild: false
+asarUnpack:
+  - node_modules/uiohook-napi/**
 # The extensions that come with the app load from its resources, like any other extension.
 extraResources:
   - from: extensions

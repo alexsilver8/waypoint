@@ -75,6 +75,11 @@ export class ClipboardHistory {
     }
   }
 
+  /** Takes `text` as seen already, so Waypoint putting it on the clipboard doesn't add it. */
+  ignore(text: string): void {
+    this.lastSeen = text;
+  }
+
   add(text: string): void {
     if (!text.trim() || text.length > MAX_ENTRY_LENGTH) return;
     this.items = [{ id: randomUUID(), text, copiedAt: this.now() }, ...this.items.filter((item) => item.text !== text)];

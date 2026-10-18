@@ -6,6 +6,8 @@ packages:
 # Electron downloads its binary on first run, so it needs no install script.
 allowBuilds:
   esbuild: true
+  # Ships prebuilt binaries, so its install script (which would compile one) isn't needed.
+  uiohook-napi: false
   electron-winstaller: false
 
 # Keep every Tiptap package on the same release: @tiptap/react's optional menus would

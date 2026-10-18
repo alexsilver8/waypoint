@@ -64,7 +64,7 @@ export function snippetForm(snippet?: Snippet): FormView {
         title: 'Keyword',
         placeholder: '!sig',
         defaultValue: snippet?.keyword ?? '',
-        info: 'Optional. Type it in the launcher to paste the snippet.',
+        info: 'Optional. Type it in the launcher to paste the snippet, or anywhere when Expand keywords as you type is on.',
       },
     ],
   };

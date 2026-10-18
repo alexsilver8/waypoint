@@ -418,6 +418,7 @@
       <nav class="nav-links" aria-label="Main">
         <a href="#details">Features</a>
         <a href="#write">Notes</a>
+        <a href="#snippets">Snippets</a>
         <a href="#extend">Extensions</a>
         <a href="#source">Roadmap</a>
       </nav>
@@ -1078,25 +1079,57 @@
         </div>
       </section>
 
-      <section class="chapter" id="extend">
+      <section class="chapter" id="snippets" data-rail="write">
         <div class="chapter-grid">
           <div class="chapter-copy reveal">
             <div class="eyebrow">
               <span class="pill-ind" aria-hidden="true"
-                ><span class="pill-dot"></span><span class="pill-dot"></span
-                ><span class="pill-dot on" style="--c: var(--amber)"></span
+                ><span class="pill-dot"></span><span class="pill-dot on" style="--c: var(--pink)"></span
+                ><span class="pill-dot"></span
               ></span>
-              <span class="label" style="color: var(--amber-ink)">Extend</span>
+              <span class="label" style="color: var(--pink-ink)">Snippets</span>
             </div>
-            <h2>If it runs in Node, it can be a command.</h2>
+            <h2>Type <code class="h2-code">!sig</code>, get the whole signature.</h2>
             <p class="body">
-              Write extensions in JavaScript. Each one runs in its own process, so it can't freeze the launcher.
+              Give text you type often a keyword. Type it in any app, in an email, a chat or a form, and Waypoint swaps
+              it for the snippet, with <code class="body-code">{date}</code> and
+              <code class="body-code">{clipboard}</code> filled in. Your clipboard is put back after.
             </p>
-            <a class="text-link" href="https://github.com/alexsilver8/waypoint/blob/main/docs/extensions.md"
-              >Read the extension docs <svg class="i arrow" aria-hidden="true"><use href="#i-arrow" /></svg
-            ></a>
           </div>
 
+          <div class="visual visual-snippets" aria-hidden="true">
+            <span class="glow" style="--c: var(--pink); right: 6%; top: 8%"></span>
+            <!-- An email being written in another app: !sig is typed, then swapped for the snippet. -->
+            <div class="glass-win mail reveal">
+              <div class="notes-bar">
+                <span class="notes-lights"><i></i><i></i><i></i></span>
+                <span class="notes-title">Re: Launch date</span>
+              </div>
+              <div class="mail-fields">
+                <p><span class="mail-label">To</span>sam@example.com</p>
+                <p><span class="mail-label">Subject</span>Re: Launch date</p>
+              </div>
+              <div class="mail-body">
+                <p>Hi Sam,</p>
+                <p>Friday works for me. I’ll send the build over tonight.</p>
+                <div class="sx-line">
+                  <p class="sx-typing"><span class="sx-keyword">!sig</span><span class="caret caret-pink"></span></p>
+                  <p class="sx-sig">Thanks,<br />Alex<span class="caret caret-pink"></span></p>
+                </div>
+              </div>
+            </div>
+            <div class="sx-keys reveal" style="--d: 0.15s">
+              <kbd class="sx-key" style="--k: 0">!</kbd><kbd class="sx-key" style="--k: 1">s</kbd
+              ><kbd class="sx-key" style="--k: 2">i</kbd><kbd class="sx-key" style="--k: 3">g</kbd>
+              <span class="sx-arrow"><svg class="i" aria-hidden="true"><use href="#i-arrow" /></svg></span>
+              <span class="sx-result">Email signature</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="chapter" id="extend">
+        <div class="chapter-grid">
           <div class="visual visual-extend" aria-hidden="true">
             <span class="glow" style="--c: var(--amber); right: 10%; top: 10%"></span>
             <div class="code reveal">
@@ -1152,6 +1185,23 @@
                 </div>
               </div>
             </div>
+          </div>
+
+          <div class="chapter-copy reveal">
+            <div class="eyebrow">
+              <span class="pill-ind" aria-hidden="true"
+                ><span class="pill-dot"></span><span class="pill-dot"></span
+                ><span class="pill-dot on" style="--c: var(--amber)"></span
+              ></span>
+              <span class="label" style="color: var(--amber-ink)">Extend</span>
+            </div>
+            <h2>If it runs in Node, it can be a command.</h2>
+            <p class="body">
+              Write extensions in JavaScript. Each one runs in its own process, so it can't freeze the launcher.
+            </p>
+            <a class="text-link" href="https://github.com/alexsilver8/waypoint/blob/main/docs/extensions.md"
+              >Read the extension docs <svg class="i arrow" aria-hidden="true"><use href="#i-arrow" /></svg
+            ></a>
           </div>
         </div>
       </section>
@@ -1431,8 +1481,7 @@
           <div class="roadmap reveal" style="--d: 0.1s">
             <h3>On the roadmap</h3>
             <ul>
-              <li style="--c: var(--blue)">Snippets that expand as you type in any app</li>
-              <li style="--c: var(--pink)">Code-signed releases, so macOS installs updates by itself too</li>
+              <li style="--c: var(--blue)">Code-signed releases, so macOS installs updates by itself too</li>
             </ul>
           </div>
         </div>

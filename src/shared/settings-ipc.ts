@@ -2,7 +2,7 @@
 import type { CommandShortcutInfo } from './command-hotkeys';
 import type { Quicklink, QuicklinkDraft } from './quicklinks';
 import type { Settings } from './settings';
-import type { Snippet, SnippetDraft } from './snippets';
+import type { Snippet, SnippetDraft, SnippetExpansionStatus } from './snippets';
 import type { ExtensionSource, Platform } from './types';
 import type { UpdateMode, UpdateStatus } from './updates';
 
@@ -42,6 +42,8 @@ export interface SettingsState {
     canLaunchAtLogin: boolean;
     /** Running the installed app, rather than from source. */
     packaged: boolean;
+    /** Whether snippets expand as you type in other apps, and if not, why. */
+    snippetExpansion: SnippetExpansionStatus;
     updates: { mode: UpdateMode; status: UpdateStatus };
   };
 }
@@ -90,6 +92,7 @@ export const SettingsChannel = {
   deleteSnippet: 'settings:delete-snippet',
   listApps: 'settings:list-apps',
   takeTarget: 'settings:take-target',
+  openAccessibility: 'settings:open-accessibility',
   updateAction: 'settings:update-action',
   /** main → window: something changed; fetch the state again. */
   changed: 'settings:changed',
@@ -136,6 +139,8 @@ export interface SettingsApi {
   deleteSnippet(id: string): Promise<SaveResult>;
   /** The installed apps, A to Z. */
   listApps(): Promise<AppChoice[]>;
+  /** Asks macOS for Accessibility, which expanding snippets needs, and opens its page. */
+  openAccessibility(): void;
   /** Where the window was last asked to go, once; `null` when nowhere in particular. */
   takeTarget(): Promise<SettingsTarget | null>;
   onChanged(listener: () => void): () => void;
