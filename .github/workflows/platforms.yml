@@ -1,8 +1,8 @@
 name: platforms
 
 # Runs the commands that talk to the operating system (moving windows, media, Wi-Fi, disks,
-# system info) on real macOS, Windows and Linux machines. CI's other checks run on Linux only,
-# and the scripts for the other systems can't be tried there.
+# system info, file search, Keep Awake, Shortcuts) on real macOS, Windows and Linux machines.
+# CI's other checks run on Linux only, and the scripts for the other systems can't be tried there.
 on:
   pull_request:
     paths:
@@ -11,6 +11,9 @@ on:
       - src/main/system/**
       - extensions/media-controls/**
       - extensions/system-info/**
+      - extensions/files/**
+      - extensions/keep-awake/**
+      - extensions/shortcuts/**
       - .github/workflows/platforms.yml
   workflow_dispatch:
 

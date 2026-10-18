@@ -22,7 +22,7 @@ Website: [waypoint.alexsilver.dev](https://waypoint.alexsilver.dev/)
 - **Learns what you use** — frequently used items rise to the top.
 - **Snaps windows** — halves, thirds, quarters, maximize, centre and the next display for the window you were using, and **Restore** to put it back. See [Windows](#windows).
 - **Runs your computer** — lock, sleep, restart, shut down, log out, empty the Trash, eject disks and turn Wi-Fi on or off, with a check before anything you can't undo. See [System](#system).
-- **Comes with extensions** — developer tools like Port Manager, Docker and GitHub, plus Media Controls and System Info, described [below](#included-extensions).
+- **Comes with extensions** — file search, your downloads and browser bookmarks, your own scripts and Shortcuts, Keep Awake, translation and a dictionary, developer tools like Port Manager, Docker and GitHub, plus Media Controls and System Info, described [below](#included-extensions).
 - **Runs extensions** — commands written in JavaScript, each extension in a separate process. See [Writing extensions](docs/extensions.md).
 - **Everything has actions** — <kbd>⌘</kbd> <kbd>K</kbd> lists what you can do with the selected item.
 - **Looks at home on your desktop** — the launcher is three panes floating on your desktop with nothing around them: the scope dock, the search field, and the results with their preview and action bar. Light or dark. Drag it anywhere that isn't a control to move it: like Raycast, guide lines show the screen's center, its middle and where the launcher opens, and it snaps to them. It opens again where you left it on that display. Settings floats the same way on macOS. The Notes window is liquid glass that blurs what's behind them on macOS and Windows 11; Linux gets the same design on a solid background, since it has no system blur.
@@ -129,6 +129,14 @@ These come with Waypoint and are written with the same [extension API](docs/exte
 
 | Command | |
 | --- | --- |
+| **Search Files** | Files and folders by name, from Spotlight on macOS, [Everything](https://www.voidtools.com) (with its `es` command-line tool) or Windows Search on Windows, and `locate` or `fd` on Linux; without those, your home folder is looked through. With nothing typed, the files you opened recently. The preview shows the start of a text file, or what a folder holds. <kbd>↵</kbd> opens it, <kbd>⌘</kbd> <kbd>↵</kbd> shows it in Finder or Explorer, <kbd>⌘</kbd> <kbd>Y</kbd> is Quick Look on macOS, **Copy File** puts the file itself on the clipboard to paste into a chat or a folder, and <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>⌫</kbd> moves it to the Trash. Also from **Use “…” with**. |
+| **Search Downloads**, **Open Latest Download** | Your Downloads folder, newest first, with anything still downloading, and the newest one opened in one go. |
+| **Search Bookmarks** | The bookmarks in Chrome, Brave, Edge, Vivaldi and Chromium, in every profile, the ones you opened last first. <kbd>↵</kbd> opens one in the browser and profile it's from, <kbd>⌘</kbd> <kbd>↵</kbd> in your default browser. Read from the browsers' own files; nothing is sent anywhere. Also from **Use “…” with**. |
+| **Search Script Commands**, **Create Script Command** | Your own scripts, run from the launcher; Raycast's script commands work too. See [Script commands](#script-commands). |
+| **Run Shortcut** | Your Shortcuts, the ones you ran last first, so anything Shortcuts can do (turning on a Focus, say) is a few keys away. <kbd>⌘</kbd> <kbd>↵</kbd> opens one in Shortcuts to edit. macOS 12 and later. |
+| **Keep Awake**, **Toggle Keep Awake**, **Allow Sleep** | Keeps your computer and its display awake for a while (`45m`, `1h30`), until a time (`5pm`), or until you turn it off, with `caffeinate` on macOS, `gnome-session-inhibit` or `systemd-inhibit` on Linux and `SetThreadExecutionState` on Windows. It carries on if Waypoint restarts. |
+| **Translate** | [DeepL](https://www.deepl.com), into your language, or into a second language you pick for text that's already in yours. Paste a DeepL API key into its search field once; it's kept in Waypoint's data folder (`extension-data/deepl`). Also from **Use “…” with**. |
+| **Define Word** | English definitions, examples and synonyms from Wiktionary, through the [Free Dictionary API](https://dictionaryapi.dev). Also from **Use “…” with**. |
 | **Open Ports** | Every program listening on a port, with its command line and whether other devices can reach it. <kbd>↵</kbd> stops it, <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>⌫</kbd> forces it, <kbd>⌘</kbd> <kbd>O</kbd> opens it in the browser. |
 | **Search Gitmoji** | The [gitmoji](https://gitmoji.dev) list by name or meaning. <kbd>↵</kbd> pastes the emoji, <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>C</kbd> copies its `:code:`. Recently used come first. |
 | **Search Emoji** | Every emoji by name, keyword or `:shortcode:`, recently used first. <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>T</kbd> picks the skin tone for all of them. |
@@ -146,6 +154,31 @@ These come with Waypoint and are written with the same [extension API](docs/exte
 | **Search Homebrew**, **Manage Homebrew Packages** | Every formula and cask, and what you've installed, out-of-date first. Installing, upgrading and uninstalling run in a Terminal window, so you can see brew work. macOS and Linux. |
 
 <kbd>↵</kbd> in Gitmoji, Emoji and Commit Message pastes into the app you were in. The first time on macOS, allow Waypoint under **System Settings → Privacy & Security → Accessibility** (and **Automation** for System Events). On Linux, pasting needs `xdotool` (X11) or `wtype` (Wayland); without them the text is copied instead. Turn off **Paste into the app you were in** in Settings to always copy.
+
+### Script commands
+
+**Search Script Commands** lists the scripts in Waypoint's own script folder, which the bottom of the list opens, and in any folder you add by typing its path. A script says what it is in comments near its top:
+
+```sh
+#!/bin/bash
+
+# @waypoint.title Restart the Dock
+# @waypoint.mode compact
+# @waypoint.icon 🔄
+
+killall Dock && echo "Restarted the Dock"
+```
+
+| Header | |
+| --- | --- |
+| `title` | What you search for. The only one it needs. |
+| `mode` | `silent` closes the launcher and runs it; `compact`, the default, shows the last line it prints; `fullOutput` shows everything it prints; `inline` also shows its first line beside it in the list, run again every `refreshTime` (`10m`, `1h`). |
+| `argument1` to `argument3` | `{ "type": "text", "placeholder": "Name" }`, or `"password"`, or `"dropdown"` with `"data": [{ "title": "Stars", "value": "stars" }]`; add `"optional": true` or `"percentEncoded": true`. Pick the script, then type them after its title, like `Greet: Alex`, quoting any with spaces. |
+| `icon`, `packageName`, `description`, `author`, `authorURL` | How it's shown, and the group it's listed in. |
+| `needsConfirmation` | `true` to be asked before it runs. |
+| `currentDirectoryPath` | Where it runs; its own folder otherwise. |
+
+Raycast's `@raycast.` headers are read the same way, so the scripts in [raycast/script-commands](https://github.com/raycast/script-commands) run as they are. A script runs with the program on its `#!` line, or by its extension (`.sh`, `.py`, `.js`, `.applescript`, `.ps1`…), with Homebrew's folders added to `PATH`. **Create Script Command** starts one from a template.
 
 ## Settings
 
