@@ -14,7 +14,8 @@ import {
 } from 'lucide-react';
 import { type CSSProperties, type RefObject, useLayoutEffect, useMemo, useState } from 'react';
 import { rankItems } from '../../../shared/search';
-import { dismissSlash, type SlashKeys, type SlashState } from './slash';
+import { type InlineMatch, type MenuKeys, placeMenu } from './inline-menu';
+import { dismissSlash } from './slash';
 
 interface SlashItem {
   title: string;
@@ -70,6 +71,7 @@ const ITEMS: SlashItem[] = [
 ];
 
 const WIDTH = 220;
+const ROW = 32;
 
 /**
  * The menu the / opens, just below the line: ↑ ↓ to choose, ↵ or ⇥ to turn the line into
@@ -81,8 +83,8 @@ export function SlashMenu({
   keys,
 }: {
   editor: Editor;
-  match: SlashState;
-  keys: RefObject<SlashKeys | null>;
+  match: InlineMatch;
+  keys: RefObject<MenuKeys | null>;
 }) {
   const items = useMemo(() => rankItems(ITEMS, match.query).map((ranked) => ranked.item), [match.query]);
   const [selected, setSelected] = useState(0);
@@ -122,23 +124,25 @@ export function SlashMenu({
   });
 
   const coords = editor.view.coordsAtPos(match.from);
-  const height = items.length * 32 + 12;
-  const below = coords.bottom + 6 + height < window.innerHeight;
   const style: CSSProperties = {
-    left: Math.max(8, Math.min(coords.left - 8, window.innerWidth - WIDTH - 8)),
+    ...placeMenu(
+      coords,
+      { width: WIDTH, height: items.length * ROW + 12 },
+      { width: window.innerWidth, height: window.innerHeight },
+    ),
     width: WIDTH,
-    ...(below ? { top: coords.bottom + 6 } : { bottom: window.innerHeight - coords.top + 6 }),
   };
 
   if (items.length === 0) return null;
   return (
-    <div className="toolbar__popover toolbar__list slash" style={style} role="listbox" aria-label="Format as">
+    <div className="toolbar__popover toolbar__list inline-menu" style={style} role="listbox" aria-label="Format as">
       {items.map((item, index) => (
         <div
           key={item.title}
           role="option"
           aria-selected={index === selected}
-          className="toolbar__item slash__item"
+          ref={index === selected ? (row) => row?.scrollIntoView({ block: 'nearest' }) : undefined}
+          className="toolbar__item inline-menu__item"
           onMouseMove={() => setSelected(index)}
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => apply(item)}

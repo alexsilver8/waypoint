@@ -5,8 +5,10 @@ import { Paragraph } from '@tiptap/extension-paragraph';
 import { Placeholder } from '@tiptap/extensions';
 import { Markdown, type MarkdownManager } from '@tiptap/markdown';
 import { StarterKit } from '@tiptap/starter-kit';
+import { EMOJI_TRIGGER, emojiKey } from './emoji';
 import { Find } from './find';
-import { SlashCommands, type SlashKeys } from './slash';
+import { inlineMenu, type MenuKeys } from './inline-menu';
+import { SLASH_TRIGGER, slashKey } from './slash';
 
 /**
  * How notes turn into Markdown and back. Notes are files people also open elsewhere, so
@@ -144,14 +146,21 @@ const TaskToggle = Extension.create({
   },
 });
 
+/** Typing / opens the format menu; a colon and two letters, the emoji picker. */
+const SlashTrigger = inlineMenu('slashMenu', slashKey);
+const EmojiTrigger = inlineMenu('emojiPicker', emojiKey);
+
 /** Everything the Notes editor understands. */
 export function noteExtensions({
   onLinkShortcut,
   slashKeys = { current: null },
+  emojiKeys = { current: null },
 }: {
   onLinkShortcut(): void;
   /** Where the / menu, while it's open, takes the keys it uses. */
-  slashKeys?: { current: SlashKeys | null };
+  slashKeys?: { current: MenuKeys | null };
+  /** The same for the emoji picker. */
+  emojiKeys?: { current: MenuKeys | null };
 }): Extensions {
   return [
     StarterKit.configure({
@@ -172,7 +181,17 @@ export function noteExtensions({
     LinkShortcut.configure({ open: onLinkShortcut }),
     TaskToggle,
     Find,
-    SlashCommands.configure({ onKey: (key) => slashKeys.current?.onKey(key) ?? false }),
+    SlashTrigger.configure({
+      pattern: SLASH_TRIGGER,
+      // Only for a / you've just typed.
+      opensFor: (query) => query === '',
+      onKey: (key) => slashKeys.current?.onKey(key) ?? false,
+    }),
+    EmojiTrigger.configure({
+      pattern: EMOJI_TRIGGER,
+      opensFor: () => true,
+      onKey: (key) => emojiKeys.current?.onKey(key) ?? false,
+    }),
   ];
 }
 

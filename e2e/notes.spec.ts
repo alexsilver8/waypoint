@@ -244,6 +244,16 @@ test('formats a line from the / menu', async () => {
     .toBe('# Trip to Lisbon\n\nBook the train\n\n- [ ] pack the adapter\n- [ ] /');
 });
 
+test('picks an emoji by typing a colon and its name', async () => {
+  await editor().press(`${mod}+End`);
+  await notes.keyboard.type(' :tad');
+  const picker = notes.getByRole('listbox', { name: 'Emoji' });
+  await expect(picker.getByRole('option').first()).toContainText(':tada:');
+  await notes.keyboard.press('Enter');
+  await expect(picker).toHaveCount(0);
+  await expect.poll(() => note('trip.md')).toBe('# Trip to Lisbon\n\nBook the train 🎉');
+});
+
 test('ticks a checklist item with ⌘↵', async () => {
   await editor().press(`${mod}+End`);
   await notes.keyboard.press('Enter');

@@ -36,9 +36,12 @@ import {
 } from 'react';
 import { isOpenableLink, normalizeLink } from '../../../shared/notes';
 import { Keycaps } from '../components/Keycaps';
+import { EmojiMenu } from './EmojiMenu';
+import { emojiState } from './emoji';
+import type { MenuKeys } from './inline-menu';
 import { applyNoteStyle, noteExtensions, showsFaithfully } from './markdown';
 import { SlashMenu } from './SlashMenu';
-import { type SlashKeys, slashState } from './slash';
+import { slashState } from './slash';
 
 const api = window.notes;
 const { platform } = api;
@@ -624,8 +627,12 @@ export function NoteEditor({
   const shownText = useRef<string | null>(null);
   const shownNote = useRef<string | null>(null);
 
-  const slashKeys = useRef<SlashKeys | null>(null);
-  const extensions = useMemo(() => noteExtensions({ onLinkShortcut: () => setLinkOpen(true), slashKeys }), []);
+  const slashKeys = useRef<MenuKeys | null>(null);
+  const emojiKeys = useRef<MenuKeys | null>(null);
+  const extensions = useMemo(
+    () => noteExtensions({ onLinkShortcut: () => setLinkOpen(true), slashKeys, emojiKeys }),
+    [],
+  );
   const editor = useEditor({
     extensions,
     editable: false,
@@ -657,6 +664,7 @@ export function NoteEditor({
   });
 
   const slash = useEditorState({ editor, selector: ({ editor: e }) => (e ? slashState(e) : null) });
+  const emoji = useEditorState({ editor, selector: ({ editor: e }) => (e ? emojiState(e) : null) });
 
   useEffect(() => {
     onEditor(editor);
@@ -766,6 +774,7 @@ export function NoteEditor({
         <EditorContent editor={editor} className="notes__scroller" hidden={source} ref={scroller} />
       </main>
       {editor && slash && !linkOpen && <SlashMenu editor={editor} match={slash} keys={slashKeys} />}
+      {editor && emoji && !linkOpen && <EmojiMenu editor={editor} match={emoji} keys={emojiKeys} />}
       {editor && linkOpen && (
         <LinkField
           editor={editor}

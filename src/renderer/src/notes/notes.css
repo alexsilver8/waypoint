@@ -1004,13 +1004,33 @@ button {
   background: var(--n-selection);
 }
 
-/* The / menu: its rows are chosen with the arrow keys, like the popovers'. */
-.slash__item {
+/* The / menu and the emoji picker: rows chosen with the arrow keys, like the popovers'.
+   In a short window they scroll rather than run off it. */
+.inline-menu {
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.inline-menu__item {
+  flex: none;
   cursor: default;
 }
 
-.slash__item[aria-selected="true"] {
+.inline-menu__item[aria-selected="true"] {
   background: var(--n-selection);
+}
+
+.inline-menu__emoji {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.inline-menu__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .toolbar__item-icon {
