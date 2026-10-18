@@ -1,0 +1,57 @@
+{
+  "name": "keep-awake",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Stop your computer sleeping for a while, until a time, or until you turn it off.",
+  "type": "module",
+  "main": "index.js",
+  "license": "MIT",
+  "waypoint": {
+    "title": "Keep Awake",
+    "icon": "☕",
+    "commands": [
+      {
+        "name": "keep-awake",
+        "title": "Keep Awake",
+        "mode": "view",
+        "icon": "☕",
+        "keywords": [
+          "caffeinate",
+          "coffee",
+          "amphetamine",
+          "stay awake",
+          "prevent sleep",
+          "no sleep",
+          "insomnia",
+          "presentation"
+        ]
+      },
+      {
+        "name": "toggle",
+        "title": "Toggle Keep Awake",
+        "mode": "no-view",
+        "icon": "☕",
+        "keywords": [
+          "caffeinate",
+          "coffee",
+          "stay awake",
+          "prevent sleep",
+          "turn keep awake on",
+          "turn keep awake off"
+        ]
+      },
+      {
+        "name": "allow-sleep",
+        "title": "Allow Sleep",
+        "mode": "no-view",
+        "icon": "😴",
+        "keywords": [
+          "decaffeinate",
+          "stop keep awake",
+          "turn keep awake off",
+          "sleep again"
+        ]
+      }
+    ]
+  }
+}
