@@ -15,6 +15,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
  * @property {string[]} [widerArgs] A second, wider search to run when the first finds little.
  * @property {boolean} [trustEmpty] Finding nothing means there's nothing, rather than that its
  *   index is out of date, so the next way isn't tried.
+ * @property {number} [limit] How many results to read, when it's more than are shown: it finds
+ *   names holding only some of the words, which the ranking then leaves out.
  */
 
 /**
@@ -75,13 +77,17 @@ export const WINDOWS_SEARCH_SCRIPT = [
 ].join('\n');
 
 /**
- * Everything's search treats `!`, `|`, `<>`, `"` and `:` as operators, and es reads a word
- * starting with `-` or `/` as an option; such words are quoted, so they're searched for as
- * written.
+ * A word as es is given it. Everything reads `!`, `|`, `<`, `>`, `"` and `:` as operators, and
+ * es reads a word starting with `-` or `/` as an option. Quotes can't keep them in: Node puts a
+ * backslash before each quote it passes on, and es reads backslashes as they are. So they're
+ * left out, and Everything finds a few more names than were asked for, which the ranking then
+ * drops, as it keeps only names holding every word as typed. Only `!` and `-` can be in a
+ * Windows file name anyway.
  * @param {string} word
+ * @returns {string} Nothing when nothing's left.
  */
 export function everythingWord(word) {
-  return /[!|<>":]|^[-/]/.test(word) ? `"${word.replace(/"/g, '')}"` : word;
+  return word.replace(/[!|<>":]/g, '').replace(/^[-/]+/, '');
 }
 
 /**
@@ -126,13 +132,14 @@ export function searchPlan(platform, words, { home, programs, limit }) {
     });
   } else if (platform === 'win32') {
     const es = programs['es.exe'];
-    if (es) {
+    const everything = words.map(everythingWord).filter(Boolean);
+    if (es && everything.length > 0) {
       // Printed results come in the console's code page, which can't hold every name; an
       // exported list is always UTF-8.
       plan.push({
         id: 'everything',
         file: es,
-        args: ['-n', String(limit), ...words.map(everythingWord)],
+        args: ['-n', String(limit), ...everything],
         exportArg: '-export-txt',
         trustEmpty: true,
       });
@@ -152,25 +159,26 @@ export function searchPlan(platform, words, { home, programs, limit }) {
       plan.push({ id: 'locate', file: locate, args: ['-i', '-b', '-A', '-l', String(limit), '--', ...words] });
     const fd = programs.fd ?? programs.fdfind;
     if (fd) {
+      const options = ['--ignore-case', '--fixed-strings', '--absolute-path', '--color', 'never'];
       const [first = '', ...rest] = words;
       plan.push({
         id: 'fd',
         file: fd,
-        args: [
-          '--ignore-case',
-          '--fixed-strings',
-          '--absolute-path',
-          '--color',
-          'never',
-          '--max-results',
-          String(limit),
-          ...rest.map((word) => `--and=${word}`),
-          '--',
-          first,
-          home,
-        ],
+        args: [...options, '--max-results', String(limit), ...rest.map((word) => `--and=${word}`), '--', first, home],
         trustEmpty: true,
       });
+      // fd before 8.6 (Ubuntu 22.04's) has no --and, and stops at it. Then it looks for the
+      // longest word alone, and the ranking keeps the names holding the others too.
+      if (rest.length > 0) {
+        const longest = words.reduce((best, word) => (word.length > best.length ? word : best));
+        plan.push({
+          id: 'fd',
+          file: fd,
+          args: [...options, '--max-results', String(limit * 8), '--', longest, home],
+          trustEmpty: true,
+          limit: limit * 8,
+        });
+      }
     }
   }
   return plan;

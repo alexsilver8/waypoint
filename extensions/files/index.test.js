@@ -86,10 +86,12 @@ describe.skipIf(process.platform !== 'linux')('Search Files', () => {
 
   it.runIf(existsSync('/usr/bin/gio'))('moves a file to the Trash', { timeout: 15_000 }, async () => {
     const path = join(downloads, 'invoice.pdf');
+    // Listed for a shorter query last: the list shown afterwards is for what's typed now.
+    await view('downloads', 'i');
     const result = await extension.commands.downloads?.onAction?.(
       'trash',
       path,
-      /** @type {any} */ ({ query: '', platform: 'linux' }),
+      /** @type {any} */ ({ query: 'invoice', platform: 'linux' }),
     );
     if (result?.toastStyle === 'failure') {
       // gio needs a session bus on some systems; then it says so rather than failing silently.
@@ -98,5 +100,7 @@ describe.skipIf(process.platform !== 'linux')('Search Files', () => {
     }
     expect(result?.toast).toBe('Moved “invoice.pdf” to the Trash');
     expect(existsSync(path)).toBe(false);
+    expect(result?.replace?.emptyText).toBe('Nothing in Downloads matches “invoice”.');
+    expect(result?.replace?.sections).toEqual([]);
   });
 });

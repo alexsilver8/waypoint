@@ -61,10 +61,13 @@ describe('searchPlan', () => {
   it('asks Everything first on Windows when its tool is installed, then Windows Search', () => {
     const plan = searchPlan('win32', ['tax', 'a|b'], { ...options, programs: { 'es.exe': 'C:\\Everything\\es.exe' } });
     expect(plan.map((backend) => backend.id)).toEqual(['everything', 'windows-search']);
-    expect(plan[0]?.args).toEqual(['-n', '500', 'tax', '"a|b"']);
+    // Without what es or Everything would read as more than text; the ranking checks names.
+    expect(plan[0]?.args).toEqual(['-n', '500', 'tax', 'ab']);
     expect(plan[0]?.exportArg).toBe('-export-txt');
     expect(plan[1]?.env?.WAYPOINT_SQL).toContain("System.FileName LIKE '%tax%' AND System.FileName LIKE '%a|b%'");
     expect(searchPlan('win32', ['tax'], options).map((backend) => backend.id)).toEqual(['windows-search']);
+    const nothingLeft = searchPlan('win32', ['--'], { ...options, programs: { 'es.exe': 'C:\\es.exe' } });
+    expect(nothingLeft.map((backend) => backend.id)).toEqual(['windows-search']);
   });
 
   it('tries locate, then fd, on Linux', () => {
@@ -80,6 +83,10 @@ describe('searchPlan', () => {
     expect(plan[1]?.args.slice(-3)).toEqual(['--', 'notes', '/home/alex']);
     const both = searchPlan('linux', ['tax', '-2025'], { ...options, programs: { fd: '/usr/bin/fd' } });
     expect(both[0]?.args.slice(-4)).toEqual(['--and=-2025', '--', 'tax', '/home/alex']);
+    // Then, for an fd without --and, the longest word alone, reading more for the ranking.
+    expect(both[1]?.args.slice(-5)).toEqual(['--max-results', '4000', '--', '-2025', '/home/alex']);
+    expect(both[1]?.args).not.toContain('--and=tax');
+    expect(both[1]?.limit).toBe(4000);
     expect(searchPlan('linux', ['notes'], options)).toEqual([]);
   });
 });
@@ -98,11 +105,15 @@ describe('windowsSearchScript', () => {
     expect(Buffer.from(plan[0]?.args.at(-1) ?? '', 'base64').toString('utf16le')).not.toContain('calc');
   });
 
-  it('quotes Everything operators, and words es would read as options', () => {
+  it('leaves out what Everything reads as operators, and es as options', () => {
     expect(everythingWord('plain')).toBe('plain');
-    expect(everythingWord('ext:pdf')).toBe('"ext:pdf"');
-    expect(everythingWord('-draft')).toBe('"-draft"');
-    expect(everythingWord('/x')).toBe('"/x"');
+    expect(everythingWord('ext:pdf')).toBe('extpdf');
+    expect(everythingWord('-draft')).toBe('draft');
+    expect(everythingWord('/x')).toBe('x');
+    expect(everythingWord('!-x')).toBe('x');
+    expect(everythingWord('say"')).toBe('say');
+    expect(everythingWord('--')).toBe('');
+    expect(everythingWord('re-draft!')).toBe('re-draft');
   });
 });
 

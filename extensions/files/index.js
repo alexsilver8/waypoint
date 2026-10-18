@@ -81,7 +81,7 @@ const SKIP_FOLDERS = new Set(['node_modules', 'Library', 'AppData', 'Application
 let latestSearch = 0;
 /** @type {Map<import('node:child_process').ChildProcess, number>} */
 const searching = new Map();
-/** The last list each command showed, to take a file out of after it's moved to the Trash. */
+/** The latest search's list, to take a file out of after it's moved to the Trash. */
 /** @type {Map<string, ListView>} */
 const shown = new Map();
 
@@ -221,7 +221,7 @@ function collectLines(file, args, { limit, timeoutMs, search, env }) {
 async function runBackend(backend, args, { search, deadline }) {
   const timeoutMs = Math.min(5000, left(deadline) - 1500);
   if (!backend.exportArg) {
-    return collectLines(backend.file, args, { limit: LIMIT, timeoutMs, search, env: backend.env });
+    return collectLines(backend.file, args, { limit: backend.limit ?? LIMIT, timeoutMs, search, env: backend.env });
   }
   const file = join(tmpdir(), `waypoint-files-${process.pid}-${search}.txt`);
   try {
@@ -725,14 +725,11 @@ async function downloadsView(ctx) {
       ],
     });
   }
-  /** @type {ListView} */
-  const view = {
+  return {
     ...base,
     emptyText: query ? `Nothing in Downloads matches “${query}”.` : 'Your Downloads folder is empty.',
     sections,
   };
-  shown.set('downloads', view);
-  return view;
 }
 
 /**
@@ -870,6 +867,9 @@ function fileActions(command) {
         };
       }
       const toast = `Moved “${name}” to the ${trashName(ctx.platform)}`;
+      // Downloads is quick to list again, and that way matches what's typed now. A search is
+      // slow to run again, so the one shown, which is the latest, loses the file instead.
+      if (command === 'downloads') return { replace: await downloadsView(ctx), toast };
       const last = shown.get(command);
       if (last) {
         const updated = without(last, payload);
