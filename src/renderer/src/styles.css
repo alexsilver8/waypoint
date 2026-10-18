@@ -624,12 +624,17 @@ button {
 }
 
 .detail__meta dt {
+  flex: none;
   color: var(--ink-muted);
 }
 
+/* A long value, like a path, wraps under itself rather than pushing the pane sideways. */
 .detail__meta dd {
+  min-width: 0;
   margin: 0;
   color: var(--ink);
+  text-align: right;
+  overflow-wrap: anywhere;
 }
 
 .detail__summary {
