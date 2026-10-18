@@ -2,6 +2,7 @@ import { type KeyboardEvent, type ReactNode, useCallback, useEffect, useRef, use
 import type { Settings } from '../../../shared/settings';
 import type { SettingsState, SettingsTarget } from '../../../shared/settings-ipc';
 import type { BuiltinIconName, Tint } from '../../../shared/types';
+import { updateDescription, updateMenuLabel } from '../../../shared/updates';
 import { HotkeyRecorder, type ShortcutRecorder } from '../components/HotkeyRecorder';
 import { ItemIcon } from '../components/ItemIcon';
 import { PaletteMark } from '../components/PaletteMark';
@@ -88,6 +89,21 @@ function General({ state, update }: SectionProps) {
             checked={settings.launchAtLogin}
             disabled={!info.canLaunchAtLogin}
             onChange={(launchAtLogin) => update({ launchAtLogin })}
+          />
+        </Row>
+        <Row
+          label="Check for updates"
+          description={
+            info.packaged
+              ? 'Look for a new version every few hours.'
+              : 'Works in the installed app, not when running from source.'
+          }
+        >
+          <Toggle
+            label="Check for updates"
+            checked={settings.checkForUpdates}
+            disabled={!info.packaged}
+            onChange={(checkForUpdates) => update({ checkForUpdates })}
           />
         </Row>
       </Group>
@@ -286,6 +302,9 @@ function Extensions({ state, update, setState, target }: SectionProps) {
 
 function About({ state }: SectionProps) {
   const { info } = state;
+  const { mode, status } = info.updates;
+  // The tray's wording, without its menu ellipsis.
+  const action = updateMenuLabel(status, mode);
   return (
     <>
       <div className="about">
@@ -302,6 +321,15 @@ function About({ state }: SectionProps) {
         <Button onClick={() => api.openLink('issues')}>Report an Issue</Button>
         <Button onClick={() => api.openOnboarding()}>Run Setup Again</Button>
       </div>
+      {mode !== 'off' && (
+        <Group title="Updates">
+          <Row label={`Version ${info.version}`} description={updateDescription(status, mode)}>
+            <Button onClick={() => api.updateAction()} disabled={!action.enabled}>
+              {action.label.replace(/…$/, '')}
+            </Button>
+          </Row>
+        </Group>
+      )}
       <Group title="Your data">
         <Row label="Data folder" description={<PathRow path={info.dataDirectory} />}>
           <Button onClick={() => api.open('dataDirectory')}>{REVEAL}</Button>

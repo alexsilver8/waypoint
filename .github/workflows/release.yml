@@ -58,7 +58,7 @@ jobs:
           [ -s notes.md ] || echo "Release $VERSION." > notes.md
           cat >> notes.md <<NOTES
 
-          **Download:** the \`.dmg\` for macOS, the \`.exe\` for Windows, and the \`.AppImage\` or \`.deb\` for Linux, below. Builds aren't code-signed yet, so your system asks once.
+          **Download:** the \`.dmg\` for macOS, the \`.exe\` for Windows, and the \`.AppImage\` or \`.deb\` for Linux, below. Builds aren't code-signed yet, so your system asks once. The Mac build isn't signed with an Apple Developer ID, so on macOS run Waypoint from source with \`pnpm dev\` for now (see the README's Install section). Waypoint installs updates by itself on Windows and from the AppImage, and tells you when there's a new version on macOS and from the \`.deb\`.
           NOTES
           if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
             gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --notes-file notes.md
@@ -100,7 +100,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           shopt -s nullglob
-          files=(release/*/*.dmg release/*/*.zip release/*/*.exe release/*/*.AppImage release/*/*.deb release/*/latest*.yml)
+          # latest*.yml tell installed copies about this version, and the .blockmaps let them download only what changed.
+          files=(release/*/*.dmg release/*/*.zip release/*/*.exe release/*/*.AppImage release/*/*.deb release/*/*.blockmap release/*/latest*.yml)
           gh release upload "$GITHUB_REF_NAME" "${files[@]}" --clobber --repo "$GITHUB_REPOSITORY"
 
   # Out of draft once every installer is attached, so the release never shows without its downloads.

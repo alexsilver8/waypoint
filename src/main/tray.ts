@@ -1,5 +1,6 @@
 import { join } from 'node:path';
 import { app, Menu, nativeImage, Tray } from 'electron';
+import { type UpdateMode, type UpdateStatus, updateMenuLabel } from '../shared/updates';
 
 export interface TrayOptions {
   /** The shortcut that currently works, if any. */
@@ -9,6 +10,9 @@ export interface TrayOptions {
   onOpenSettings(): void;
   onOpenExtensionsFolder(): void;
   onReloadExtensions(): void;
+  /** Where updates stand; no update item when this copy doesn't update (run from source). */
+  updates: () => { status: UpdateStatus; mode: UpdateMode };
+  onUpdate(): void;
 }
 
 function trayIcon(): Electron.NativeImage {
@@ -33,6 +37,11 @@ export class AppTray {
   /** Rebuilds the menu, e.g. after the hotkey changed. */
   refresh(): void {
     const { options } = this;
+    const updates = options.updates();
+    const update: Electron.MenuItemConstructorOptions[] =
+      updates.mode === 'off'
+        ? []
+        : [{ ...updateMenuLabel(updates.status, updates.mode), click: () => options.onUpdate() }];
     this.tray.setContextMenu(
       Menu.buildFromTemplate([
         {
@@ -48,6 +57,7 @@ export class AppTray {
         { label: 'Reload Extensions', click: () => options.onReloadExtensions() },
         { type: 'separator' },
         { label: `Waypoint ${app.getVersion()}`, enabled: false },
+        ...update,
         { label: 'Quit', role: 'quit' },
       ]),
     );

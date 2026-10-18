@@ -22,6 +22,14 @@ extraResources:
 protocols:
   - name: Waypoint
     schemes: [waypoint]
+# Where the app looks for new versions (src/main/updater.ts). The build writes it into the app, and
+# the latest*.yml files it makes next to the installers say what the newest version is; the release
+# workflow attaches both to the GitHub release.
+publish:
+  provider: github
+  owner: alexsilver8
+  repo: waypoint
+  releaseType: release
 
 mac:
   category: public.app-category.productivity
