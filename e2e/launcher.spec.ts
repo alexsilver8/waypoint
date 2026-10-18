@@ -71,6 +71,13 @@ export default {
     );
     extensionDirectories.push(dir);
   }
+  if (test.info().title.includes('saved rates')) {
+    // Fetched just now, so it converts with these instead of going online.
+    writeFileSync(
+      join(userData, 'exchange-rates.json'),
+      JSON.stringify({ date: '2026-10-16', rates: { USD: 1.165, GBP: 0.86915 }, fetchedAt: Date.now() }),
+    );
+  }
   writeFileSync(
     join(userData, 'settings.json'),
     JSON.stringify({ hideOnBlur: false, clipboardHistory: { enabled: false }, extensionDirectories }),
@@ -99,6 +106,18 @@ test('lists commands at the root', async () => {
 test('calculates inline', async () => {
   await page.keyboard.type('12 * (3 + 4)');
   await expect(page.locator('.calc__result')).toHaveText('84');
+});
+
+test('converts units inline', async () => {
+  await page.keyboard.type('5 km to mi');
+  await expect(page.locator('.calc__result')).toHaveText('3.11 mi');
+  await expect(page.locator('.calc__label').last()).toHaveText('Miles');
+});
+
+test('converts currencies with saved rates', async () => {
+  await page.keyboard.type('€50 to gbp');
+  await expect(page.locator('.calc__result')).toHaveText('43.46 GBP');
+  await expect(page.locator('.calc__label').last()).toHaveText('British pounds, ECB rate of Oct 16, 2026');
 });
 
 test('opens a command and goes back', async () => {

@@ -8,8 +8,8 @@ export interface DisplayItem extends ListItem {
   titlePositions?: number[];
   /** Set for root items, so using them raises their rank next time. */
   rootItemId?: string;
-  /** Set for the inline calculator row. */
-  calculator?: { expression: string; result: string };
+  /** Set for the inline calculator row. `labels` name the two sides, for conversions. */
+  calculator?: { expression: string; result: string; labels?: [string, string] };
   /** For commands: the global shortcut that runs it, drawn beside it. */
   hotkey?: string;
 }

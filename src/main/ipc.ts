@@ -1,6 +1,7 @@
 import { clipboard, ipcMain } from 'electron';
 import { IpcChannel } from '../shared/ipc';
 import type { ActionContext, ActionResult, CommandRef } from '../shared/types';
+import type { ExchangeRateStore } from './exchange-rates';
 import { sanitizeAction } from './extensions/validate';
 import { pasteIntoFrontApp } from './paste';
 import type { CommandRegistry } from './registry';
@@ -54,11 +55,11 @@ export async function finishAction(
   return result;
 }
 
-/** Wires the renderer's `window.palette` API to the registry and the window. */
+/** Wires the renderer's `window.palette` API to the registry, the exchange rates and the window. */
 export function registerIpc(
   registry: CommandRegistry,
   launcher: LauncherWindow,
-  options: { pasteIntoApps(): boolean },
+  options: { pasteIntoApps(): boolean; exchangeRates: ExchangeRateStore },
 ): void {
   const fromLauncher = (event: Electron.IpcMainInvokeEvent | Electron.IpcMainEvent) =>
     event.sender === launcher.window.webContents;
@@ -79,6 +80,13 @@ export function registerIpc(
     if (!fromLauncher(event)) throw new Error('Unexpected sender');
     if (!isCommandRef(ref) || typeof query !== 'string') throw new Error('Invalid arguments');
     return registry.searchView(ref, query);
+  });
+
+  // Asked for each time the launcher opens, which is when stale rates are fetched again.
+  ipcMain.handle(IpcChannel.exchangeRates, (event) => {
+    if (!fromLauncher(event)) throw new Error('Unexpected sender');
+    void options.exchangeRates.refresh();
+    return options.exchangeRates.rates;
   });
 
   ipcMain.on(IpcChannel.hide, (event) => {

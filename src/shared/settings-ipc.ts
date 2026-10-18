@@ -15,6 +15,8 @@ export interface ExtensionSummary {
   /** Why it failed to load. */
   error?: string;
   commands: number;
+  /** For one installed from npm or git: its version and where from, e.g. "1.2.0 from npm (emoji)". */
+  installed?: string;
 }
 
 /** Everything the Settings window shows. */
@@ -83,6 +85,8 @@ export const SettingsChannel = {
   open: 'settings:open',
   openLink: 'settings:open-link',
   reloadExtensions: 'settings:reload-extensions',
+  installExtension: 'settings:install-extension',
+  uninstallExtension: 'settings:uninstall-extension',
   clearClipboard: 'settings:clear-clipboard',
   openOnboarding: 'settings:open-onboarding',
   setCommandHotkey: 'settings:set-command-hotkey',
@@ -122,6 +126,10 @@ export interface SettingsApi {
   open(location: SettingsLocation): void;
   openLink(link: SettingsLink): void;
   reloadExtensions(): Promise<SettingsState>;
+  /** Opens Install Extension in the launcher, which shows what it would install before it does. */
+  installExtension(): void;
+  /** Removes an extension installed from npm or git; `error` says why when it couldn't be. */
+  uninstallExtension(name: string): Promise<{ state: SettingsState; error?: string }>;
   clearClipboard(): Promise<SettingsState>;
   /** Checks for updates, opens the download, or restarts into the new version, as updates stand. */
   updateAction(): void;

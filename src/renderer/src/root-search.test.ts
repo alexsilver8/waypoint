@@ -78,6 +78,51 @@ describe('buildRootSections', () => {
     expect(first?.items[0]?.actions[0]).toEqual({ type: 'copy', text: '84', title: 'Copy Answer' });
   });
 
+  it('converts units in the calculator row', () => {
+    const [first, second] = buildRootSections(items, '5 km to mi');
+    expect(first?.title).toBe('Calculator');
+    expect(first?.items[0]?.calculator).toEqual({
+      expression: '5 km to mi',
+      result: '3.11 mi',
+      labels: ['Kilometers', 'Miles'],
+    });
+    expect(first?.items[0]?.actions).toEqual([
+      { type: 'copy', text: '3.11', title: 'Copy Answer' },
+      { type: 'copy', text: '3.11 mi', title: 'Copy with Unit' },
+      { type: 'copy', text: '5 km to mi = 3.11 mi', title: 'Copy Calculation' },
+    ]);
+    expect(second?.title).toBe('Use “5 km to mi” with…');
+    // Copied without digit grouping, like plain answers.
+    expect(buildRootSections(items, '1.5 gb in mb')[0]?.items[0]?.actions[0]).toMatchObject({ text: '1500' });
+  });
+
+  it('converts currencies with the rates, saying which day they are for', () => {
+    const rates = { date: '2026-10-16', rates: { USD: 1.165 } };
+    const [first] = buildRootSections(items, '100 usd in eur', 'all', rates);
+    expect(first?.items[0]?.calculator).toEqual({
+      expression: '100 usd in eur',
+      result: '85.84 EUR',
+      labels: ['US dollars', 'Euros, ECB rate of Oct 16, 2026'],
+    });
+    expect(first?.items[0]?.actions[0]).toEqual({ type: 'copy', text: '85.84', title: 'Copy Answer' });
+  });
+
+  it('says when there are no exchange rates rather than guessing', () => {
+    const [first] = buildRootSections(items, '€50 to gbp');
+    expect(first?.title).toBe('Calculator');
+    expect(first?.items[0]).toMatchObject({ title: 'Exchange rates unavailable', actions: [] });
+    expect(first?.items[0]?.calculator).toBeUndefined();
+    const [withRates] = buildRootSections(items, '€50 to chf', 'all', { date: '2026-10-16', rates: { USD: 1.1 } });
+    expect(withRates?.items[0]?.title).toBe('No exchange rate for CHF');
+  });
+
+  it('leaves searches with "to" or "in" alone', () => {
+    const searchIn = [...items, app('in')];
+    for (const query of ['in', 'go to mail', 'trip to lisbon', 'safari in']) {
+      expect(buildRootSections(searchIn, query)[0]?.title).not.toBe('Calculator');
+    }
+  });
+
   it('offers to open things that look like links', () => {
     const [first] = buildRootSections(items, 'github.com/alexsilver8');
     expect(first?.title).toBe('Link');

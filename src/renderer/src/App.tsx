@@ -2,6 +2,7 @@ import { ChevronLeft } from 'lucide-react';
 import { type KeyboardEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { commandItemId } from '../../shared/command-hotkeys';
+import type { ExchangeRates } from '../../shared/currencies';
 import type { CommandRequest } from '../../shared/ipc';
 import type { Action, ActionContext, ActionResult, CommandRef, RootItem, View } from '../../shared/types';
 import { ActionPanel } from './components/ActionPanel';
@@ -102,6 +103,7 @@ function nthItem(view: View, query: string, index: number): DisplayItem | undefi
 
 export function App() {
   const [rootItems, setRootItems] = useState<RootItem[]>([]);
+  const [exchangeRates, setExchangeRates] = useState<ExchangeRates | null>(null);
   const [stack, setStack] = useState<Frame[]>([ROOT]);
   const [loading, setLoading] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
@@ -177,13 +179,20 @@ export function App() {
   }, []);
 
   // Root items: on start, whenever apps or extensions change, and each time the window opens
-  // (so usage-based ranking is fresh).
+  // (so usage-based ranking is fresh). Exchange rates on start, when new ones come and each time
+  // it opens, which is when the main process fetches them again if they're a day old.
   useEffect(() => {
     const load = () => {
       palette.getRootItems().then(setRootItems, (error: unknown) => showToast(cleanError(error), 'failure'));
     };
+    // Without them, currencies say the rates are unavailable; nothing else to tell.
+    const loadRates = () => {
+      palette.getExchangeRates().then(setExchangeRates, () => undefined);
+    };
     load();
+    loadRates();
     const offChanged = palette.onRootItemsChanged(load);
+    const offRates = palette.onExchangeRatesChanged(loadRates);
     const offToast = palette.onToast((message) => showToast(message.text, message.style));
 
     // It opens with no action panel and what's in the search field selected, so typing replaces
@@ -208,6 +217,7 @@ export function App() {
     const offShown = palette.onShown(({ reset }) => {
       onScreen.current = true;
       load();
+      loadRates();
       if (pressedSinceAway) return;
       flushSync(() => {
         setPanelOpen(false);
@@ -220,6 +230,7 @@ export function App() {
     });
     return () => {
       offChanged();
+      offRates();
       offToast();
       window.removeEventListener('keydown', pressed, true);
       window.removeEventListener('blur', away);
@@ -230,9 +241,9 @@ export function App() {
 
   const filter: RootFilter = isRoot ? (frame.filter ?? 'all') : 'all';
   const sections: DisplaySection[] = useMemo(() => {
-    if (isRoot || !frame.view) return buildRootSections(rootItems, frame.query, filter);
+    if (isRoot || !frame.view) return buildRootSections(rootItems, frame.query, filter, exchangeRates);
     return frame.view.type === 'list' ? filterView(frame.view, frame.query) : [];
-  }, [isRoot, rootItems, frame.view, frame.query, filter]);
+  }, [isRoot, rootItems, frame.view, frame.query, filter, exchangeRates]);
   const counts = useMemo(
     () => (isRoot && frame.query.trim() ? countRootMatches(rootItems, frame.query) : null),
     [isRoot, rootItems, frame.query],

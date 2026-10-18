@@ -7,6 +7,7 @@ import {
   clipboard,
   Notification,
   nativeTheme,
+  net,
   powerSaveBlocker,
   shell,
   systemPreferences,
@@ -30,7 +31,9 @@ import { system } from './commands/system';
 import { webSearch } from './commands/web-search';
 import { windowManagementExtension } from './commands/window-management';
 import { QuicklinkStore, SnippetStore } from './entry-store';
+import { ExchangeRateStore } from './exchange-rates';
 import { ExtensionHostClient } from './extensions/host-client';
+import { ExtensionInstaller } from './extensions/installer';
 import { hostServices } from './extensions/services';
 import { HotkeyManager } from './hotkey';
 import { handleIconProtocol, registerIconScheme } from './icon-protocol';
@@ -147,6 +150,20 @@ async function main(): Promise<void> {
     clipboard: electronClipboardKeeper((text) => clipboardHistory.ignore(text)),
   });
   const usageScore = (id: string) => usage.score(id);
+  // Extensions from npm and git. Each is downloaded and checked next to the extensions folder, and
+  // moved in once you confirm it. Electron's own fetch goes through the system's proxy.
+  const installer = new ExtensionInstaller({
+    extensionsDir,
+    stagingDir: join(dataDir, 'extension-installs'),
+    fetch: ((input, init) => net.fetch(input as string, init)) as typeof fetch,
+    // Lets tests install from a registry of their own.
+    ...(process.env.WAYPOINT_NPM_REGISTRY ? { registry: process.env.WAYPOINT_NPM_REGISTRY } : {}),
+    nameTaken: (name, dir) =>
+      registry
+        .listExtensions()
+        .some((info) => info.manifest?.name === name && (!info.dir || resolve(info.dir) !== resolve(dir))),
+  });
+  installer.cleanUp();
 
   const registry: CommandRegistry = new CommandRegistry({
     platform,
@@ -196,6 +213,7 @@ async function main(): Promise<void> {
         openOnboarding: () => onboardingWindow.open(),
         extensionsDir,
         registry: () => registry,
+        installer,
       }),
     ],
   });
@@ -270,7 +288,13 @@ async function main(): Promise<void> {
       settingsIpc.notifyChanged();
     },
   });
-  registerIpc(registry, launcher, { pasteIntoApps: () => settings.get().pasteIntoApps });
+  // For converting currencies in the calculator; fetched when the launcher asks and they're a day old.
+  const exchangeRates = new ExchangeRateStore({
+    path: join(dataDir, 'exchange-rates.json'),
+    fetch: (url, init) => net.fetch(url, init),
+  });
+  exchangeRates.on('change', () => launcher.exchangeRatesChanged());
+  registerIpc(registry, launcher, { pasteIntoApps: () => settings.get().pasteIntoApps, exchangeRates });
   const settingsIpc = registerSettingsIpc({
     store: settings,
     window: settingsWindow,
@@ -289,6 +313,8 @@ async function main(): Promise<void> {
     entries: { quicklinks, snippets, apps },
     snippetExpansion: snippetExpander,
     updater,
+    installer,
+    openCommand: (ref) => void commands.runner.run(ref),
   });
   snippetExpander.on('status', () => settingsIpc.notifyChanged());
   const onboardingIpc = registerOnboardingIpc({

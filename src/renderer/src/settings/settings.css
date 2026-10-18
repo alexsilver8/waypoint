@@ -332,6 +332,30 @@ select {
   white-space: normal;
 }
 
+/* One installed from npm or git, with its Uninstall button beside it. */
+.extension[data-installed] {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.extension__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* Why an uninstall didn't happen, above the list. */
+.extension-list__error {
+  margin: 0;
+  padding: 12px 16px 0;
+  color: var(--pigment-red);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
 .folder {
   align-items: center;
   justify-content: space-between;
