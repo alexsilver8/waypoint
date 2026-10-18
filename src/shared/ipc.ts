@@ -39,6 +39,11 @@ export interface CommandRequest {
   toggle: boolean;
   /** It already ran, out of sight: show what it returned rather than running it again. */
   result?: ActionResult;
+  /**
+   * `result` asks whether to run it, for a link: ↵ is ignored for a moment as it appears, so a ↵
+   * typed into another app just as the launcher took the keyboard doesn't answer yes.
+   */
+  confirm?: boolean;
 }
 
 /** The API the preload script exposes to the renderer as `window.palette`. */

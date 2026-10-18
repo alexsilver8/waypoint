@@ -78,7 +78,7 @@ export class CommandRunner {
 
     if (ask && command.manifest.mode === 'no-view') {
       launcher.show();
-      launcher.runCommand({ ref, toggle: false, result: { push: confirmView(command) } });
+      launcher.runCommand({ ref, toggle: false, result: { push: confirmView(command) }, confirm: true });
       return;
     }
     // In the launcher, it runs there like anything picked in it, with what it says in the footer.

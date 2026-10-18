@@ -201,6 +201,15 @@ describe('running a command from outside', () => {
     expect(commandInArgv(undefined)).toBeUndefined();
   });
 
+  it('ignores --command when the system started Waypoint for a link', () => {
+    // On Windows a link with a quote in it can add arguments of its own.
+    expect(
+      commandInArgv(['C:\\Waypoint\\Waypoint.exe', 'waypoint://commands/x/y', '--command', 'system/restart']),
+    ).toBeUndefined();
+    expect(commandInArgv(['/usr/bin/waypoint', '--command=system/restart', 'WAYPOINT://notes/a'])).toBeUndefined();
+    expect(commandInArgv(['/usr/bin/waypoint', 'waypoint:x', '--command', 'system/restart'])).toBeUndefined();
+  });
+
   it('prefers the arguments a second copy sent itself, in their order', () => {
     const sent = ['/usr/bin/waypoint', '--command', 'files/search'];
     expect(launchArguments(['/usr/bin/waypoint', '--command', '--x', 'files/search'], { argv: sent })).toEqual(sent);

@@ -224,9 +224,14 @@ export function commandFromDeeplink(url: string): CommandRef | undefined {
   return commandRefFromKey(parsed.pathname.replace(/^\/+|\/+$/g, ''));
 }
 
-/** The command `--command <extension>/<command>` (or `--command=…`) asks for, if any. */
+/**
+ * The command `--command <extension>/<command>` (or `--command=…`) asks for, if any. Not when a
+ * `waypoint:` link is among the arguments: then the system started Waypoint to open a link, which
+ * any web page can do, and the other arguments may have been smuggled in with it. The link is
+ * opened instead, which asks before running anything.
+ */
 export function commandInArgv(argv: readonly string[] | undefined): CommandRef | undefined {
-  if (!argv) return undefined;
+  if (!argv || argv.some((arg) => arg.toLowerCase().startsWith(`${DEEPLINK_SCHEME}:`))) return undefined;
   for (const [index, arg] of argv.entries()) {
     if (arg.startsWith('--command=')) return commandRefFromKey(arg.slice('--command='.length));
     if (arg === '--command') {

@@ -19,6 +19,42 @@ const settingsFile = () => JSON.parse(readFileSync(join(userData, 'settings.json
 const registered = (accelerator: string) =>
   app.evaluate(({ globalShortcut }, keys) => globalShortcut.isRegistered(keys), accelerator);
 const launcherVisible = () => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.isVisible());
+
+/** What `enterOnceShown` uses of the page; the tests are typed without the DOM. */
+interface PageGlobals {
+  document: {
+    body: unknown;
+    querySelector(selector: string): { textContent: string | null; dispatchEvent(event: unknown): boolean } | null;
+  };
+  MutationObserver: new (
+    callback: () => void,
+  ) => { observe(target: unknown, options: object): void; disconnect(): void };
+  KeyboardEvent: new (type: string, init: object) => unknown;
+  pressed?: Promise<void>;
+}
+
+/**
+ * Gets ready to press ↵ in the launcher the moment the view called `title` shows, quicker than any
+ * person could. Call what it returns to wait until it has.
+ */
+async function enterOnceShown(title: string): Promise<() => Promise<void>> {
+  await page.evaluate((crumb) => {
+    const globals = globalThis as unknown as PageGlobals;
+    const { document } = globals;
+    globals.pressed = new Promise<void>((resolve) => {
+      const observer = new globals.MutationObserver(() => {
+        if (document.querySelector('.search__crumb')?.textContent !== crumb) return;
+        observer.disconnect();
+        const field = document.querySelector('.search__input');
+        field?.dispatchEvent(new globals.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+        resolve();
+      });
+      observer.observe(document.body, { subtree: true, childList: true, characterData: true });
+    });
+  }, title);
+  return () => page.evaluate(() => (globalThis as unknown as PageGlobals).pressed);
+}
+
 /** What starting `waypoint` again with these arguments hands the running app. */
 const startAgain = (...args: string[]) =>
   app.evaluate(
@@ -164,13 +200,20 @@ test('runs a no-view command with --command without the launcher, with what it s
     'Reload Extensions',
   ]);
 
-  // A link, which any web page can open, asks first.
+  // A link, which any web page can open, asks first. `--command` that came in with a link is
+  // part of the link, not a command line of its own, so it doesn't run straight away either.
   await page.keyboard.press('Escape');
   await expect.poll(launcherVisible).toBe(false);
-  await startAgain('waypoint://commands/waypoint/reload-extensions');
+  const pressedEarly = await enterOnceShown('Reload Extensions');
+  await startAgain('waypoint://commands/waypoint/reload-extensions', '--command', 'waypoint/reload-extensions');
   await expect.poll(launcherVisible).toBe(true);
   await expect(page.locator('.search__crumb')).toHaveText('Reload Extensions');
   await expect(page.getByRole('option')).toHaveText([/^Run Reload Extensions/]);
+  // A ↵ the moment it appears, which may have been typed into another app, doesn't answer.
+  await pressedEarly();
+  await page.waitForTimeout(800);
+  expect(await page.locator('.footer').textContent()).not.toMatch(/Loaded \d+ extensions?/);
+  expect(await app.evaluate(() => (globalThis as { notifications?: unknown[] }).notifications?.length)).toBe(1);
   await page.keyboard.press('Enter');
   await expect
     .poll(() => app.evaluate(() => (globalThis as { notifications?: unknown[] }).notifications?.length))

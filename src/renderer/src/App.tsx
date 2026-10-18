@@ -24,6 +24,8 @@ const TOAST_MS = 2500;
 const SEARCH_DEBOUNCE_MS = 120;
 /** How often a list that's still loading is asked for again. */
 const LOADING_REFRESH_MS = 1000;
+/** How long a link's “Run …?” ignores ↵ after it appears. */
+const CONFIRM_HOLD_MS = 400;
 
 /** One level of navigation: the root search, or a command's view pushed on top of it. */
 interface Frame {
@@ -39,6 +41,8 @@ interface Frame {
   filter?: RootFilter;
   /** A form's values, once something was typed or picked. */
   form?: FormState;
+  /** ↵ does nothing until then (ms since the epoch), on a link's confirmation; see `CommandRequest.confirm`. */
+  enterAfter?: number;
 }
 
 const ROOT: Frame = { id: 0, query: '' };
@@ -454,7 +458,7 @@ export function App() {
    * search as if picked there. Pressed again while its view is in front, it closes the launcher.
    */
   const fromOutside = useRef<(request: CommandRequest) => void>(undefined);
-  fromOutside.current = ({ ref, toggle, result }) => {
+  fromOutside.current = ({ ref, toggle, result, confirm }) => {
     const top = stackRef.current[stackRef.current.length - 1];
     if (toggle && !result && top?.ref?.extension === ref.extension && top.ref.command === ref.command) {
       palette.hide();
@@ -464,8 +468,14 @@ export function App() {
     searchRequest.current++;
     setPanelOpen(false);
     setStack([ROOT]);
-    if (result) applyResult(result, action, ROOT);
-    else
+    if (result) {
+      applyResult(result, action, ROOT);
+      if (confirm) {
+        // A ↵ typed into another app just as the launcher took the keyboard mustn't answer yes.
+        const enterAfter = Date.now() + CONFIRM_HOLD_MS;
+        setStack((current) => current.map((f, i) => (i > 0 && i === current.length - 1 ? { ...f, enterAfter } : f)));
+      }
+    } else
       void run({ id: commandItemId(ref), title: '', actions: [action], rootItemId: commandItemId(ref) }, action, ROOT);
   };
   useEffect(() => palette.onRunCommand((request) => fromOutside.current?.(request)), []);
@@ -535,8 +545,9 @@ export function App() {
     if (event.nativeEvent.isComposing) return;
     // A form without fields leaves the keyboard here; its keys are still a form's.
     if (formView) return onFormKeyDown(event);
-    // A held ↵ repeats: that mustn't run the next view's first item too, like Restart Now.
-    if (event.key === 'Enter' && event.repeat) {
+    // A held ↵ repeats: that mustn't run the next view's first item too, like Restart Now. Nor
+    // does a link's confirmation take one the moment it appears.
+    if (event.key === 'Enter' && (event.repeat || (frame.enterAfter !== undefined && Date.now() < frame.enterAfter))) {
       event.preventDefault();
       return;
     }

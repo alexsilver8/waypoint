@@ -127,6 +127,8 @@ describe('CommandRunner', () => {
     expect(env.runAction).not.toHaveBeenCalled();
     expect(env.events).toEqual(['show']);
     const [request] = env.requests;
+    // The launcher holds off ↵ for a moment, so a key meant for another app can't answer.
+    expect(request?.confirm).toBe(true);
     const push = request?.result?.push;
     expect(push?.title).toBe('Left Half');
     expect(push?.type === 'list' && push.sections[0]?.items[0]?.actions).toEqual([
