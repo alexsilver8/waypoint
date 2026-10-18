@@ -187,20 +187,32 @@ describe('spawnArgs', () => {
   it('builds one escaped command line for a batch file, so cmd.exe runs nothing typed', () => {
     const { file, args, verbatim } = spawnArgs({ file: 'cmd.exe', args: ['C:\\My Scripts\\go.cmd'], batch: true }, [
       'https://x.test/?a=1&b=2',
-      'say "hi"',
+      '50% (off) <now> | x^y',
     ]);
     expect(file).toBe('cmd.exe');
     expect(verbatim).toBe(true);
     expect(args.slice(0, 3)).toEqual(['/d', '/s', '/c']);
     expect(args[3]).toBe(
-      '"C:\\My^ Scripts\\go.cmd ^^^"https://x.test/^^^?a=1^^^&b=2^^^" ^^^"say^^^ \\^^^"hi\\^^^"^^^""',
+      '"C:\\My^ Scripts\\go.cmd ^"https://x.test/^?a=1^&b=2^" ^"50^%^ ^(off^)^ ^<now^>^ ^|^ x^^y^""',
     );
   });
 
-  it('quotes batch arguments with backslashes the way programs read them', () => {
-    expect(batchArgument('C:\\dir\\')).toBe('^^^"C:\\dir\\\\^^^"');
-    // Three backslashes before a quote: six, then the escaped quote.
-    expect(batchArgument('a\\\\\\"b')).toBe('^^^"a\\\\\\\\\\\\\\^^^"b^^^"');
+  it('escapes once, so %~1 in the batch file is what was typed', () => {
+    expect(batchArgument('hello')).toBe('^"hello^"');
+    // Backslashes mean nothing to cmd.exe.
+    expect(batchArgument('C:\\dir\\')).toBe('^"C:\\dir\\^"');
+  });
+
+  it("turns down what a batch file can't be given", () => {
+    const batch = { file: 'cmd.exe', args: ['C:\\s\\go.cmd'], batch: true };
+    expect(() => spawnArgs(batch, ['say "hi"'])).toThrow(/double quotes/);
+    expect(() => spawnArgs(batch, ['one\ntwo'])).toThrow(/line breaks/);
+    // Other programs read their arguments one by one, and can be given anything.
+    expect(spawnArgs({ file: 'powershell.exe', args: ['-File', 'C:\\s\\go.ps1'] }, ['say "hi"']).args).toEqual([
+      '-File',
+      'C:\\s\\go.ps1',
+      'say "hi"',
+    ]);
   });
 });
 

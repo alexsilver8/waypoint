@@ -223,25 +223,16 @@ export function interpreterFor(path, text, platform) {
 const CMD_META = /([()\][%!^"`<>&|;, *?])/g;
 
 /**
- * An argument for a batch file, quoted the way cmd.exe and then the batch file read it: the
- * quoting Windows programs expect (backslashes doubled before a quote, which is escaped), then
- * a ^ before each character cmd.exe would act on, twice, as a batch file's command line is
- * read twice. As cross-spawn does it, in one pass over the text.
- * @param {string} arg
+ * An argument for a batch file, in double quotes, with a ^ before each character cmd.exe would
+ * act on, the quotes too, so it reads them all as text. cmd.exe takes the ^s off as it reads
+ * the line, which leaves the batch file `"…"` in `%1` and what was typed in `%~1`, as if it had
+ * been typed in quotes at a prompt. Once, as cross-spawn does for batch files: only the
+ * shims npm writes need them twice, as they read their arguments again. Backslashes mean
+ * nothing to cmd.exe and stay as they are.
+ * @param {string} arg No double quotes or line breaks: see `spawnArgs`.
  */
 export function batchArgument(arg) {
-  let quoted = '';
-  let backslashes = 0;
-  for (const char of arg) {
-    if (char === '\\') {
-      backslashes++;
-      continue;
-    }
-    quoted += char === '"' ? `${'\\'.repeat(backslashes * 2 + 1)}"` : `${'\\'.repeat(backslashes)}${char}`;
-    backslashes = 0;
-  }
-  quoted = `"${quoted}${'\\'.repeat(backslashes * 2)}"`;
-  return quoted.replace(CMD_META, '^$1').replace(CMD_META, '^$1');
+  return `"${arg}"`.replace(CMD_META, '^$1');
 }
 
 /**
@@ -251,9 +242,14 @@ export function batchArgument(arg) {
  * @param {{ file: string, args: string[], batch?: boolean }} command
  * @param {string[]} args
  * @returns {{ file: string, args: string[], verbatim: boolean }}
+ * @throws For a batch file given a double quote or a line break: there's no way to pass one
+ *   that the batch file then reads as text.
  */
 export function spawnArgs(command, args) {
   if (!command.batch) return { file: command.file, args: [...command.args, ...args], verbatim: false };
+  if (args.some((arg) => /["\r\n\0]/.test(arg))) {
+    throw new Error("a batch file can't be given double quotes or line breaks. A PowerShell script can.");
+  }
   const path = command.args[0] ?? '';
   const line = [path.replace(CMD_META, '^$1'), ...args.map(batchArgument)].join(' ');
   return { file: command.file, args: ['/d', '/s', '/c', `"${line}"`], verbatim: true };

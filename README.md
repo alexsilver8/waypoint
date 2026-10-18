@@ -178,7 +178,7 @@ killall Dock && echo "Restarted the Dock"
 | `needsConfirmation` | `true` to be asked before it runs. |
 | `currentDirectoryPath` | Where it runs; its own folder otherwise. |
 
-Raycast's `@raycast.` headers are read the same way, so the scripts in [raycast/script-commands](https://github.com/raycast/script-commands) run as they are. A script runs with the program on its `#!` line, or by its extension (`.sh`, `.py`, `.js`, `.applescript`, `.ps1`…), with Homebrew's folders added to `PATH`. **Create Script Command** starts one from a template.
+Raycast's `@raycast.` headers are read the same way, so the scripts in [raycast/script-commands](https://github.com/raycast/script-commands) run as they are. A script runs with the program on its `#!` line, or by its extension (`.sh`, `.py`, `.js`, `.applescript`, `.ps1`, `.cmd`…), with Homebrew's folders added to `PATH`. A batch file gets each argument in `%~1` to `%~3` as typed, though it can't be given double quotes or line breaks. **Create Script Command** starts one from a template.
 
 ## Settings
 
