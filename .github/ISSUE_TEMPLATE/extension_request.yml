@@ -1,0 +1,31 @@
+name: Extension request
+description: An extension you'd like to see, built in or on npm
+labels: [extension]
+body:
+  - type: input
+    id: name
+    attributes:
+      label: Name
+      placeholder: e.g. Spotify Search
+    validations:
+      required: true
+  - type: textarea
+    id: commands
+    attributes:
+      label: Commands it would have
+      placeholder: |
+        - Search Spotify: find a song and play it
+        - Like Current Song
+    validations:
+      required: true
+  - type: input
+    id: raycast
+    attributes:
+      label: Raycast equivalent
+      description: A link to a Raycast extension that does this, if there is one.
+  - type: checkboxes
+    id: build
+    attributes:
+      label: Would you build it?
+      options:
+        - label: I'd like to write it myself and publish it with the `waypoint-extension` keyword

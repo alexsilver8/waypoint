@@ -1,0 +1,43 @@
+name: Roadmap item
+description: Planned work, with what's in it and when it's done
+labels: [enhancement, roadmap]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What people will be able to do once this ships, in a sentence or two.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: In scope
+      placeholder: |
+        - Ask a question from the search field
+        - Keep a history of chats
+    validations:
+      required: true
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Not in scope
+      description: What this deliberately leaves for later.
+  - type: textarea
+    id: done
+    attributes:
+      label: Done when
+      placeholder: |
+        - [ ] Works on macOS, Windows and Linux
+        - [ ] Described in the README
+        - [ ] Covered by unit and end-to-end tests
+    validations:
+      required: true
+  - type: dropdown
+    id: size
+    attributes:
+      label: Rough size
+      options:
+        - Small (a day)
+        - Medium (a few days)
+        - Large (a week or more)
