@@ -81,7 +81,7 @@ The action panel also turns **Always on Top** off and on, shows the note in Find
 
 ### Formatting
 
-Markdown you type turns into formatting as you go: `# ` starts a heading, `- ` a list, `[ ] ` a checklist, `> ` a quote and ` ``` ` a code block. **Format...** in the action panel and the format bar (<kbd>⌘</kbd> <kbd>⌥</kbd> <kbd>,</kbd>) format the selection or the line you're on.
+Markdown you type turns into formatting as you go: `# ` starts a heading, `- ` a list, `[ ] ` a checklist, `> ` a quote and ` ``` ` a code block. Typing `/` at the start of a line (or after a space) opens a menu of the same, and a colon with a couple of letters, like `:tada`, picks an emoji. **Format...** in the action panel and the format bar (<kbd>⌘</kbd> <kbd>⌥</kbd> <kbd>,</kbd>) format the selection or the line you're on.
 
 | Keys | |
 | --- | --- |

@@ -180,7 +180,7 @@ export function NotesApp() {
   const select = useCallback(
     async (id: string, list?: Note[], move: Move = 'push') => {
       const saved = await saveNow();
-      const { currentId: leaving, draft: leavingText, ui: state } = latest.current;
+      const { currentId: leaving, draft: leavingText } = latest.current;
       const switching = leaving !== null && leaving !== id;
       const discarded = switching && !leavingText.trim() ? await api.discardIfEmpty(leaving) : false;
       const next = saved?.id === id ? saved : (list ?? latest.current.notes).find((note) => note.id === id);
@@ -195,6 +195,7 @@ export function NotesApp() {
         api.setCurrent(id);
         if (switching) {
           const left = discarded ? null : leaving;
+          const state = latest.current.ui;
           updateUi({
             ...nextHistory(state, move, left, id),
             ...(left ? { opened: { ...state.opened, [left]: Date.now() } } : {}),
@@ -225,11 +226,12 @@ export function NotesApp() {
   /** Moves a note to Recently Deleted. Deleting the note you're on opens the one before it. */
   const deleteNote = useCallback(
     async (target?: string) => {
-      const { currentId: current, ui: state } = latest.current;
+      const { currentId: current } = latest.current;
       const id = target ?? current;
       if (!id) return;
       if (pending.current?.id === id) await saveNow();
       await api.delete(id);
+      const state = latest.current.ui;
       const forget = (ids: string[]) => ids.filter((entry) => entry !== id);
       const { [id]: _deleted, ...opened } = state.opened;
       updateUi({ pinned: forget(state.pinned), back: forget(state.back), forward: forget(state.forward), opened });
