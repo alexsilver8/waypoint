@@ -215,6 +215,8 @@ test('makes and changes quicklinks and snippets in forms in the launcher', async
   await field('Icon').fill('');
   await page.keyboard.press(`${mod}+Enter`);
   await expect(page.locator('.toast')).toHaveText('Quicklink saved');
+  // The toast can show a moment before the form makes way for the search.
+  await expect(page.locator('.search__crumb')).toHaveCount(0);
   await expect(page.getByRole('combobox')).toHaveValue('docs search');
   await expect.poll(() => saved('quicklinks.json')[0]).not.toHaveProperty('icon');
   await page.keyboard.press('Escape');
