@@ -304,7 +304,6 @@ Built-in commands implement the same interface as extensions, so anything a buil
 
 ## Roadmap
 
-- `@waypoint-org/api` on npm, so editors get its types without a copy of this repo
 - Snippets that expand as you type in any app
 - Code-signed, auto-updating releases
 
