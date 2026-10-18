@@ -5,6 +5,7 @@
  * the launcher.
  */
 import { isAbsolute, relative, resolve } from 'node:path';
+import { MAX_MARKDOWN } from '../../shared/markdown-limits';
 import type {
   Action,
   ActionResult,
@@ -100,14 +101,13 @@ const BUILTIN_ICONS = Object.keys(BUILTIN_ICON_NAMES) as BuiltinIconName[];
 const MAX_ITEMS = 2000;
 const MAX_TEXT = 1000;
 const MAX_DETAIL = 20_000;
-/** A detail view is a whole page, like a README. */
-const MAX_MARKDOWN = 100_000;
 /** Actions of a detail view or a form; a list item's are counted with its list. */
 const MAX_VIEW_ACTIONS = 50;
 const MAX_FIELDS = 50;
 const MAX_OPTIONS = 500;
 /** A one-line field holds up to a long URL; a text area as much as a page. */
 const MAX_FIELD_TEXT = 10_000;
+const MAX_TEXTAREA = 100_000;
 /** Text an action may copy or paste: plenty for any snippet, but not unbounded. */
 const MAX_CLIPBOARD_TEXT = 1_000_000;
 
@@ -372,7 +372,7 @@ function sanitizeFormField(value: unknown, baseDir: string | undefined, ids: Set
     case 'textarea': {
       const field: Extract<FormField, { type: 'text' | 'password' | 'textarea' }> = { ...base, type: value.type };
       const placeholder = text(value.placeholder, 200);
-      const max = value.type === 'textarea' ? MAX_MARKDOWN : MAX_FIELD_TEXT;
+      const max = value.type === 'textarea' ? MAX_TEXTAREA : MAX_FIELD_TEXT;
       if (placeholder) field.placeholder = placeholder;
       if (typeof value.defaultValue === 'string') field.defaultValue = value.defaultValue.slice(0, max);
       if (value.required === true) field.required = true;

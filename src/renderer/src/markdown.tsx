@@ -3,10 +3,11 @@
  * and strikethrough, parsed by `marked` into tokens and built here element by element. Nothing is
  * ever handed to the page as HTML, so raw HTML in the text shows as the text it is.
  */
-import { Lexer, type Token, type Tokens } from 'marked';
+import type { Token, Tokens } from 'marked';
 import { type MouseEvent, type ReactNode, useMemo } from 'react';
 import { isOpenableLink } from '../../shared/notes';
 import { isNetworkPath } from '../../shared/paths';
+import { parseMarkdown } from './markdown-lexer';
 
 const IMAGE_PATTERN = /\.(png|jpe?g|gif|webp|svg|ico|bmp|avif)$/i;
 
@@ -97,15 +98,6 @@ export function imageSource(href: string): string | undefined {
     return url.protocol === 'https:' ? url.href : undefined;
   } catch {
     return undefined;
-  }
-}
-
-export function parseMarkdown(source: string): Token[] {
-  try {
-    return new Lexer({ gfm: true }).lex(source);
-  } catch {
-    // Should never happen, but a page that shows as written beats one that doesn't show at all.
-    return [{ type: 'paragraph', raw: source, text: source, tokens: [{ type: 'text', raw: source, text: source }] }];
   }
 }
 

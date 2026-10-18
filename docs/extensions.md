@@ -212,7 +212,7 @@ A page of Markdown that fills the launcher: a README, an article, the result of 
 
 | Field | |
 | --- | --- |
-| `markdown` | The page, up to 100,000 characters: [CommonMark](https://commonmark.org) with GitHub's tables, task lists, strikethrough and links typed as plain URLs. |
+| `markdown` | The page, up to 50,000 characters: [CommonMark](https://commonmark.org) with GitHub's tables, task lists, strikethrough and links typed as plain URLs. So that any page draws at once, quotes and lists nested more than 15 deep, and text so packed with `*`, `_`, `` ` `` or `[` that it would take long to work out, show as written. |
 | `title` | Shown by the back button and in the action bar, up to 100 characters. Without one, the command's title is. |
 | `metadata` | Optional `{ label, value }` pairs listed beside the text, up to 24. |
 | `actions` | Optional, up to 50, as for a [list item](#actions). |

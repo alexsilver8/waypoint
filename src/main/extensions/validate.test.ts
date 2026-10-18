@@ -227,7 +227,8 @@ describe('sanitizeView with a detail view', () => {
   it('shows an empty page for missing text, and cuts very long text', () => {
     expect(sanitizeView({ type: 'detail', loading: true })).toEqual({ type: 'detail', markdown: '', loading: true });
     const view = sanitizeView({ type: 'detail', markdown: 'x'.repeat(200_000), loading: 'yes' });
-    expect(view).toEqual({ type: 'detail', markdown: 'x'.repeat(100_000) });
+    // As much as the launcher can parse quickly, however it's written.
+    expect(view).toEqual({ type: 'detail', markdown: 'x'.repeat(50_000) });
   });
 
   it('keeps at most 24 metadata entries and 50 actions', () => {
