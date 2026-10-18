@@ -1,5 +1,5 @@
 import { Check, Flag, Keyboard, type LucideIcon, PersonStanding, SlidersHorizontal, Sparkles } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   type AccessibilityStatus,
   type OnboardingOutcome,
@@ -83,7 +83,8 @@ export function OnboardingApp() {
 
   // ↵ continues and esc goes back, unless a control has the keyboard: ↵ on a switch flips it.
   // The appearance picker's radios do nothing with ↵, and clicking one gives it the keyboard.
-  useEffect(() => {
+  // Listening from layout, so the keys work from the moment the first step is on screen.
+  useLayoutEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.isComposing) return;
       if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;

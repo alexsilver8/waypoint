@@ -18,10 +18,15 @@ const launch = async () => {
     env: { ...process.env, WAYPOINT_USER_DATA: userData },
   });
 };
-/** The setup window's page, once it's open. */
+/**
+ * The setup window's page, once it shows its first step. The window can be there before the page
+ * has drawn anything, and keys pressed then reach nothing, as they would for a person.
+ */
 const setupWindow = async (): Promise<Page> => {
   await expect.poll(() => app.windows().some(isSetup)).toBe(true);
-  return app.windows().find(isSetup) as Page;
+  const setup = app.windows().find(isSetup) as Page;
+  await expect(setup.locator('.capsule__title')).toBeVisible();
+  return setup;
 };
 /** The pages of the windows on screen, by file name. */
 const showing = () =>
