@@ -33,11 +33,11 @@ import {
 } from '../../../shared/notes';
 import type { Shortcut } from '../../../shared/types';
 import { shortcutKeys } from '../keys';
-import { type NoteAction, type NoteActionGroup, type NotesPopover, noteActions } from './actions';
+import { FORMAT_BAR_SHORTCUT, type NoteAction, type NoteActionGroup, type NotesPopover, noteActions } from './actions';
 import { BrowseNotes } from './BrowseNotes';
 import { FindBar } from './FindBar';
 import { historyTarget, type Move, nextHistory } from './history';
-import { BrowseIcon, CloseCircleIcon, CommandIcon, PlusIcon } from './icons';
+import { BrowseIcon, CloseCircleIcon, CommandIcon, PlusIcon, TextFormatIcon } from './icons';
 import { NoteActions } from './NoteActions';
 import { NoteEditor } from './NoteEditor';
 import { openPopoverHost, type PopoverHost } from './popover-host';
@@ -85,7 +85,8 @@ function htmlDocument(title: string, body: string): string {
 
 /**
  * The Notes window, laid out like Raycast Notes: one note at a time under a centred title,
- * with Actions (⌘K), Browse Notes (⌘P) and New Note (⌘N) at the top right.
+ * with Actions (⌘K), Browse Notes (⌘P) and New Note (⌘N) at the top right, and at its foot the
+ * note's length, or the format bar in its place, beside a round button that shows or hides it.
  */
 export function NotesApp() {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -361,6 +362,19 @@ export function NotesApp() {
     refocusEditor();
   }, [refocusEditor]);
 
+  const toggleFormatBar = useCallback(() => updateUi({ formatBar: !latest.current.ui.formatBar }), [updateUi]);
+
+  /**
+   * The round button at the bottom right shows or hides the format bar. While a popover is open
+   * it's the popover's ×, and a click on it can close the popover by taking the keyboard away
+   * just before the click arrives: that click isn't also meant for the format bar.
+   */
+  const onFormatBarButton = useCallback(() => {
+    const closed = closedElsewhere.current;
+    if (closed && Date.now() - closed.at < REOPEN_GUARD_MS) return;
+    toggleFormatBar();
+  }, [toggleFormatBar]);
+
   const copyAs = useCallback(
     (format: ExportFormat) => {
       const { editor: current, draft: text, source: asMarkdown } = latest.current;
@@ -601,7 +615,7 @@ export function NotesApp() {
     },
     exportAs: (format) => void exportAs(format),
     formatItems,
-    toggleFormatBar: () => updateUi({ formatBar: !latest.current.ui.formatBar }),
+    toggleFormatBar,
     toggleAutoResize: () => updateUi({ autoResize: !latest.current.ui.autoResize }),
     toggleAlwaysOnTop: () => updateUi({ alwaysOnTop: !latest.current.ui.alwaysOnTop }),
     toggleCount: () => updateUi({ count: latest.current.ui.count === 'words' ? 'characters' : 'words' }),
@@ -697,6 +711,7 @@ export function NotesApp() {
   );
 
   const length = noteLength(draft, ui.count);
+  const formatBarLabel = ui.formatBar ? 'Hide Format Bar' : 'Show Format Bar';
 
   // Popovers are drawn in their window beside this one (over the note, should it be missing).
   const popoverElement =
@@ -816,10 +831,12 @@ export function NotesApp() {
 
       {popover && <div className="notes__scrim" onMouseDown={() => closePopover()} aria-hidden="true" />}
       {popoverHost && popoverElement ? createPortal(popoverElement, popoverHost.root) : popoverElement}
-      {popover && (
+      {/* The round button at the bottom right: × closes an open popover, else T shows the format bar and × hides it. */}
+      {popover ? (
         <button
+          key="close"
           type="button"
-          className="notes__dismiss"
+          className="notes__corner"
           aria-label="Close"
           title="Close (esc)"
           onMouseDown={(event) => event.preventDefault()}
@@ -827,6 +844,21 @@ export function NotesApp() {
         >
           <CloseCircleIcon />
         </button>
+      ) : (
+        // A note shown as Markdown has no format bar.
+        !source && (
+          <button
+            key="format-bar"
+            type="button"
+            className="notes__corner"
+            aria-label={formatBarLabel}
+            title={`${formatBarLabel} (${keys(FORMAT_BAR_SHORTCUT)})`}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={onFormatBarButton}
+          >
+            {ui.formatBar ? <CloseCircleIcon /> : <TextFormatIcon />}
+          </button>
+        )
       )}
       {toast && (
         <div className="notes__toast" role="status">

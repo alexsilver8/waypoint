@@ -62,7 +62,7 @@ On Linux under Wayland, global shortcuts may not reach the app. Bind a shortcut 
 
 Run **Create Note** to start writing, or **Open Notes** to bring the window back. Notes show up in the launcher's search as you type, matching anything in them, not just the title; press <kbd>⇥</kbd> to see only notes, newest first, with a preview of the one you've selected. **Search Notes** lists them all on their own. **Create Note** also appears under **Use “…” with** for anything you type, so you can type a thought into the launcher and save it straight away.
 
-The Notes window works like Raycast Notes. It shows one note at a time, floats above your other windows, and grows as the note gets longer, then shrinks back; the first line is the note's title, in the middle of the title bar. The three buttons at the top right are **Actions** (<kbd>⌘</kbd> <kbd>K</kbd>), **Browse Notes** (<kbd>⌘</kbd> <kbd>P</kbd>) and **New Note** (<kbd>⌘</kbd> <kbd>N</kbd>). **Browse Notes** lists every note with when you last had it open and how long it is, pinned notes first; the selected note has buttons to pin and delete it. Like Raycast's, popovers are a window of their own, so a short note's window doesn't grow to fit them: they hang below it. <kbd>Esc</kbd> closes a popover, then the window.
+The Notes window works like Raycast Notes. It shows one note at a time, floats above your other windows, and grows as the note gets longer, then shrinks back; the first line is the note's title, in the middle of the title bar. The three buttons at the top right are **Actions** (<kbd>⌘</kbd> <kbd>K</kbd>), **Browse Notes** (<kbd>⌘</kbd> <kbd>P</kbd>) and **New Note** (<kbd>⌘</kbd> <kbd>N</kbd>). **Browse Notes** lists every note with when you last had it open and how long it is, pinned notes first; the selected note has buttons to pin and delete it. Like Raycast's, popovers are a window of their own, so a short note's window doesn't grow to fit them: they hang below it. <kbd>Esc</kbd> closes a popover, then the window. At the foot of the window is how long the note is; click it to count words instead of characters.
 
 | Keys | |
 | --- | --- |
@@ -75,7 +75,7 @@ The Notes window works like Raycast Notes. It shows one note at a time, floats a
 | <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>C</kbd> | Copy the note, or the selected text, as Markdown, HTML or plain text |
 | <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>D</kbd> | Copy a `waypoint://` link that opens the note from anywhere |
 | <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>E</kbd> | Export the note as Markdown, HTML or plain text |
-| <kbd>⌘</kbd> <kbd>⌥</kbd> <kbd>,</kbd> | Show or hide the format bar, with the note's character or word count |
+| <kbd>⌘</kbd> <kbd>⌥</kbd> <kbd>,</kbd> | Show or hide the format bar, like the round **T** button at the bottom right |
 | <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>/</kbd> | Turn window auto-resizing off or on |
 | <kbd>⌘</kbd> <kbd>=</kbd>, <kbd>⌘</kbd> <kbd>-</kbd>, <kbd>⌘</kbd> <kbd>0</kbd> | Make the text bigger, smaller, or its usual size |
 | <kbd>⌃</kbd> <kbd>X</kbd> (<kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>Backspace</kbd>) | Delete the note; <kbd>⌃</kbd> <kbd>⇧</kbd> <kbd>X</kbd> deletes them all, after asking |
@@ -84,7 +84,7 @@ The action panel also turns **Always on Top** off and on, shows the note in Find
 
 ### Formatting
 
-Markdown you type turns into formatting as you go: `# ` starts a heading, `- ` a list, `[ ] ` a checklist, `> ` a quote and ` ``` ` a code block. Typing `/` at the start of a line (or after a space) opens a menu of the same, and a colon with a couple of letters, like `:tada`, picks an emoji. **Format...** in the action panel and the format bar (<kbd>⌘</kbd> <kbd>⌥</kbd> <kbd>,</kbd>) format the selection or the line you're on.
+Markdown you type turns into formatting as you go: `# ` starts a heading, `- ` a list, `[ ] ` a checklist, `> ` a quote and ` ``` ` a code block. Typing `/` at the start of a line (or after a space) opens a menu of the same, and a colon with a couple of letters, like `:tada`, picks an emoji. **Format...** in the action panel and the format bar format the selection or the line you're on. As in Raycast, the round **T** button at the bottom right (or <kbd>⌘</kbd> <kbd>⌥</kbd> <kbd>,</kbd>) shows the format bar in place of the note's length, and **×** hides it again: **Heading** and text style (bold, italic, strikethrough) menus, **Link**, **Inline Code**, **Code Block**, **Quote** and a **List** menu.
 
 | Keys | |
 | --- | --- |

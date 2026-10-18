@@ -33,6 +33,9 @@ export type IconComponent = ComponentType<{ size?: number; strokeWidth?: number;
 /** The popovers: Browse Notes, the action panel and Recently Deleted. */
 export type NotesPopover = 'browse' | 'actions' | 'deleted';
 
+/** Shows or hides the format bar, as the round button at the bottom right does. */
+export const FORMAT_BAR_SHORTCUT: Shortcut = { key: ',', modifiers: ['mod', 'alt'] };
+
 export interface NoteAction extends PopoverEntry {
   title: string;
   icon: IconComponent;
@@ -201,7 +204,7 @@ export function noteActions(context: NoteActionContext): NoteActionGroup[] {
           key: 'format-bar',
           title: context.formatBar ? 'Hide Format Bar' : 'Show Format Bar',
           icon: PanelBottom,
-          shortcut: mod(',', 'alt'),
+          shortcut: FORMAT_BAR_SHORTCUT,
           run: context.toggleFormatBar,
         },
         {

@@ -238,11 +238,12 @@ test('formats a note with the toolbar, shortcuts and Markdown', async () => {
   const editor = notes.getByRole('textbox', { name: 'Note', exact: true });
   await expect(editor).toBeFocused();
 
-  // The format bar is hidden until ⌥⌘, (Ctrl+Alt+, elsewhere) shows it.
+  // The format bar is hidden until ⌥⌘, (Ctrl+Alt+, elsewhere) shows it, in place of the note's length.
   await expect(notes.getByRole('toolbar', { name: 'Formatting' })).toHaveCount(0);
+  await expect(notes.locator('.notes__count')).toHaveText('0 characters');
   await notes.keyboard.press(`${mod}+Alt+Comma`);
   await expect(notes.getByRole('toolbar', { name: 'Formatting' })).toBeVisible();
-  await expect(notes.locator('.format-bar__count')).toHaveText('0 characters');
+  await expect(notes.locator('.notes__count')).toHaveCount(0);
 
   await notes.keyboard.type('Trip');
   await notes.getByRole('button', { name: 'Heading' }).click();

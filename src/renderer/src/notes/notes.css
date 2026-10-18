@@ -5,7 +5,8 @@
  * below it when it's short. The popover window's page uses these styles too (.notes-popover).
  *
  * Sizes are Raycast's, measured in points from its window: a 52pt title bar, a 36pt capsule
- * 8pt in from the corner, 320pt popovers 100pt down, 36pt action rows and 58pt note rows.
+ * 8pt in from the corner, 320pt popovers 100pt down, 36pt action rows and 58pt note rows, and
+ * at the foot a 32pt format bar and round button 8pt up from the bottom.
  */
 
 @import "../base.css";
@@ -61,6 +62,9 @@ button {
   --n-match: rgb(255 204 0 / 0.35);
   --n-match-current: rgb(255 204 0);
   --n-code: rgb(0 0 0 / 0.05);
+  /* The note's length, and the format bar's icons, at the foot of the window. */
+  --n-count: rgb(0 0 0 / 0.3);
+  --n-format-icon: rgb(0 0 0 / 0.48);
 }
 
 .notes {
@@ -99,6 +103,8 @@ button {
     --n-match: rgb(255 214 10 / 0.3);
     --n-match-current: rgb(255 214 10 / 0.9);
     --n-code: rgb(255 255 255 / 0.08);
+    --n-count: rgb(255 255 255 / 0.21);
+    --n-format-icon: rgb(255 255 255 / 0.4);
   }
 }
 
@@ -173,11 +179,11 @@ button {
 }
 
 .notes__tool:focus-visible,
-.notes__dismiss:focus-visible,
+.notes__corner:focus-visible,
 .browse__button:focus-visible,
 .find__button:focus-visible,
 .find__text-button:focus-visible,
-.format-bar__count:focus-visible {
+.notes__count:focus-visible {
   outline: 2px solid color-mix(in oklab, var(--accent) 75%, transparent);
   outline-offset: -2px;
 }
@@ -242,16 +248,6 @@ button {
   font-size: 12px;
   line-height: 1.4;
   text-align: center;
-}
-
-.notes__notice--floating {
-  position: absolute;
-  right: 12px;
-  bottom: 12px;
-  left: 12px;
-  margin: 0 auto;
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
 }
 
 .notes__editor > * + * {
@@ -729,12 +725,15 @@ button {
   background: var(--n-hover);
 }
 
-/* While a popover is open, a glass button in the corner closes it. */
-.notes__dismiss {
+/*
+ * The round glass button at the bottom right, lined up with the capsule above it: T shows the
+ * format bar and × hides it, as in Raycast; while a popover is open, × closes that instead.
+ */
+.notes__corner {
   position: absolute;
   z-index: 31;
   right: 9px;
-  bottom: 9px;
+  bottom: 8px;
   display: grid;
   place-items: center;
   width: 32px;
@@ -749,7 +748,7 @@ button {
   color: var(--n-close);
 }
 
-.notes__dismiss:hover {
+.notes__corner:hover {
   background: var(--n-hover);
 }
 
@@ -874,37 +873,55 @@ button {
   background: var(--n-hover);
 }
 
-/* ── Format bar (⌥⌘,) ───────────────────────────────────── */
+/* ── The foot of the window: the note's length, or the format bar (⌥⌘,) ── */
 
+/*
+ * As in Raycast: a 32pt row 8pt above the bottom edge, with the note's length in the middle,
+ * or the format bar in its place, and the round button (.notes__corner) at the right. Its
+ * sides keep clear of that button, so the format bar never runs under it.
+ */
 .notes__footer {
   flex: none;
   display: flex;
   align-items: center;
   justify-content: center;
   min-width: 0;
-  height: 52px;
-  padding: 0 9px;
+  min-height: 48px;
+  padding: 8px 45px;
   user-select: none;
 }
 
-.format-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  min-width: 0;
+/* Click it to count words instead, and back. */
+.notes__count {
+  padding: 3px 8px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--n-count);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
+.notes__count:hover {
+  color: var(--n-secondary);
+}
+
+/*
+ * A 32pt glass capsule of 28pt buttons, 2pt in from its ends: Heading ⌄ and text style ⌄, Link,
+ * Inline Code | Code Block, Quote | List ⌄. Its icons are grey until you point at or turn one on.
+ */
 .toolbar {
   display: flex;
   align-items: center;
   min-width: 0;
-  height: 36px;
-  padding: 0 4px;
-  border-radius: 18px;
+  max-width: 100%;
+  height: 32px;
+  padding: 0 2px;
+  border-radius: 16px;
   background: var(--n-control);
   box-shadow: inset 0 0 0 1px var(--n-control-border);
-  color: var(--n-strong);
+  color: var(--n-format-icon);
   /* In a narrow window the bar scrolls rather than pushing the window wider. */
   overflow-x: auto;
   scrollbar-width: none;
@@ -915,12 +932,13 @@ button {
   flex: none;
 }
 
+/* 28pt for an icon; 42pt for an icon and its menu's ⌄. */
 .toolbar__button {
   flex: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 1px;
+  gap: 2px;
   min-width: 28px;
   height: 28px;
   padding: 0 6px;
@@ -930,20 +948,14 @@ button {
   color: inherit;
 }
 
-.toolbar__button--menu {
-  padding: 0 4px 0 7px;
-}
-
-.toolbar__chevron {
-  opacity: 0.6;
-}
-
 .toolbar__button:hover:not(:disabled) {
   background: var(--n-hover);
+  color: var(--n-strong);
 }
 
 .toolbar__button:is([aria-pressed="true"], [aria-expanded="true"]) {
   background: var(--n-selection);
+  color: var(--n-strong);
 }
 
 .toolbar__button:disabled {
@@ -960,29 +972,8 @@ button {
   flex: none;
   width: 1px;
   height: 16px;
-  margin: 0 4px;
+  margin: 0 6px;
   background: var(--n-separator);
-}
-
-.format-bar__count {
-  flex: none;
-  margin-left: auto;
-  padding: 4px 6px;
-  border: none;
-  border-radius: 7px;
-  background: none;
-  color: var(--n-secondary);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.format-bar__count:hover {
-  background: var(--n-hover);
-}
-
-.notes[data-popover] .format-bar__count {
-  visibility: hidden;
 }
 
 /* The format bar's menus and the link field: small popovers of their own. */

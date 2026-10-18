@@ -3,10 +3,7 @@ import { type Editor, EditorContent, type EditorEvents, useEditor, useEditorStat
 import {
   Bold,
   Check,
-  ChevronDown,
-  Code,
   ExternalLink,
-  Heading,
   Heading1,
   Heading2,
   Heading3,
@@ -16,10 +13,7 @@ import {
   ListChecks,
   ListOrdered,
   Pilcrow,
-  SquareCode,
   Strikethrough,
-  TextCursor,
-  TextQuote,
   Unlink,
 } from 'lucide-react';
 import {
@@ -39,6 +33,16 @@ import { Keycaps } from '../components/Keycaps';
 import { EmojiMenu } from './EmojiMenu';
 import { emojiState } from './emoji';
 import { findKey, findState } from './find';
+import {
+  CodeBlockIcon,
+  HeadingIcon,
+  InlineCodeIcon,
+  LinkIcon,
+  ListIcon,
+  MenuChevronIcon,
+  QuoteIcon,
+  TextStyleIcon,
+} from './icons';
 import type { MenuKeys } from './inline-menu';
 import { applyNoteStyle, noteExtensions, showsFaithfully } from './markdown';
 import { SlashMenu } from './SlashMenu';
@@ -199,7 +203,7 @@ function Menu({
       <button
         ref={trigger}
         type="button"
-        className="toolbar__button toolbar__button--menu"
+        className="toolbar__button"
         aria-label={label}
         title={label}
         aria-haspopup="menu"
@@ -215,7 +219,7 @@ function Menu({
         }}
       >
         {icon}
-        <ChevronDown className="toolbar__chevron" size={11} strokeWidth={2.5} aria-hidden="true" />
+        <MenuChevronIcon />
       </button>
       {open && (
         <div
@@ -386,19 +390,18 @@ function LinkField({ editor, onClose }: { editor: Editor; onClose(refocus: boole
   );
 }
 
-/** The format bar at the bottom of the window (⌥⌘,), with the note's length beside it. */
+/**
+ * The format bar (⌥⌘,), as in Raycast: a capsule in the middle of the window's foot with the
+ * Heading and text style menus, Link, Inline Code, Code Block, Quote and the List menu.
+ */
 function FormatBar({
   editor,
   linkOpen,
   setLinkOpen,
-  length,
-  onToggleCount,
 }: {
   editor: Editor;
   linkOpen: boolean;
   setLinkOpen(open: boolean): void;
-  length: string;
-  onToggleCount(): void;
 }) {
   const state = useEditorState({
     editor,
@@ -505,68 +508,53 @@ function FormatBar({
   );
 
   return (
-    <div className="format-bar">
-      <div
-        className="toolbar"
-        role="toolbar"
-        aria-label="Formatting"
-        onMouseDown={keepEditorFocus}
-        onKeyDown={moveAlongToolbar}
-      >
-        <Menu
-          label="Heading"
-          icon={<Heading size={16} />}
-          active={state.heading > 0}
-          disabled={disabled}
-          kind="radio"
-          items={headings}
-          onDismiss={refocus}
-        />
-        <Menu
-          label="Text style"
-          icon={<TextCursor size={16} />}
-          active={state.bold || state.italic || state.strike}
-          disabled={disabled}
-          kind="checkbox"
-          items={styles}
-          onDismiss={refocus}
-        />
-        <span className="toolbar__menu" data-link-toggle="">
-          {toggle('Link', [MOD, 'L'], <Link size={16} />, state.link || linkOpen, () => {
-            setLinkOpen(!linkOpen);
-            // Closing the field from its button: back to the note, not nowhere.
-            if (linkOpen) refocus();
-          })}
-        </span>
-        {toggle('Inline code', [MOD, 'E'], <Code size={16} />, state.code, () => chain().toggleCode().run())}
-        <span className="toolbar__divider" aria-hidden="true" />
-        {toggle('Code block', [MOD, ALT, 'C'], <SquareCode size={16} />, state.codeBlock, () =>
-          chain().toggleCodeBlock().run(),
-        )}
-        {toggle('Quote', [MOD, SHIFT, 'B'], <TextQuote size={16} />, state.blockquote, () =>
-          chain().toggleBlockquote().run(),
-        )}
-        <span className="toolbar__divider" aria-hidden="true" />
-        <Menu
-          label="List"
-          icon={<List size={16} />}
-          active={state.list !== ''}
-          disabled={disabled}
-          kind="radio"
-          align="end"
-          items={lists}
-          onDismiss={refocus}
-        />
-      </div>
-      <button
-        type="button"
-        className="format-bar__count"
-        onMouseDown={keepEditorFocus}
-        onClick={onToggleCount}
-        title="Switch between characters and words"
-      >
-        {length}
-      </button>
+    <div
+      className="toolbar"
+      role="toolbar"
+      aria-label="Formatting"
+      onMouseDown={keepEditorFocus}
+      onKeyDown={moveAlongToolbar}
+    >
+      <Menu
+        label="Heading"
+        icon={<HeadingIcon />}
+        active={state.heading > 0}
+        disabled={disabled}
+        kind="radio"
+        items={headings}
+        onDismiss={refocus}
+      />
+      <Menu
+        label="Text style"
+        icon={<TextStyleIcon />}
+        active={state.bold || state.italic || state.strike}
+        disabled={disabled}
+        kind="checkbox"
+        items={styles}
+        onDismiss={refocus}
+      />
+      <span className="toolbar__menu" data-link-toggle="">
+        {toggle('Link', [MOD, 'L'], <LinkIcon />, state.link || linkOpen, () => {
+          setLinkOpen(!linkOpen);
+          // Closing the field from its button: back to the note, not nowhere.
+          if (linkOpen) refocus();
+        })}
+      </span>
+      {toggle('Inline code', [MOD, 'E'], <InlineCodeIcon />, state.code, () => chain().toggleCode().run())}
+      <span className="toolbar__divider" aria-hidden="true" />
+      {toggle('Code block', [MOD, ALT, 'C'], <CodeBlockIcon />, state.codeBlock, () => chain().toggleCodeBlock().run())}
+      {toggle('Quote', [MOD, SHIFT, 'B'], <QuoteIcon />, state.blockquote, () => chain().toggleBlockquote().run())}
+      <span className="toolbar__divider" aria-hidden="true" />
+      <Menu
+        label="List"
+        icon={<ListIcon />}
+        active={state.list !== ''}
+        disabled={disabled}
+        kind="radio"
+        align="end"
+        items={lists}
+        onDismiss={refocus}
+      />
     </div>
   );
 }
@@ -585,9 +573,9 @@ export interface NoteEditorProps {
    * after you switch notes is still the one you left.
    */
   onChange(markdown: string, noteId: string | null): void;
-  /** Show the format bar at the bottom of the window. */
+  /** Show the format bar at the foot of the window, in place of the note's length. */
   formatBar: boolean;
-  /** The note's length, like "12 characters", shown at the end of the format bar. */
+  /** The note's length, like "12 characters", shown at the foot of the window while the format bar is hidden. */
   length: string;
   onToggleCount(): void;
   /** The editor once it's ready, for the window's actions: find, copy, format. */
@@ -803,30 +791,26 @@ export function NoteEditor({
           }}
         />
       )}
-      {formatBar && (
-        <footer className="notes__footer">
-          {source ? (
-            <p className="notes__notice" role="status">
-              Shown as Markdown: this note has things the editor can’t show yet, like a table or front matter.
-            </p>
-          ) : (
-            editor && (
-              <FormatBar
-                editor={editor}
-                linkOpen={linkOpen}
-                setLinkOpen={setLinkOpen}
-                length={length}
-                onToggleCount={onToggleCount}
-              />
-            )
-          )}
-        </footer>
-      )}
-      {!formatBar && source && (
-        <p className="notes__notice notes__notice--floating" role="status">
-          Shown as Markdown: this note has things the editor can’t show yet, like a table or front matter.
-        </p>
-      )}
+      {/* The foot of the window, as in Raycast: the note's length, or the format bar in its place. */}
+      <footer className="notes__footer">
+        {source ? (
+          <p className="notes__notice" role="status">
+            Shown as Markdown: this note has things the editor can’t show yet, like a table or front matter.
+          </p>
+        ) : formatBar && editor ? (
+          <FormatBar editor={editor} linkOpen={linkOpen} setLinkOpen={setLinkOpen} />
+        ) : (
+          <button
+            type="button"
+            className="notes__count"
+            onMouseDown={keepEditorFocus}
+            onClick={onToggleCount}
+            title="Switch between characters and words"
+          >
+            {length}
+          </button>
+        )}
+      </footer>
     </>
   );
 }

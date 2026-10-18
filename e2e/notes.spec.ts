@@ -146,6 +146,56 @@ test('closes a popover with Esc, and the window with Esc after that', async () =
   await expect.poll(async () => (await notesWindow())?.visible).toBe(false);
 });
 
+test('shows the format bar from the round button at the foot, in place of the note’s length', async () => {
+  const formatBar = notes.getByRole('toolbar', { name: 'Formatting' });
+  const count = notes.locator('.notes__count');
+  // Hidden at first, as in Raycast: the foot of the window says how long the note is, and
+  // clicking that counts words instead.
+  await expect(formatBar).toHaveCount(0);
+  await expect(count).toHaveText('29 characters');
+  await count.click();
+  await expect(count).toHaveText('6 words');
+  await count.click();
+  await expect(count).toHaveText('29 characters');
+
+  // T shows the format bar, with Raycast's buttons in Raycast's order, and the cursor stays in the note.
+  await notes.getByRole('button', { name: 'Show Format Bar' }).click();
+  await expect(formatBar).toBeVisible();
+  await expect(count).toHaveCount(0);
+  const names = ['Heading', 'Text style', 'Link', 'Inline code', 'Code block', 'Quote', 'List'];
+  await expect(formatBar.getByRole('button')).toHaveCount(names.length);
+  for (const [index, name] of names.entries()) {
+    await expect(formatBar.getByRole('button').nth(index)).toHaveAccessibleName(name);
+  }
+  await expect(editor()).toBeFocused();
+
+  // The format bar sits in the middle of the window's foot, 8pt up, level with the round button.
+  const [bar, button] = await Promise.all([
+    formatBar.boundingBox(),
+    notes.getByRole('button', { name: 'Hide Format Bar' }).boundingBox(),
+  ]);
+  if (!bar || !button) throw new Error('Not on screen');
+  expect(bar.x + bar.width / 2).toBeCloseTo(475 / 2, 0);
+  expect(bar.y + bar.height).toBe(308 - 8);
+  expect(button).toMatchObject({ x: 475 - 9 - 32, y: 308 - 8 - 32, width: 32, height: 32 });
+
+  // × hides it again, and ⌥⌘, does the same.
+  await notes.getByRole('button', { name: 'Hide Format Bar' }).click();
+  await expect(formatBar).toHaveCount(0);
+  await expect(count).toBeVisible();
+  await notes.keyboard.press(`${mod}+Alt+Comma`);
+  await expect(formatBar).toBeVisible();
+
+  // While a popover is open, the round button closes it instead.
+  await notes.keyboard.press(`${mod}+p`);
+  await expect(browse()).toBeVisible();
+  await expect(notes.getByRole('button', { name: 'Hide Format Bar' })).toHaveCount(0);
+  await notes.getByRole('button', { name: 'Close' }).click();
+  await expect(browse()).toHaveCount(0);
+  await expect(formatBar).toBeVisible();
+  await expect(notes.getByRole('button', { name: 'Hide Format Bar' })).toBeVisible();
+});
+
 test('goes back and forward between notes with ⌘[ and ⌘]', async () => {
   await notes.keyboard.press(`${mod}+p`);
   await browse()
