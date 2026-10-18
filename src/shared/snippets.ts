@@ -23,6 +23,13 @@ export interface Snippet {
   keyword?: string;
 }
 
+/**
+ * Whether snippets expand as you type in other apps: `off` in Settings, `on` and working, or
+ * not working because macOS hasn't allowed Accessibility yet, the session is Wayland (which keeps
+ * keys from other apps), or the keyboard hook couldn't load.
+ */
+export type SnippetExpansionStatus = 'off' | 'on' | 'needs-accessibility' | 'unsupported' | 'unavailable';
+
 /** A snippet as the Settings window sends it: without an id when it's new. */
 export type SnippetDraft = Omit<Snippet, 'id'> & { id?: string };
 

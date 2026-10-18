@@ -21,6 +21,7 @@ const api: SettingsApi = {
   deleteSnippet: (id) => ipcRenderer.invoke(SettingsChannel.deleteSnippet, id),
   listApps: () => ipcRenderer.invoke(SettingsChannel.listApps),
   takeTarget: () => ipcRenderer.invoke(SettingsChannel.takeTarget),
+  openAccessibility: () => ipcRenderer.send(SettingsChannel.openAccessibility),
   onChanged: (listener) => {
     const handler = () => listener();
     ipcRenderer.on(SettingsChannel.changed, handler);

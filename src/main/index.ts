@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { app, clipboard, nativeTheme, powerSaveBlocker, shell } from 'electron';
+import { app, BrowserWindow, clipboard, nativeTheme, powerSaveBlocker, shell, systemPreferences } from 'electron';
 import { commandFromDeeplink, commandInArgv, launchArguments } from '../shared/command-hotkeys';
 import { NotesChannel, noteIdFromDeeplink, RECENTLY_DELETED_DAYS } from '../shared/notes';
 import type { OnboardingOutcome } from '../shared/onboarding';
@@ -38,6 +38,8 @@ import { CommandRegistry } from './registry';
 import { type Settings, SettingsStore } from './settings';
 import { registerSettingsIpc } from './settings-ipc';
 import { SettingsWindow } from './settings-window';
+import { SnippetExpander } from './snippet-expansion/expander';
+import { electronClipboardKeeper, loadKeyboardHook } from './snippet-expansion/system';
 import { AppTray } from './tray';
 import { UsageTracker } from './usage';
 import { LauncherWindow } from './window';
@@ -122,6 +124,16 @@ async function main(): Promise<void> {
   const quicklinks = new QuicklinkStore(join(dataDir, 'quicklinks.json'));
   const snippets = new SnippetStore(join(dataDir, 'snippets.json'));
   const readClipboard = () => clipboard.readText();
+  // Type a snippet's keyword in any app, and it's replaced by the snippet.
+  const snippetExpander = new SnippetExpander({
+    platform,
+    loadHook: loadKeyboardHook,
+    snippets: () => snippets.list(),
+    waypointFocused: () => BrowserWindow.getFocusedWindow() !== null,
+    trusted: (prompt) => systemPreferences.isTrustedAccessibilityClient(prompt),
+    readClipboard,
+    clipboard: electronClipboardKeeper((text) => clipboardHistory.ignore(text)),
+  });
   const usageScore = (id: string) => usage.score(id);
 
   const registry: CommandRegistry = new CommandRegistry({
@@ -243,7 +255,9 @@ async function main(): Promise<void> {
     },
     openOnboarding: () => onboardingWindow.open(),
     entries: { quicklinks, snippets, apps },
+    snippetExpansion: snippetExpander,
   });
+  snippetExpander.on('status', () => settingsIpc.notifyChanged());
   const onboardingIpc = registerOnboardingIpc({
     store: settings,
     window: onboardingWindow,
@@ -306,6 +320,10 @@ async function main(): Promise<void> {
     clipboardHistory.setMaxItems(current.clipboardHistory.maxItems);
     if (current.clipboardHistory.enabled) void clipboardHistory.start();
     else clipboardHistory.stop();
+    if (current.snippetExpansion !== previous?.snippetExpansion) {
+      // Asks for Accessibility when it's turned on, not each time Waypoint starts with it on.
+      void snippetExpander.setEnabled(current.snippetExpansion, previous !== undefined);
+    }
     if (previous && current.notesDirectory !== previous.notesDirectory) {
       notesStore.setDirectory(notesDirectoryFor(current));
     }
@@ -334,6 +352,7 @@ async function main(): Promise<void> {
 
   app.on('will-quit', () => {
     hotkeys.dispose();
+    snippetExpander.dispose();
     usage.flush();
     clipboardHistory.flush();
     notesWindow.flushState();

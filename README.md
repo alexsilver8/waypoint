@@ -151,7 +151,14 @@ Quicklinks and snippets are kept in `quicklinks.json` and `snippets.json` in Way
 ]
 ```
 
-Snippets don't expand as you type in other apps, which would need a system-wide keyboard hook; type a snippet's keyword in the launcher instead.
+### Expanding as you type
+
+Turn on **Expand keywords as you type** in Settings → Snippets, and typing a snippet's keyword in any app replaces it with the snippet: Waypoint erases the keyword, pastes the snippet, and puts your clipboard back as it was. A keyword that starts with a letter or digit, like `sig`, expands only at the start of a word, so it doesn't fire inside "design"; one that starts with punctuation, like `!sig` or `;sig`, expands wherever you type it. In Waypoint's own windows keywords don't expand, so the launcher can still find a snippet by its keyword.
+
+- It's off until you turn it on, and until then nothing watches the keyboard.
+- macOS asks for Accessibility, which lets Waypoint see keys typed in other apps and press Backspace and ⌘V.
+- On Linux it works in X11 sessions; Wayland doesn't let one app see the keys typed in another.
+- Keys are read by where they sit on a US keyboard. On another layout, like AZERTY or Dvorak, a keyword expands when you press the keys a US keyboard types it with, which may not be the ones that type it on yours.
 
 ## Windows
 
@@ -304,7 +311,6 @@ Built-in commands implement the same interface as extensions, so anything a buil
 
 ## Roadmap
 
-- Snippets that expand as you type in any app
 - Code-signed, auto-updating releases
 
 Ideas and bug reports are welcome in [Issues](https://github.com/alexsilver8/waypoint/issues).

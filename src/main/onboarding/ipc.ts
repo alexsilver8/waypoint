@@ -17,7 +17,7 @@ import type { OnboardingWindow } from './window';
 const PATCHABLE: Array<keyof OnboardingPatch> = ['theme', 'launchAtLogin', 'clipboardHistory'];
 
 /** System Settings → Privacy & Security → Accessibility. */
-const ACCESSIBILITY_PANE = 'x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility';
+export const ACCESSIBILITY_PANE = 'x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility';
 /** System Settings → Keyboard, whose Keyboard Shortcuts… holds Spotlight's. */
 const KEYBOARD_PANE = 'x-apple.systempreferences:com.apple.Keyboard-Settings.extension';
 

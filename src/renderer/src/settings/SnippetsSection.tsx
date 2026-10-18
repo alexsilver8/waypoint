@@ -1,7 +1,15 @@
 import { type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from 'react';
+import type { Settings } from '../../../shared/settings';
 import type { SettingsState, SettingsTarget } from '../../../shared/settings-ipc';
-import { checkSnippet, SNIPPET_PLACEHOLDERS, type Snippet, snippetPreview } from '../../../shared/snippets';
-import { Button, Group } from './controls';
+import {
+  checkSnippet,
+  SNIPPET_PLACEHOLDERS,
+  type Snippet,
+  type SnippetExpansionStatus,
+  snippetPreview,
+} from '../../../shared/snippets';
+import { Toggle } from '../components/Toggle';
+import { Button, Group, Row } from './controls';
 import { EditorButtons, EntryRow, Field, PlaceholderButtons, PlaceholderGuide } from './entry-form';
 
 const api = window.settings;
@@ -87,7 +95,8 @@ function SnippetEditor({
           label="Keyword"
           hint={
             <>
-              Optional. Type it in the launcher and press {enter} to paste the snippet, like <code>!sig</code>.
+              Optional. Type it in the launcher and press {enter} to paste the snippet, like <code>!sig</code>, or
+              anywhere when expanding as you type is on.
             </>
           }
         >
@@ -133,16 +142,35 @@ function SnippetEditor({
   );
 }
 
+/** What the expansion row says, by how expansion stands. */
+function expansionDescription(status: SnippetExpansionStatus): string {
+  switch (status) {
+    case 'needs-accessibility':
+      return 'Waiting for Accessibility: turn on Waypoint in System Settings → Privacy & Security → Accessibility.';
+    case 'unsupported':
+      return 'Only in an X11 session: Wayland keeps the keys you type in other apps from Waypoint.';
+    case 'unavailable':
+      return api.platform === 'linux'
+        ? 'Waypoint couldn’t watch the keyboard on this computer. It needs X11’s libXtst.'
+        : 'Waypoint couldn’t watch the keyboard on this computer.';
+    default:
+      return 'Type a snippet’s keyword in any app and it’s replaced by the snippet. Keys are read as on a US keyboard.';
+  }
+}
+
 /** Settings → Snippets: your snippets, with an editor to add or change one. */
 export function SnippetsSection({
   state,
+  update,
   setState,
   target,
 }: {
   state: SettingsState;
+  update(patch: Partial<Settings>): void;
   setState(state: SettingsState): void;
   target: SettingsTarget | null;
 }) {
+  const expansion = state.info.snippetExpansion;
   const [editing, setEditing] = useState<Draft | null>(null);
   // A new key for each edit, so the editor starts afresh even when one is open already.
   const [editorKey, setEditorKey] = useState(0);
@@ -178,9 +206,22 @@ export function SnippetsSection({
       <p className="section__intro">
         Snippets are text you paste often: an address, a reply, a signature. Type a snippet’s name or keyword in the
         launcher and press {enter} to paste it into the app you were in. They’re kept in <code>snippets.json</code> in
-        the data folder, and changes to the file show up right away. Waypoint doesn’t expand keywords as you type in
-        other apps; type them in the launcher.
+        the data folder, and changes to the file show up right away.
       </p>
+      <Group>
+        <Row label="Expand keywords as you type" description={expansionDescription(expansion)}>
+          <div className="button-row">
+            {expansion === 'needs-accessibility' && (
+              <Button onClick={() => api.openAccessibility()}>Open Accessibility</Button>
+            )}
+            <Toggle
+              label="Expand keywords as you type"
+              checked={state.settings.snippetExpansion}
+              onChange={(snippetExpansion) => update({ snippetExpansion })}
+            />
+          </div>
+        </Row>
+      </Group>
       {!editing && (
         <div className="button-row button-row--start">
           <Button onClick={() => edit(EMPTY)}>New Snippet</Button>

@@ -7,11 +7,13 @@ import {
   type SettingsLocation,
   type SettingsState,
 } from '../shared/settings-ipc';
+import type { SnippetExpansionStatus } from '../shared/snippets';
 import type { Platform } from '../shared/types';
 import type { ClipboardHistory } from './clipboard/history';
 import { type CommandHotkeys, changeCommandHotkey, commandShortcutList } from './command-hotkeys';
 import { changeHotkey, type HotkeyManager } from './hotkey';
 import { canLaunchAtLogin } from './login-item';
+import { ACCESSIBILITY_PANE } from './onboarding/ipc';
 import type { CommandRegistry } from './registry';
 import type { SettingsStore } from './settings';
 import { registerEntriesIpc, type SettingsEntries } from './settings-entries-ipc';
@@ -30,12 +32,15 @@ export interface SettingsIpcOptions {
   openOnboarding(): void;
   /** Quicklinks and snippets, and the apps quicklinks can open with. */
   entries: SettingsEntries;
+  /** Whether snippets expand as you type, and asking macOS for what that needs. */
+  snippetExpansion: { readonly status: SnippetExpansionStatus; askForAccess(): void };
 }
 
 const PATCHABLE: Array<keyof Settings> = [
   'hideOnBlur',
   'launchAtLogin',
   'pasteIntoApps',
+  'snippetExpansion',
   'theme',
   'clipboardHistory',
   'extensionDirectories',
@@ -55,6 +60,7 @@ export function registerSettingsIpc(options: SettingsIpcOptions): { notifyChange
     paths,
     openOnboarding,
     entries,
+    snippetExpansion,
   } = options;
 
   const check = (event: Electron.IpcMainInvokeEvent | Electron.IpcMainEvent) => {
@@ -89,6 +95,7 @@ export function registerSettingsIpc(options: SettingsIpcOptions): { notifyChange
         clipboardEntries: clipboardHistory.entries().length,
         canLaunchAtLogin: canLaunchAtLogin(),
         packaged: app.isPackaged,
+        snippetExpansion: snippetExpansion.status,
       },
     };
   };
@@ -170,6 +177,15 @@ export function registerSettingsIpc(options: SettingsIpcOptions): { notifyChange
     check(event);
     const error = changeCommandHotkey(hotkeys, commandHotkeys, store, key, accelerator);
     return error ? { state: state(), error } : { state: state() };
+  });
+
+  ipcMain.on(SettingsChannel.openAccessibility, (event) => {
+    check(event);
+    if (platform !== 'darwin') return;
+    // Asking puts Waypoint in the list, so there's only a switch to turn on. macOS shows its own
+    // prompt just once, so open the page too.
+    snippetExpansion.askForAccess();
+    void shell.openExternal(ACCESSIBILITY_PANE);
   });
 
   ipcMain.handle(SettingsChannel.takeTarget, (event) => {

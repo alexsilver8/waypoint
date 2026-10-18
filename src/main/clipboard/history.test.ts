@@ -39,6 +39,15 @@ describe('ClipboardHistory', () => {
     expect(history.entries()).toHaveLength(1);
   });
 
+  it('skips text Waypoint puts on the clipboard itself', async () => {
+    const { state, source } = fakeClipboard();
+    const history = new ClipboardHistory(tempFile(), source, 10);
+    history.ignore('expanded snippet');
+    state.text = 'expanded snippet';
+    await history.poll();
+    expect(history.entries()).toEqual([]);
+  });
+
   it('skips content that password managers mark as concealed', async () => {
     const { state, source } = fakeClipboard();
     const history = new ClipboardHistory(tempFile(), source, 10);

@@ -20,6 +20,8 @@ export interface Settings {
   notesDirectory: string;
   /** Paste actions (emoji, gitmoji, commit messages) type into the app you were in; off, they copy. */
   pasteIntoApps: boolean;
+  /** Type a snippet's keyword in any app to replace it with the snippet. Off until turned on. */
+  snippetExpansion: boolean;
   /** A global shortcut for any command, as an Electron accelerator, by `"<extension>/<command>"`. */
   commandHotkeys: Record<string, string>;
 }
@@ -33,6 +35,7 @@ export const DEFAULT_SETTINGS: Settings = {
   extensionDirectories: [],
   notesDirectory: '',
   pasteIntoApps: true,
+  snippetExpansion: false,
   commandHotkeys: {},
 };
 
@@ -72,6 +75,9 @@ export function normalizeSettings(raw: unknown): NormalizedSettings {
   });
   take('pasteIntoApps', raw.pasteIntoApps, isBoolean, (v) => {
     settings.pasteIntoApps = v;
+  });
+  take('snippetExpansion', raw.snippetExpansion, isBoolean, (v) => {
+    settings.snippetExpansion = v;
   });
   take(
     'theme',
