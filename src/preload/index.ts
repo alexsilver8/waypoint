@@ -17,6 +17,7 @@ const api: PaletteApi = {
   startDrag: () => ipcRenderer.send(IpcChannel.startDrag),
   endDrag: () => ipcRenderer.send(IpcChannel.endDrag),
   onShown: (listener) => subscribe<[ShownInfo]>(IpcChannel.shown, listener),
+  onHidden: (listener) => subscribe(IpcChannel.hidden, listener),
   onRootItemsChanged: (listener) => subscribe(IpcChannel.rootItemsChanged, listener),
   onToast: (listener) => subscribe<[ToastMessage]>(IpcChannel.toast, listener),
 };

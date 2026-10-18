@@ -296,6 +296,7 @@ export function sanitizeView(value: unknown, baseDir?: string): View {
   if (searchPlaceholder) view.searchPlaceholder = searchPlaceholder;
   if (emptyText) view.emptyText = emptyText;
   if (value.filtering === false) view.filtering = false;
+  if (value.loading === true) view.loading = true;
   return view;
 }
 

@@ -157,6 +157,11 @@ describe('sanitizeView', () => {
     expect(view.sections[0]?.items[1]?.detail).toBeUndefined();
   });
 
+  it('keeps a list that is still loading, and nothing that only looks like it', () => {
+    expect(sanitizeView({ type: 'list', items: [], loading: true }).loading).toBe(true);
+    expect(sanitizeView({ type: 'list', items: [], loading: 'yes' })).not.toHaveProperty('loading');
+  });
+
   it('makes item ids unique', () => {
     const view = sanitizeView({ type: 'list', items: [{ title: 'A' }, { title: 'A' }, { id: 'A', title: 'B' }] });
     expect(view.sections[0]?.items.map((i) => i.id)).toEqual(['A', 'A#2', 'A#3']);

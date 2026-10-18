@@ -12,6 +12,8 @@ export const IpcChannel = {
   endDrag: 'palette:end-drag',
   /** main → renderer: the window was just shown. */
   shown: 'palette:shown',
+  /** main → renderer: the window was just hidden. */
+  hidden: 'palette:hidden',
   /** main → renderer: apps or extensions changed; fetch root items again. */
   rootItemsChanged: 'palette:root-items-changed',
   /** main → renderer: show a message in the footer. */
@@ -40,6 +42,7 @@ export interface PaletteApi {
   startDrag(): void;
   endDrag(): void;
   onShown(listener: (info: ShownInfo) => void): () => void;
+  onHidden(listener: () => void): () => void;
   onRootItemsChanged(listener: () => void): () => void;
   onToast(listener: (toast: ToastMessage) => void): () => void;
 }

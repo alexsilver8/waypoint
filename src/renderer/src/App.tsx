@@ -16,6 +16,8 @@ const palette = window.palette;
 const { platform } = palette;
 const TOAST_MS = 2500;
 const SEARCH_DEBOUNCE_MS = 120;
+/** How often a list that's still loading is asked for again. */
+const LOADING_REFRESH_MS = 1000;
 
 /** One level of navigation: the root search, or a command's view pushed on top of it. */
 interface Frame {
@@ -80,6 +82,9 @@ export function App() {
   const launcher = useRef<HTMLDivElement>(null);
   const searchRequest = useRef(0);
   const busy = useRef(false);
+  /** Whether the window is on screen, for lists that are still loading to wait while it isn't. */
+  const onScreen = useRef(true);
+  const panelOpenRef = useRef(false);
   const inflight = useRef<{ key: string; promise: Promise<View | undefined> } | null>(null);
   const stackRef = useRef(stack);
   stackRef.current = stack;
@@ -129,7 +134,11 @@ export function App() {
     load();
     const offChanged = palette.onRootItemsChanged(load);
     const offToast = palette.onToast((message) => showToast(message.text, message.style));
+    const offHidden = palette.onHidden(() => {
+      onScreen.current = false;
+    });
     const offShown = palette.onShown(({ reset }) => {
+      onScreen.current = true;
       load();
       setPanelOpen(false);
       if (reset) {
@@ -141,6 +150,7 @@ export function App() {
     return () => {
       offChanged();
       offToast();
+      offHidden();
       offShown();
     };
   }, [focusInput, showToast]);
@@ -180,10 +190,11 @@ export function App() {
 
   /**
    * Asks a self-filtering command for its view of `query`, and shows it if that view is
-   * still on top and no newer request was made. Returns the view when it was applied.
+   * still on top and no newer request was made. Returns the view when it was applied. The
+   * selection goes back to the first row, as for new results, unless `keepSelection`.
    */
   const refreshView = useCallback(
-    (frameId: number, ref: CommandRef, query: string): Promise<View | undefined> => {
+    (frameId: number, ref: CommandRef, query: string, keepSelection = false): Promise<View | undefined> => {
       // ↵ and the debounce timer may ask for the same thing; share one request.
       const key = `${frameId}\u0000${query}`;
       if (inflight.current?.key === key) return inflight.current.promise;
@@ -196,7 +207,7 @@ export function App() {
         try {
           const view = await palette.searchView(ref, query);
           if (!isCurrent()) return undefined;
-          updateTop({ view, viewQuery: query, selectedId: undefined });
+          updateTop({ view, viewQuery: query, ...(keepSelection ? {} : { selectedId: undefined }) });
           return view;
         } catch (error) {
           if (isCurrent()) showToast(cleanError(error), 'failure');
@@ -222,8 +233,43 @@ export function App() {
     return () => clearTimeout(timer);
   }, [stale, frameId, frameRef, frameQuery, refreshView]);
 
+  // A list that's still loading is asked for again every second until it's done. A row picked
+  // with the arrows or the pointer stays picked as the rows move; otherwise the first row is.
+  // Nothing changes under an open action panel or while an action runs.
+  const listLoading = !isRoot && frame.view?.loading === true;
+  const refreshing = listLoading && !stale && !panelOpen;
+  panelOpenRef.current = panelOpen;
+  useEffect(() => {
+    if (!refreshing || !frameRef) return;
+    let asking = false;
+    const timer = setInterval(async () => {
+      if (asking || busy.current || inflight.current || !onScreen.current) return;
+      asking = true;
+      const request = searchRequest.current;
+      try {
+        const view = await palette.searchView(frameRef, frameQuery);
+        const top = stackRef.current[stackRef.current.length - 1];
+        // Not if anything happened meanwhile: a new search, an action, or the action panel opening
+        // on the row that's selected.
+        const current =
+          request === searchRequest.current &&
+          top?.id === frameId &&
+          top.query === frameQuery &&
+          !busy.current &&
+          !panelOpenRef.current;
+        if (current) updateTop({ view, viewQuery: frameQuery });
+      } catch (error) {
+        clearInterval(timer);
+        showToast(cleanError(error), 'failure');
+      } finally {
+        asking = false;
+      }
+    }, LOADING_REFRESH_MS);
+    return () => clearInterval(timer);
+  }, [refreshing, frameId, frameRef, frameQuery, updateTop, showToast]);
+
   const applyResult = useCallback(
-    (result: ActionResult, action: Action, callRef: CommandRef | undefined) => {
+    (result: ActionResult, action: Action, from: Frame) => {
       if (result.hide) {
         // The main process already hid the window; open fresh next time.
         searchRequest.current++;
@@ -234,6 +280,9 @@ export function App() {
       const search = result.clearSearch ? '' : result.search;
       if (result.push || result.replace || search !== undefined || result.pop) searchRequest.current++;
       setStack((current) => {
+        // Gone back from the list it came from while it ran: what it changes there doesn't belong
+        // in the list showing now.
+        if (current[current.length - 1]?.id !== from.id) return current;
         let next = current;
         if (result.pop && next.length > 1) next = next.slice(0, -1);
         const top = next[next.length - 1] ?? ROOT;
@@ -247,7 +296,7 @@ export function App() {
         if (result.push) {
           const opened = action.type === 'open-command';
           const query = opened ? (action.argument ?? '') : '';
-          const ref = opened ? action.ref : callRef;
+          const ref = opened ? action.ref : from.ref;
           next = [...next, { id: nextFrameId++, ref, view: result.push, query, viewQuery: query }];
         }
         return next;
@@ -268,7 +317,7 @@ export function App() {
       if (item.rootItemId) context.rootItemId = item.rootItemId;
       setLoading(true);
       try {
-        applyResult(await palette.runAction(action, context), action, from.ref);
+        applyResult(await palette.runAction(action, context), action, from);
       } catch (error) {
         showToast(cleanError(error), 'failure');
       } finally {
@@ -307,12 +356,20 @@ export function App() {
   };
 
   const pop = useCallback(() => {
+    const current = stackRef.current;
     searchRequest.current++;
     setLoading(false);
     setPanelOpen(false);
-    setStack((current) => (current.length > 1 ? current.slice(0, -1) : current));
+    setStack((stack) => (stack.length > 1 ? stack.slice(0, -1) : stack));
+    // Back in a list that builds itself from the search, from something its own extension opened:
+    // what was done there may have changed it, like a file moved to the Trash from a folder in
+    // Disk Usage, so it's asked for again.
+    const [below, top] = current.slice(-2);
+    if (below?.ref && below.view?.filtering === false && below.ref.extension === top?.ref?.extension) {
+      void refreshView(below.id, below.ref, below.query, true);
+    }
     focusInput();
-  }, [focusInput]);
+  }, [focusInput, refreshView]);
 
   /** Picks what the root search shows; from a command's view, goes back to the search first. */
   const pickScope = (next: RootFilter) => {
@@ -422,7 +479,7 @@ export function App() {
       />
 
       <div className="launcher__main">
-        <header className="search" data-loading={loading || undefined}>
+        <header className="search" data-loading={loading || listLoading || undefined}>
           {isRoot && (
             <svg className="search__icon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M11 4a7 7 0 1 0 0 14a7 7 0 1 0 0-14z M20 20l-4.2-4.2" />
@@ -471,6 +528,8 @@ export function App() {
               <ResultList
                 sections={sections}
                 selectedId={selected?.id}
+                resultsKey={`${frame.id}\u0000${filter}\u0000${frame.query}\u0000${frame.viewQuery ?? ''}`}
+                picked={frame.selectedId !== undefined}
                 enterKey={platform === 'darwin' ? '↵' : 'Enter'}
                 emptyText={emptyText}
                 quickKeyModifier={modHeld ? MOD_LABEL : null}

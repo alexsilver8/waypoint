@@ -35,9 +35,45 @@ test.beforeEach(async () => {
       '# Launch plan\n\nShip the glass look.\n\n- [x] Settings window\n- [ ] Record a demo',
     );
   }
+  const extensionDirectories: string[] = [];
+  if (test.info().title.includes('still loading')) {
+    // An extension whose list fills in over four calls, its rows changing places on the way.
+    const dir = join(userData, 'counting');
+    mkdirSync(dir);
+    writeFileSync(
+      join(dir, 'package.json'),
+      JSON.stringify({
+        name: 'counting',
+        type: 'module',
+        waypoint: { title: 'Counting', commands: [{ name: 'count', title: 'Count to Four', mode: 'view' }] },
+      }),
+    );
+    writeFileSync(
+      join(dir, 'index.js'),
+      `let calls = 0;
+export default {
+  commands: {
+    count: {
+      view() {
+        calls += 1;
+        const rows = calls < 3 ? ['Small', 'Big', 'Other'] : ['Big', 'Other', 'Small'];
+        return {
+          type: 'list',
+          title: 'Counting',
+          loading: calls < 4,
+          items: rows.map((title) => ({ id: title, title: title + ' ' + calls, actions: [] })),
+        };
+      },
+    },
+  },
+};
+`,
+    );
+    extensionDirectories.push(dir);
+  }
   writeFileSync(
     join(userData, 'settings.json'),
-    JSON.stringify({ hideOnBlur: false, clipboardHistory: { enabled: false } }),
+    JSON.stringify({ hideOnBlur: false, clipboardHistory: { enabled: false }, extensionDirectories }),
   );
   app = await electron.launch({
     // Launch the project folder (package.json "main" points at the build) so the app path
@@ -82,6 +118,22 @@ test('runs an extension command in the extension host', async () => {
   const rows = page.getByRole('option');
   await expect(rows).toHaveCount(5);
   await expect(rows.first()).toHaveText(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-/);
+});
+
+test('asks again for a list that is still loading, keeping the row picked', async () => {
+  await page.keyboard.type('count to four');
+  await expect(page.getByRole('option').first()).toContainText('Count to Four');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.search__crumb')).toHaveText('Counting');
+  await expect(page.locator('.search')).toHaveAttribute('data-loading', 'true');
+  await expect(page.getByRole('option', { selected: true })).toHaveText(/^Small/);
+  await page.keyboard.press('ArrowDown');
+  await expect(page.getByRole('option', { selected: true })).toHaveText(/^Big/);
+  // Done on the fourth call, with nothing more pressed.
+  await expect(page.getByRole('option')).toHaveText([/^Big 4/, /^Other 4/, /^Small 4/], { timeout: 10_000 });
+  await expect(page.locator('.search')).not.toHaveAttribute('data-loading');
+  // The row picked is still the one picked, though it moved up.
+  await expect(page.getByRole('option', { selected: true })).toHaveText(/^Big 4/);
 });
 
 test('shows the actions of the selected item', async () => {

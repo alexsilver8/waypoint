@@ -23,6 +23,13 @@ const SCROLL_GAP = 8;
 interface ResultListProps {
   sections: DisplaySection[];
   selectedId: string | undefined;
+  /**
+   * Changes when the rows are new results (another search, another list), rather than the same
+   * ones drawn again as a list fills in. Only new results move the list to the selected row.
+   */
+  resultsKey: string;
+  /** Whether the selected row was picked, with the arrows or the pointer, rather than being first. */
+  picked: boolean;
   /** The key that runs the selected row, drawn at its end ("↵", or "Enter" off the Mac). */
   enterKey: string;
   emptyText: string | undefined;
@@ -124,6 +131,8 @@ function layOut(sections: DisplaySection[]): { entries: Entry[]; height: number;
 export function ResultList({
   sections: allSections,
   selectedId,
+  resultsKey,
+  picked,
   enterKey,
   emptyText,
   quickKeyModifier,
@@ -161,10 +170,24 @@ export function ResultList({
     };
   }, [virtual]);
 
-  // Keep the selected row in view as it moves.
+  // Keep the selected row in view as it moves. When the same results are drawn again (a list
+  // that's still loading), a picked row is followed only if it was in view, and the first row
+  // not at all, so a list scrolled by hand stays where it was put.
+  const drawn = useRef<{ selectedId?: string; resultsKey?: string; layout?: typeof layout }>({});
   useLayoutEffect(() => {
+    const before = drawn.current;
+    drawn.current = { selectedId, resultsKey, layout };
     if (!selectedId) return;
     const scroller = root.current?.parentElement;
+    if (scroller && before.layout && before.resultsKey === resultsKey) {
+      if (!picked) return;
+      if (before.selectedId === selectedId) {
+        const was = before.layout.entries.find((e) => e.kind === 'row' && e.item.id === selectedId);
+        if (was?.kind !== 'row') return;
+        const top = was.top + offsetIn(scroller);
+        if (top + was.height <= scroller.scrollTop || top >= scroller.scrollTop + scroller.clientHeight) return;
+      }
+    }
     if (!virtual) {
       const first = layout.entries.find((e) => e.kind === 'row');
       // Back at the first row, the list goes to the very top so its heading shows again.
@@ -181,7 +204,7 @@ export function ResultList({
     } else if (bottom > scroller.scrollTop + scroller.clientHeight - SCROLL_GAP) {
       scroller.scrollTop = bottom - scroller.clientHeight + SCROLL_GAP;
     }
-  }, [selectedId, virtual, layout]);
+  }, [selectedId, resultsKey, picked, virtual, layout]);
 
   // ⌘1 opens the first row in view, so the numbers follow the scroll. Checked after every draw
   // (long lists redraw as they scroll, and the rows change as you type) and on scroll (short

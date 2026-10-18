@@ -172,6 +172,12 @@ export interface ListView {
   filtering?: boolean;
   /** Shown when there is nothing to list. */
   emptyText?: string;
+  /**
+   * The list is still filling in, e.g. while a scan runs. The launcher shows that it's busy and,
+   * while it's open, calls `view()` again about once a second with the same query, until a list
+   * comes back without `loading`.
+   */
+  loading?: boolean;
 }
 
 /** Only lists for now; a detail (markdown) view and forms are on the roadmap. */

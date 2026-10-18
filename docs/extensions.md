@@ -111,6 +111,7 @@ Leave out `until` to hold it until you let go. [Keep Awake](../extensions/keep-a
   searchPlaceholder: 'Search bookmarks…',
   filtering: true,                       // false: you filter, and view() is called again on every keystroke
   emptyText: 'No bookmarks yet.',
+  loading: false,                        // true: still filling in; view() is called again every second
   sections: [
     {
       title: 'Reading list',
@@ -136,6 +137,12 @@ Leave out `until` to hold it until you let go. [Keep Awake](../extensions/keep-a
 ```
 
 `items: [...]` at the top level is a shortcut for a single untitled section.
+
+A list with `filtering: false` is also asked for again when someone goes back to it from a list its own extension opened (with `push`, or `open-command`), so whatever was done there shows.
+
+### Lists that fill in
+
+Work that takes longer than a call may (10 seconds), like a scan, can carry on in the background after `view()` returns. Return what you have so far with `loading: true`: the launcher shows it's busy and calls `view()` again about once a second, with the same `ctx.query`, until a list comes back without it. A row picked with the arrows or the pointer stays picked as rows move, nothing changes while the action panel is open, and it waits while the launcher is closed.
 
 ### Previews
 

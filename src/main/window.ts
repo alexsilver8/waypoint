@@ -116,6 +116,8 @@ export class LauncherWindow {
     this.hiddenAt = Date.now();
     this.rememberDrag();
     this.window.hide();
+    // The page can't tell by itself: with background throttling off it always counts as visible.
+    this.window.webContents.send(IpcChannel.hidden);
     // Hand focus back to the app that was active before the launcher opened — unless
     // another of our windows (like Notes) is open and should keep it.
     const otherWindowOpen = BrowserWindow.getAllWindows().some((w) => w !== this.window && w.isVisible());
