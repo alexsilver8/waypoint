@@ -126,6 +126,15 @@ describe('sanitizeAction', () => {
     });
   });
 
+  it('keeps an action out of ⌘↵ only when it says so plainly', () => {
+    expect(sanitizeAction({ type: 'copy', text: 'hi', panelOnly: true })).toEqual({
+      type: 'copy',
+      text: 'hi',
+      panelOnly: true,
+    });
+    expect(sanitizeAction({ type: 'copy', text: 'hi', panelOnly: 'yes' })).toEqual({ type: 'copy', text: 'hi' });
+  });
+
   it('drops invalid actions', () => {
     expect(sanitizeAction({ type: 'open-path', path: 'relative/path' })).toBeUndefined();
     expect(sanitizeAction({ type: 'callback', id: 'x' })).toBeUndefined();

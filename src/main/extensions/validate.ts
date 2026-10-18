@@ -187,7 +187,11 @@ export function sanitizeAction(value: unknown): Action | undefined {
   if (!isRecord(value)) return undefined;
   const title = text(value.title, 100);
   const shortcut = sanitizeShortcut(value.shortcut);
-  const base = { ...(title ? { title } : {}), ...(shortcut ? { shortcut } : {}) };
+  const base = {
+    ...(title ? { title } : {}),
+    ...(shortcut ? { shortcut } : {}),
+    ...(value.panelOnly === true ? { panelOnly: true } : {}),
+  };
 
   switch (value.type) {
     case 'open-url': {

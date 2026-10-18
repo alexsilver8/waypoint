@@ -109,6 +109,12 @@ interface ActionBase {
   /** Label shown in the action panel. A sensible default is used when omitted. */
   title?: string;
   shortcut?: Shortcut;
+  /**
+   * Only in the action panel (⌘K) and under its own `shortcut`: as the second action, it isn't
+   * also ⌘↵. For something done to the item rather than with it, like changing its shortcut.
+   * Ignored on the first action, which ↵ always runs. Running it doesn't count as using the item.
+   */
+  panelOnly?: boolean;
 }
 
 /**

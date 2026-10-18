@@ -296,7 +296,7 @@ The first action of an item runs on <kbd>↵</kbd>, the second on <kbd>⌘</kbd>
 | `open-command` | `ref: { extension, command }`, `argument?` | Opens another command. |
 | `callback` | `id`, `title`, `payload?`, `style?: 'destructive'` | Calls your `onAction(id, payload, ctx)`. |
 
-Every action takes an optional `title` and `shortcut`, e.g. `{ key: 'Backspace', modifiers: ['mod'] }`, where `mod` is <kbd>⌘</kbd> on macOS and <kbd>Ctrl</kbd> elsewhere.
+Every action takes an optional `title` and `shortcut`, e.g. `{ key: 'Backspace', modifiers: ['mod'] }`, where `mod` is <kbd>⌘</kbd> on macOS and <kbd>Ctrl</kbd> elsewhere. `panelOnly: true` keeps an action off <kbd>⌘</kbd><kbd>↵</kbd> when it's second, for something done to an item rather than with it: it's then only in the action panel and under its own `shortcut`. The first action is always <kbd>↵</kbd>'s.
 
 ## Action results
 

@@ -15,7 +15,7 @@ import { ScopeDock } from './components/ScopeDock';
 import { useWindowDrag } from './drag';
 import { type FormState, formValues, isSubmitAction, missingFields } from './form';
 import { isBackKey, isCopyKey, isModKey, matchesShortcut, shortcutKeys } from './keys';
-import { type DisplayItem, type DisplaySection, filterView, pageItem, pushedView } from './model';
+import { type DisplayItem, type DisplaySection, filterView, pageItem, pushedView, secondaryAction } from './model';
 import { buildRootSections, countRootMatches, ROOT_FILTERS, type RootFilter } from './root-search';
 
 const palette = window.palette;
@@ -620,7 +620,7 @@ export function App() {
       move(-1);
     } else if (key === 'Enter' && (plain || (mod && !event.shiftKey && !event.altKey))) {
       event.preventDefault();
-      void activate((item) => item.actions[mod ? 1 : 0]);
+      void activate((item) => (mod ? secondaryAction(item) : item.actions[0]));
     } else if (mod && key.toLowerCase() === 'k') {
       event.preventDefault();
       if (selected && selected.actions.length > 0) setPanelOpen((open) => !open);

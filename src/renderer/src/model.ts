@@ -39,6 +39,12 @@ export function actionTitle(action: Action): string {
   }
 }
 
+/** What ⌘↵ runs: the second action, unless it's only for the action panel. */
+export function secondaryAction(item: DisplayItem): Action | undefined {
+  const action = item.actions[1];
+  return action?.panelOnly ? undefined : action;
+}
+
 /** Applies the launcher's fuzzy filter to a command's list, keeping its sections. */
 export function filterView(view: ListView, query: string): DisplaySection[] {
   if (view.filtering === false || !query.trim()) return view.sections;

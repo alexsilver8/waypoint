@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import type { View } from '../../shared/types';
-import { filterView, pushedView } from './model';
+import { filterView, pushedView, secondaryAction } from './model';
+
+describe('secondaryAction', () => {
+  it('is the second action, unless that one is only for the action panel', () => {
+    const open = { type: 'open-url' as const, url: 'https://example.com' };
+    const copy = { type: 'copy' as const, text: 'x' };
+    expect(secondaryAction({ id: 'a', title: 'A', actions: [open, copy] })).toBe(copy);
+    expect(secondaryAction({ id: 'a', title: 'A', actions: [open, { ...copy, panelOnly: true }] })).toBeUndefined();
+    expect(secondaryAction({ id: 'a', title: 'A', actions: [open] })).toBeUndefined();
+  });
+});
 
 describe('pushedView', () => {
   it('leaves out what would ask the command’s view() for it again', () => {

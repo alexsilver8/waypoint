@@ -87,8 +87,15 @@ test.afterEach(async () => {
 test('sets a command’s shortcut from Set Shortcut… and shows it beside the command', async () => {
   await page.keyboard.type('left half');
   await expect(page.getByRole('option').first()).toContainText('Left Half');
+  // It's in the action panel only: ⌘↵ on a command still does nothing.
+  const windows = app.windows().length;
+  await page.keyboard.press(`${mod}+Enter`);
+  await page.waitForTimeout(500);
+  expect(app.windows()).toHaveLength(windows);
+  await expect(page.getByRole('combobox')).toBeFocused();
   await page.keyboard.press(`${mod}+k`);
   const panel = page.getByRole('dialog', { name: /Actions for Left Half/ });
+  await expect(panel.getByRole('option', { name: /Set Shortcut…/ }).locator('.keycap')).toHaveCount(0);
   await page.keyboard.type('set shortcut');
   await expect(panel.getByRole('option')).toHaveText([/^Set Shortcut…/]);
   const [settings] = await Promise.all([app.waitForEvent('window'), page.keyboard.press('Enter')]);

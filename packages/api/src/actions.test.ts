@@ -26,6 +26,11 @@ describe('Action', () => {
 
   it('adds a title and the options of each kind', () => {
     expect(Action.copy('a', { title: 'Copy UUID' })).toEqual({ type: 'copy', text: 'a', title: 'Copy UUID' });
+    expect(Action.openUrl('https://example.com/settings', { panelOnly: true })).toEqual({
+      type: 'open-url',
+      url: 'https://example.com/settings',
+      panelOnly: true,
+    });
     expect(Action.openCommand({ extension: 'x', command: 'y' }, { argument: '~/src', title: 'Show' })).toEqual({
       type: 'open-command',
       ref: { extension: 'x', command: 'y' },

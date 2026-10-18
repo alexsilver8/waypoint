@@ -263,6 +263,8 @@ export class CommandRegistry extends EventEmitter<{ change: [] }> {
               ref: SET_SHORTCUT_REF,
               argument: commandKey(ref),
               title: hotkey ? 'Change Shortcut…' : 'Set Shortcut…',
+              // Not ⌘↵, which did nothing on a command, and not a use of the command.
+              panelOnly: true,
             },
           ],
         };
@@ -299,7 +301,8 @@ export class CommandRegistry extends EventEmitter<{ change: [] }> {
 
   /** Performs an action from the launcher. Failures come back as a toast, never as a throw. */
   async runAction(action: Action, context: ActionContext): Promise<ActionResult> {
-    if (context.rootItemId) this.options.usage.record(context.rootItemId);
+    // Changing something about an item, like its shortcut, isn't using it.
+    if (context.rootItemId && !action.panelOnly) this.options.usage.record(context.rootItemId);
     const ctx: CommandContext = { query: context.query ?? '', platform: this.options.platform };
     try {
       switch (action.type) {

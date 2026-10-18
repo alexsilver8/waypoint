@@ -15,12 +15,15 @@ interface ActionPanelProps {
   onClose(): void;
 }
 
-/** Keys shown next to an action: ↵ for the first, mod+↵ for the second, else its own shortcut. */
+/**
+ * Keys shown next to an action: ↵ for the first, mod+↵ for the second (unless it's `panelOnly`),
+ * else its own shortcut.
+ */
 export function keysForAction(action: Action, index: number, platform: Platform): string[] | undefined {
   const mod = platform === 'darwin' ? '⌘' : 'Ctrl';
   const enter = platform === 'darwin' ? '↵' : 'Enter';
   if (index === 0) return [enter];
-  if (index === 1) return [mod, enter];
+  if (index === 1 && !action.panelOnly) return [mod, enter];
   return action.shortcut ? shortcutKeys(action.shortcut, platform) : undefined;
 }
 
