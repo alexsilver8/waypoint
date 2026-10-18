@@ -2,6 +2,20 @@
 
 Every release of Waypoint. `pnpm release` writes it from the commits, and each GitHub release shows its section.
 
+## 0.2.0 (2026-10-18)
+
+3 features.
+
+### Features
+
+- **snippets:** expand keywords as you type in any app ([#52](https://github.com/alexsilver8/waypoint/pull/52), [54b6a6a](https://github.com/alexsilver8/waypoint/commit/54b6a6a7fcf139d5ebbc93804e09f666f6be4cf4))
+- update from GitHub releases with electron-updater ([#51](https://github.com/alexsilver8/waypoint/pull/51), [7dedd8d](https://github.com/alexsilver8/waypoint/commit/7dedd8dce531067eeb0f2ec86f12ffa2432721d1))
+- **api:** publish as @waypoint-org/api ([#49](https://github.com/alexsilver8/waypoint/pull/49), [d5be1fd](https://github.com/alexsilver8/waypoint/commit/d5be1fd09f452aeedff092fa97517b4b36693183))
+
+### Other changes
+
+- take what's done off the website's roadmap ([#50](https://github.com/alexsilver8/waypoint/pull/50), [33cfc94](https://github.com/alexsilver8/waypoint/commit/33cfc94d1e536326c870153c704904726e6d1e4f))
+
 ## 0.1.0 (2026-10-18)
 
 23 features and 23 fixes.
