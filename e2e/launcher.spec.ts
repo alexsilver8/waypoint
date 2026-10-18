@@ -142,6 +142,8 @@ test('goes home with one Esc from what was typed in a scope', async () => {
 
 test('runs an extension command in the extension host', async () => {
   await page.keyboard.type('generate uuid');
+  // Extensions load after the built-in commands; ↵ runs whatever row is first by then.
+  await expect(page.getByRole('option').first()).toContainText('Generate UUID');
   await page.keyboard.press('Enter');
   await expect(page.locator('.search__crumb')).toHaveText('Generate UUID');
   const rows = page.getByRole('option');
