@@ -15,6 +15,7 @@ import { optionId, QUICK_KEY_COUNT, ResultList } from './components/ResultList';
 import { ScopeDock } from './components/ScopeDock';
 import { useWindowDrag } from './drag';
 import { type FormState, formValues, isSubmitAction, missingFields } from './form';
+import { GRID_COLUMNS, type GridDirection, gridMove } from './grid';
 import { isBackKey, isCopyKey, isModKey, matchesShortcut, shortcutKeys } from './keys';
 import { type DisplayItem, type DisplaySection, filterView, pageItem, pushedView, secondaryAction } from './model';
 import { buildRootSections, countRootMatches, ROOT_FILTERS, type RootFilter } from './root-search';
@@ -283,6 +284,11 @@ export function App() {
   }, [formView]);
 
   const items = useMemo(() => sections.flatMap((section) => section.items), [sections]);
+  // A command's list can ask to be a grid; the root search is always a list.
+  const columns =
+    !isRoot && frame.view?.type === 'list' && frame.view.layout === 'grid'
+      ? (frame.view.columns ?? GRID_COLUMNS)
+      : undefined;
   const showDetail = useMemo(() => items.some((item) => item.detail), [items]);
   const selectedIndex = Math.max(
     0,
@@ -572,6 +578,14 @@ export function App() {
     if (next) updateTop({ selectedId: next.id });
   };
 
+  /** In a grid, up and down keep to the column, and left and right move too. */
+  const moveInGrid = (direction: GridDirection, columns: number) => {
+    // Sections with nothing in them aren't drawn, so they mustn't count.
+    const sizes = sections.map((section) => section.items.length).filter((size) => size > 0);
+    const next = items[gridMove(sizes, columns, selectedIndex, direction)];
+    if (next) updateTop({ selectedId: next.id });
+  };
+
   const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     // Keys that pick or confirm an input-method candidate aren't ours.
     if (event.nativeEvent.isComposing) return;
@@ -623,6 +637,16 @@ export function App() {
       const step = event.shiftKey ? -1 : 1;
       const next = ROOT_FILTERS[(index + step + ROOT_FILTERS.length) % ROOT_FILTERS.length];
       if (next) updateTop({ filter: next.id, selectedId: undefined });
+    } else if (columns && plain && (key === 'ArrowLeft' || key === 'ArrowRight')) {
+      // A grid takes the side arrows from the search field, as it does in Raycast.
+      event.preventDefault();
+      moveInGrid(key === 'ArrowLeft' ? 'left' : 'right', columns);
+    } else if (
+      columns &&
+      (key === 'ArrowDown' || key === 'ArrowUp' || (event.ctrlKey && (key === 'n' || key === 'p')))
+    ) {
+      event.preventDefault();
+      moveInGrid(key === 'ArrowDown' || key === 'n' ? 'down' : 'up', columns);
     } else if (key === 'ArrowDown' || (event.ctrlKey && key === 'n')) {
       event.preventDefault();
       move(1);
@@ -796,6 +820,7 @@ export function App() {
                 enterKey={platform === 'darwin' ? '↵' : 'Enter'}
                 platform={platform}
                 emptyText={emptyText}
+                columns={columns}
                 quickKeyModifier={modHeld ? MOD_LABEL : null}
                 quickKeyStart={firstInView}
                 onFirstInViewChange={setFirstInView}
@@ -808,7 +833,8 @@ export function App() {
 
           <Footer
             platform={platform}
-            context={isRoot ? 'Waypoint' : frame.view?.title || pageTitle || 'Waypoint'}
+            // A grid's cells have room for only the start of a title, so the selected one's is here in full.
+            context={isRoot ? 'Waypoint' : (columns && selected?.title) || frame.view?.title || pageTitle || 'Waypoint'}
             onOpenSettings={isRoot ? openSettings : undefined}
             toast={toast}
             primary={selected?.actions[0]}

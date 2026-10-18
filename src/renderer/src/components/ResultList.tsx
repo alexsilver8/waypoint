@@ -18,6 +18,7 @@ export const VIRTUAL_AFTER = 150;
 const HEADING_HEIGHT = 28;
 const ROW_HEIGHT = 44;
 const CALC_HEIGHT = 92;
+const CELL_HEIGHT = 92;
 const OVERSCAN = 420;
 /** Room kept between the selected row and the list's edge, like `scroll-padding` in styles.css. */
 const SCROLL_GAP = 8;
@@ -37,6 +38,8 @@ interface ResultListProps {
   /** How a command's own shortcut is drawn. */
   platform: Platform;
   emptyText: string | undefined;
+  /** Draws the items as a grid with this many cells to a row, rather than a list. */
+  columns?: number;
   /** The modifier to draw beside the rows in view while it's held, e.g. "⌘". */
   quickKeyModifier: string | null;
   /** The row ⌘1 stands for (the first one in view); ⌘2 is the next, and so on. */
@@ -121,12 +124,33 @@ function Row({ item, quickKey, enterKey, platform }: RowProps) {
   );
 }
 
+/** A cell of a grid: the icon large, with the title under it. */
+function Cell({ item, quickKey }: { item: DisplayItem; quickKey: string[] | null }) {
+  return (
+    <>
+      <ItemIcon icon={item.icon} />
+      <span className="cell__title">
+        <Highlight text={item.title} positions={item.titlePositions} />
+      </span>
+      {quickKey && (
+        <span className="cell__quick-key">
+          <Keycaps keys={quickKey} />
+        </span>
+      )}
+    </>
+  );
+}
+
 type Entry =
   | { kind: 'heading'; key: string; title: string; top: number }
-  | { kind: 'row'; item: DisplayItem; index: number; top: number; height: number };
+  /** `column` is set in a grid, where a row holds several cells side by side. */
+  | { kind: 'row'; item: DisplayItem; index: number; top: number; height: number; column?: number };
 
-/** Where every heading and row sits, for drawing just the ones in view. */
-function layOut(sections: DisplaySection[]): { entries: Entry[]; height: number; count: number } {
+/** Where every heading and row (or a grid's cell) sits, for drawing just the ones in view. */
+function layOut(
+  sections: DisplaySection[],
+  columns: number | undefined,
+): { entries: Entry[]; height: number; count: number } {
   const entries: Entry[] = [];
   let top = 0;
   let index = 0;
@@ -134,6 +158,16 @@ function layOut(sections: DisplaySection[]): { entries: Entry[]; height: number;
     if (section.title) {
       entries.push({ kind: 'heading', key: `heading-${sectionIndex}`, title: section.title, top });
       top += HEADING_HEIGHT;
+    }
+    if (columns) {
+      section.items.forEach((item, at) => {
+        const column = at % columns;
+        const cellTop = top + Math.floor(at / columns) * CELL_HEIGHT;
+        entries.push({ kind: 'row', item, index, top: cellTop, height: CELL_HEIGHT, column });
+        index += 1;
+      });
+      top += Math.ceil(section.items.length / columns) * CELL_HEIGHT;
+      return;
     }
     for (const item of section.items) {
       const height = item.calculator ? CALC_HEIGHT : ROW_HEIGHT;
@@ -153,6 +187,7 @@ export function ResultList({
   enterKey,
   platform,
   emptyText,
+  columns,
   quickKeyModifier,
   quickKeyStart,
   onFirstInViewChange,
@@ -161,7 +196,7 @@ export function ResultList({
 }: ResultListProps) {
   // A heading over nothing says nothing.
   const sections = useMemo(() => allSections.filter((section) => section.items.length > 0), [allSections]);
-  const layout = useMemo(() => layOut(sections), [sections]);
+  const layout = useMemo(() => layOut(sections, columns), [sections, columns]);
   const virtual = layout.count > VIRTUAL_AFTER;
 
   const root = useRef<HTMLDivElement>(null);
@@ -266,6 +301,10 @@ export function ResultList({
 
   const option = (item: DisplayItem, index: number, style?: CSSProperties) => {
     const selected = item.id === selectedId;
+    const quickKey =
+      quickKeyModifier && index >= quickKeyStart && index < quickKeyStart + QUICK_KEY_COUNT
+        ? [quickKeyModifier, String(index - quickKeyStart + 1)]
+        : null;
     return (
       <div
         key={item.id}
@@ -277,7 +316,8 @@ export function ResultList({
         aria-selected={selected}
         aria-posinset={index + 1}
         aria-setsize={layout.count}
-        className={item.calculator ? 'row row--calc' : 'row'}
+        className={columns ? 'cell' : item.calculator ? 'row row--calc' : 'row'}
+        title={columns ? item.title : undefined}
         data-tint={tintOf(item.icon)}
         style={style}
         onMouseMove={(event) => {
@@ -290,16 +330,16 @@ export function ResultList({
         }}
         onClick={() => onActivate(item)}
       >
-        <Row
-          item={item}
-          platform={platform}
-          enterKey={selected && !quickKeyModifier ? enterKey : null}
-          quickKey={
-            quickKeyModifier && index >= quickKeyStart && index < quickKeyStart + QUICK_KEY_COUNT
-              ? [quickKeyModifier, String(index - quickKeyStart + 1)]
-              : null
-          }
-        />
+        {columns ? (
+          <Cell item={item} quickKey={quickKey} />
+        ) : (
+          <Row
+            item={item}
+            platform={platform}
+            enterKey={selected && !quickKeyModifier ? enterKey : null}
+            quickKey={quickKey}
+          />
+        )}
       </div>
     );
   };
@@ -328,7 +368,18 @@ export function ResultList({
               {entry.title}
             </h2>
           ) : (
-            option(entry.item, entry.index, { top: entry.top })
+            option(
+              entry.item,
+              entry.index,
+              columns && entry.column !== undefined
+                ? {
+                    top: entry.top,
+                    left: `${(entry.column * 100) / columns}%`,
+                    right: 'auto',
+                    width: `${100 / columns}%`,
+                  }
+                : { top: entry.top },
+            )
           ),
         )}
       </div>
@@ -342,10 +393,19 @@ export function ResultList({
         // biome-ignore lint/a11y/useSemanticElements: groups the options of an ARIA listbox
         <div key={sectionIndex} className="results__section" role="group" aria-label={section.title}>
           {section.title && <h2 className="results__heading">{section.title}</h2>}
-          {section.items.map((item) => {
-            index += 1;
-            return option(item, index);
-          })}
+          {columns ? (
+            <div className="results__grid" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
+              {section.items.map((item) => {
+                index += 1;
+                return option(item, index);
+              })}
+            </div>
+          ) : (
+            section.items.map((item) => {
+              index += 1;
+              return option(item, index);
+            })
+          )}
         </div>
       ))}
     </div>

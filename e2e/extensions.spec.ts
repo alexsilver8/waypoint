@@ -1,6 +1,6 @@
 import { type ChildProcess, spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { type ElectronApplication, _electron as electron, expect, type Page, test } from '@playwright/test';
@@ -212,10 +212,30 @@ test('finds emoji and uses the chosen skin tone', async () => {
   await expect.poll(clipboardText).toBe('👋🏽');
 });
 
+test('moves through the emoji grid with the arrow keys', async () => {
+  await open('Search Emoji');
+  const search = page.getByRole('combobox');
+  await expect(page.locator('.cell').first()).toHaveAttribute('aria-selected', 'true');
+  await page.keyboard.press('ArrowRight');
+  await expect(search).toHaveAttribute('aria-activedescendant', 'option-1');
+  // Eight to a row, so down keeps to the column.
+  await page.keyboard.press('ArrowDown');
+  await expect(search).toHaveAttribute('aria-activedescendant', 'option-9');
+  await page.keyboard.press('ArrowUp');
+  await page.keyboard.press('ArrowLeft');
+  await expect(search).toHaveAttribute('aria-activedescendant', 'option-0');
+});
+
 test('shows a whole emoji category', async () => {
   await open('Search Emoji');
-  // Long lists only draw what's in view, so scroll down to it like a person would.
-  const more = page.getByRole('option', { name: /All \d+ in Food & Drink/ });
+  // Long lists only draw what's in view, so scroll down to it like a person would. The cell that
+  // opens Food & Drink says how many it has.
+  const emojis: { groups: string[]; emojis: [string, string, number][] } = JSON.parse(
+    readFileSync(join(import.meta.dirname, '..', 'extensions', 'emoji', 'emojis.json'), 'utf8'),
+  );
+  const food = emojis.groups.indexOf('Food & Drink');
+  const count = emojis.emojis.filter(([, , group]) => group === food).length;
+  const more = page.getByRole('option', { name: `All ${count}`, exact: true });
   await page.locator('.content__list').hover();
   for (let i = 0; i < 40 && (await more.count()) === 0; i++) await page.mouse.wheel(0, 300);
   await more.click();

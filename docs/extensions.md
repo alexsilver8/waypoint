@@ -150,6 +150,8 @@ Leave out `until` to hold it until you let go. [Keep Awake](../extensions/keep-a
   filtering: true,                       // false: you filter, and view() is called again on every keystroke
   emptyText: 'No bookmarks yet.',
   loading: false,                        // true: still filling in; view() is called again every second
+  layout: 'list',                        // 'grid': large icons with their titles under them
+  columns: 8,                            // cells to a row of a grid, 3 to 10
   sections: [
     {
       title: 'Reading list',
@@ -175,6 +177,8 @@ Leave out `until` to hold it until you let go. [Keep Awake](../extensions/keep-a
 ```
 
 `items: [...]` at the top level is a shortcut for a single untitled section.
+
+With `layout: 'grid'`, the items show as a grid of large icons with their titles under them, for things picked by how they look, like emoji, colours or images. Each section starts a row of its own. The arrow keys move through the grid in every direction, so <kbd>←</kbd> and <kbd>→</kbd> move the selection, not the caret in the search field. Subtitles and accessories aren't shown; the title is, and a preview pane still shows `detail`. [Emoji](../extensions/emoji) is a grid.
 
 A list with `filtering: false` is also asked for again when someone goes back to it from a view its own extension opened (with `push`, or `open-command`), whether with <kbd>⌫</kbd>, the back button or a `pop: true` result, so whatever was done there shows.
 
