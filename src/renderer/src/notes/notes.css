@@ -196,9 +196,9 @@ button {
   display: none;
 }
 
+/* It fills the window, and grows past it with a long note, its padding still below the last line. */
 .notes__editor {
-  flex: 1;
-  min-height: 100%;
+  flex: 1 0 auto;
   padding: 11.5px 24px 18px;
   outline: none;
   color: var(--n-text);

@@ -13,7 +13,7 @@ export interface FindMatch {
   to: number;
 }
 
-interface FindState {
+export interface FindState {
   query: string;
   matches: FindMatch[];
   /** The match you're on. */
@@ -69,30 +69,33 @@ function decorate(doc: ProseMirrorNode, matches: FindMatch[], index: number): De
   );
 }
 
+/** What finds and highlights the matches: the query, and which match you're on, are set through `findKey`. */
+export function findPlugin(): Plugin<FindState> {
+  return new Plugin<FindState>({
+    key: findKey,
+    state: {
+      init: () => ({ query: '', matches: [], index: 0, decorations: DecorationSet.empty }),
+      apply(tr, previous) {
+        const meta = tr.getMeta(findKey) as { query?: string; index?: number } | undefined;
+        if (!meta && !tr.docChanged) return previous;
+        const query = meta?.query ?? previous.query;
+        if (!query) return { query, matches: [], index: 0, decorations: DecorationSet.empty };
+        const matches = findMatches(tr.doc, query);
+        const wanted = meta?.index ?? previous.index;
+        const index = matches.length ? ((wanted % matches.length) + matches.length) % matches.length : 0;
+        return { query, matches, index, decorations: decorate(tr.doc, matches, index) };
+      },
+    },
+    props: {
+      decorations: (state) => findKey.getState(state)?.decorations,
+    },
+  });
+}
+
 export const Find = Extension.create({
   name: 'find',
   addProseMirrorPlugins() {
-    return [
-      new Plugin<FindState>({
-        key: findKey,
-        state: {
-          init: () => ({ query: '', matches: [], index: 0, decorations: DecorationSet.empty }),
-          apply(tr, previous) {
-            const meta = tr.getMeta(findKey) as { query?: string; index?: number } | undefined;
-            if (!meta && !tr.docChanged) return previous;
-            const query = meta?.query ?? previous.query;
-            if (!query) return { query, matches: [], index: 0, decorations: DecorationSet.empty };
-            const matches = findMatches(tr.doc, query);
-            const wanted = meta?.index ?? previous.index;
-            const index = matches.length ? ((wanted % matches.length) + matches.length) % matches.length : 0;
-            return { query, matches, index, decorations: decorate(tr.doc, matches, index) };
-          },
-        },
-        props: {
-          decorations: (state) => findKey.getState(state)?.decorations,
-        },
-      }),
-    ];
+    return [findPlugin()];
   },
 });
 
@@ -138,8 +141,11 @@ export function replaceMatch(editor: Editor, replacement: string): void {
   const { tr } = editor.state;
   if (replacement) tr.insertText(replacement, match.from, match.to);
   else tr.delete(match.from, match.to);
-  // The same index is now the match after the one replaced.
-  editor.view.dispatch(tr.setMeta(findKey, { index: state.index }));
+  // On to the next match after what was put in, which may match too ("the" for "The"),
+  // going round to the first at the end.
+  const after = match.from + replacement.length;
+  const next = findMatches(tr.doc, state.query).findIndex((found) => found.from >= after);
+  editor.view.dispatch(tr.setMeta(findKey, { index: Math.max(0, next) }));
   reveal(editor);
 }
 

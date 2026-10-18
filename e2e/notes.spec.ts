@@ -164,19 +164,40 @@ test('shows every action with its shortcut, and greys out what can’t be done',
 });
 
 test('finds and replaces text in the note', async () => {
+  await editor().press(`${mod}+End`);
+  await notes.keyboard.type(' at the station');
   await notes.keyboard.press(`${mod}+f`);
   await notes.keyboard.type('THE');
-  await expect(notes.locator('.find__count')).toHaveText('1 of 1');
+  await expect(notes.locator('.find__count')).toHaveText('1 of 2');
   await expect(notes.locator('.find-match--current')).toHaveText('the');
   await notes.getByRole('button', { name: 'Replace' }).click();
   const replacement = notes.getByRole('textbox', { name: 'Replace with' });
-  await replacement.fill('a');
+  // Replace moves on to the next match, though "The" matches too.
+  await replacement.fill('The');
   await replacement.press('Enter');
-  await expect(editor()).toContainText('Book a train');
+  await expect(notes.locator('.find__count')).toHaveText('2 of 2');
+  await replacement.press('Enter');
+  await expect(editor()).toContainText('Book The train at The station');
+  await replacement.fill('a');
+  await notes.getByRole('button', { name: 'All', exact: true }).click();
+  await expect(editor()).toContainText('Book a train at a station');
   await expect(notes.locator('.find__count')).toHaveText('No results');
   await notes.keyboard.press('Escape');
   await expect(notes.getByRole('search')).toHaveCount(0);
-  await expect.poll(() => note('trip.md')).toBe('# Trip to Lisbon\n\nBook a train');
+  await expect.poll(() => note('trip.md')).toBe('# Trip to Lisbon\n\nBook a train at a station');
+});
+
+test('keeps finding when you go to another note', async () => {
+  await notes.keyboard.press(`${mod}+f`);
+  await notes.keyboard.type('milk');
+  await expect(notes.locator('.find__count')).toHaveText('No results');
+  await notes.keyboard.press(`${mod}+p`);
+  await browse()
+    .getByRole('option', { name: /Groceries/ })
+    .click();
+  await expect(title()).toHaveText('Groceries');
+  await expect(notes.locator('.find__count')).toHaveText('1 of 1');
+  await expect(notes.locator('.find-match--current')).toHaveText('milk');
 });
 
 test('deletes a note to Recently Deleted and brings it back', async () => {
@@ -197,12 +218,27 @@ test('deletes a note to Recently Deleted and brings it back', async () => {
   await notes.keyboard.press('Enter');
   await expect(title()).toHaveText('Trip to Lisbon');
   expect(note('trip.md')).toBe('# Trip to Lisbon\n\nBook the train');
+
+  // Deleting the note you're on from Browse Notes leaves Browse Notes open, and typing in it.
+  await notes.keyboard.press(`${mod}+p`);
+  await notes.keyboard.press(deleteKey);
+  await expect(toast()).toHaveText('Moved to Recently Deleted');
+  await expect(title()).toHaveText('Groceries');
+  await expect(browse().locator('.browse__count')).toHaveText('1 Note');
+  await expect(browse().getByRole('combobox')).toBeFocused();
 });
 
 test('grows the window as the note gets longer, and shrinks it back', async () => {
   await editor().press(`${mod}+End`);
   for (let i = 0; i < 16; i++) await notes.keyboard.press('Enter');
   await notes.keyboard.type('the end');
+  await expect.poll(async () => (await notesWindow())?.height).toBeGreaterThan(450);
+
+  // Another note fits the window too, without typing in it.
+  await notes.keyboard.press(`${mod}+n`);
+  await expect.poll(async () => (await notesWindow())?.height).toBe(308);
+  await notes.keyboard.press(`${mod}+BracketLeft`);
+  await expect(title()).toHaveText('Trip to Lisbon');
   await expect.poll(async () => (await notesWindow())?.height).toBeGreaterThan(450);
 
   await editor().press(`${mod}+a`);

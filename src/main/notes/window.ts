@@ -171,10 +171,12 @@ export class NotesWindow {
     showOnEverySpace(window);
     this.applyAlwaysOnTop();
 
-    // You resizing the window sets the height auto-resizing starts from. Linux has no
-    // will-resize, so there a height that isn't the one set here counts as yours.
+    // You resizing the window sets the height auto-resizing starts from, if you changed the
+    // height: widening a window that grew with its note doesn't make that its smallest. Linux
+    // has no will-resize, so there a height that isn't the one set here counts as yours.
     window.on('will-resize', (_event, next) => {
-      this.state.bounds = { x: next.x, y: next.y, width: next.width, height: next.height };
+      const height = next.height === window.getBounds().height ? this.state.bounds?.height : next.height;
+      this.state.bounds = { x: next.x, y: next.y, width: next.width, height: height ?? WINDOW_HEIGHT };
       this.save();
     });
     const rememberBounds = debounce(() => {

@@ -7,6 +7,7 @@ interface KeyEventLike {
   ctrlKey: boolean;
   shiftKey: boolean;
   altKey: boolean;
+  getModifierState?(key: string): boolean;
 }
 
 /** Keys by where they are on the keyboard, for when ⌥ or ⇧ changes the character typed. */
@@ -26,11 +27,17 @@ const CODE_KEYS: Record<string, string> = {
 
 /**
  * What a key press could mean: the character it typed and, when ⌥ or ⇧ may have changed that
- * character (⌥, on a Mac is ≤, ⇧/ is ?), the key it was on.
+ * character (⌥, on a Mac is ≤, ⇧/ is ?), the key it was on. Not with AltGr, which Windows
+ * reports as Ctrl+Alt: there it types a character of its own (AltGr+, is < on a Czech
+ * keyboard), and that character is what was pressed.
  */
-function pressedKeys(event: KeyEventLike): string[] {
+function pressedKeys(event: KeyEventLike, platform: Platform): string[] {
   const keys = [event.key.toLowerCase()];
   if (!event.altKey && !event.shiftKey) return keys;
+  const altGr =
+    platform !== 'darwin' &&
+    (event.getModifierState?.('AltGraph') === true || (platform === 'win32' && event.ctrlKey && event.altKey));
+  if (altGr) return keys;
   const { code } = event;
   if (/^Key[A-Z]$/.test(code)) keys.push(code.slice(3).toLowerCase());
   else if (/^Digit\d$/.test(code)) keys.push(code.slice(5));
@@ -49,7 +56,7 @@ export function matchesShortcut(event: KeyEventLike, shortcut: Shortcut, platfor
   const ctrl = (!mac && modifiers.has('mod')) || modifiers.has('ctrl');
   if (event.metaKey !== meta || event.ctrlKey !== ctrl) return false;
   if (event.altKey !== modifiers.has('alt') || event.shiftKey !== modifiers.has('shift')) return false;
-  return pressedKeys(event).includes(shortcut.key.toLowerCase());
+  return pressedKeys(event, platform).includes(shortcut.key.toLowerCase());
 }
 
 /** The digit of ⌘1–⌘9 (Ctrl elsewhere), with no other modifier, or undefined. */

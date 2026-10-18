@@ -156,7 +156,12 @@ export function NotesApp() {
   }, [upsert]);
 
   const scheduleSave = (id: string, text: string) => {
-    if (pending.current) clearTimeout(pending.current.timer);
+    const previous = pending.current;
+    if (previous) clearTimeout(previous.timer);
+    // An edit to the note you just left, typed as the window switched notes, is saved now.
+    if (previous && previous.id !== id) {
+      api.update(previous.id, previous.text).then(upsert, (error) => console.error('Could not save the note', error));
+    }
     pending.current = { id, text, timer: setTimeout(() => void saveNow(), SAVE_DELAY_MS) };
   };
 
@@ -203,7 +208,8 @@ export function NotesApp() {
           });
         }
       }
-      focusEditor();
+      // An open popover keeps the keyboard, as Browse Notes does when you delete the note you're on.
+      if (!latest.current.popover) focusEditor();
     },
     [saveNow, focusEditor, updateUi],
   );
@@ -231,6 +237,12 @@ export function NotesApp() {
       if (!id) return;
       if (pending.current?.id === id) await saveNow();
       await api.delete(id);
+      // A keystroke that landed while it was being deleted mustn't bring it back.
+      const late = pending.current;
+      if (late?.id === id) {
+        clearTimeout(late.timer);
+        pending.current = null;
+      }
       const state = latest.current.ui;
       const forget = (ids: string[]) => ids.filter((entry) => entry !== id);
       const { [id]: _deleted, ...opened } = state.opened;
@@ -303,6 +315,7 @@ export function NotesApp() {
   const closePopover = useCallback(
     (refocus = true) => {
       setPopover(null);
+      latest.current = { ...latest.current, popover: null };
       setActionsSubmenu(null);
       heights.current = { ...heights.current, overlay: 0 };
       fit();
@@ -317,6 +330,7 @@ export function NotesApp() {
       else {
         setActionsSubmenu(submenu);
         setPopover(which);
+        latest.current = { ...latest.current, popover: which };
       }
     },
     [closePopover],
@@ -449,7 +463,7 @@ export function NotesApp() {
         openRequest.current = id;
         return;
       }
-      setPopover(null);
+      closePopover(false);
       void api.list().then((list) => select(id, list));
     });
     const offChanged = api.onChanged(() => {
@@ -484,7 +498,7 @@ export function NotesApp() {
       offOpen();
       offChanged();
     };
-  }, [select, createNote]);
+  }, [select, createNote, closePopover]);
 
   // Keep "Opened 2 minutes ago" honest, and never lose the last keystrokes when the window closes.
   useEffect(() => {
@@ -688,9 +702,14 @@ export function NotesApp() {
           heights.current = { ...heights.current, content: height };
           fit();
         }}
-        onChange={(text) => {
-          setDraft(text);
-          if (currentId) scheduleSave(currentId, text);
+        onChange={(text, id) => {
+          if (!id) return;
+          // Saved to the note it was typed in, even if the window has just switched notes.
+          if (id === latest.current.currentId) {
+            setDraft(text);
+            latest.current = { ...latest.current, draft: text };
+          }
+          if (latest.current.notes.some((note) => note.id === id)) scheduleSave(id, text);
         }}
       />
 

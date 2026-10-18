@@ -1,5 +1,5 @@
 import { EditorState, Selection } from '@tiptap/pm/state';
-import { type Editor, EditorContent, useEditor, useEditorState } from '@tiptap/react';
+import { type Editor, EditorContent, type EditorEvents, useEditor, useEditorState } from '@tiptap/react';
 import {
   Bold,
   Check,
@@ -38,6 +38,7 @@ import { isOpenableLink, normalizeLink } from '../../../shared/notes';
 import { Keycaps } from '../components/Keycaps';
 import { EmojiMenu } from './EmojiMenu';
 import { emojiState } from './emoji';
+import { findKey, findState } from './find';
 import type { MenuKeys } from './inline-menu';
 import { applyNoteStyle, noteExtensions, showsFaithfully } from './markdown';
 import { SlashMenu } from './SlashMenu';
@@ -579,7 +580,11 @@ export interface NoteEditorProps {
   focusRequest: number;
   /** Bump to open the link field, as ⌘L does. */
   linkRequest: number;
-  onChange(markdown: string): void;
+  /**
+   * An edit, and the note it was made in: the one the editor was showing, which for a moment
+   * after you switch notes is still the one you left.
+   */
+  onChange(markdown: string, noteId: string | null): void;
   /** Show the format bar at the bottom of the window. */
   formatBar: boolean;
   /** The note's length, like "12 characters", shown at the end of the format bar. */
@@ -659,7 +664,7 @@ export function NoteEditor({
     onUpdate: ({ editor: changed }) => {
       const markdown = changed.getMarkdown();
       shownText.current = markdown;
-      onChangeRef.current(markdown);
+      onChangeRef.current(markdown, shownNote.current);
     },
   });
 
@@ -673,8 +678,9 @@ export function NoteEditor({
 
   useEffect(() => onSourceChange(source), [source, onSourceChange]);
 
-  // Show another note, or edits made to this one elsewhere.
-  useEffect(() => {
+  // Show another note, or edits made to this one elsewhere. Before the window is drawn, so a
+  // note never shows under another's title, nor takes a keystroke meant for it.
+  useLayoutEffect(() => {
     if (!editor) return;
     const switched = shownNote.current !== noteId;
     if (switched || text !== shownText.current) {
@@ -683,6 +689,7 @@ export function NoteEditor({
       const faithful = !editor.markdown || showsFaithfully(editor.markdown, text);
       sourceRef.current = !faithful;
       setSource(!faithful);
+      const { query } = findState(editor);
       // Loading a note isn't an edit: nothing gets autolinked, and the note gets its own undo
       // history, so undo never brings back another note or an older copy of this one.
       editor
@@ -692,27 +699,35 @@ export function NoteEditor({
         .run();
       const { doc, plugins } = editor.state;
       editor.view.updateState(EditorState.create({ doc, plugins }));
-      editor.view.dispatch(editor.state.tr);
+      // Find in Note, if it's open, goes on looking in what's shown now.
+      editor.view.dispatch(query ? editor.state.tr.setMeta(findKey, { query, index: 0 }) : editor.state.tr);
       if (switched) setLinkOpen(false);
     }
     const editable = noteId !== null && !sourceRef.current;
     if (editor.isEditable !== editable) editor.setEditable(editable, false);
   }, [editor, noteId, text]);
 
+  // Each request puts the cursor in once, when there's a note to put it in. Another note
+  // showing doesn't take the keyboard from a popover.
+  const focused = useRef(0);
   useEffect(() => {
-    if (focusRequest === 0 || !noteId) return;
+    if (focusRequest === focused.current || !noteId) return;
     if (sourceRef.current) {
+      // The Markdown field appears a render after the note does.
       const area = sourceArea.current;
-      area?.focus();
-      area?.setSelectionRange(area.value.length, area.value.length);
+      if (!source || !area) return;
+      focused.current = focusRequest;
+      area.focus();
+      area.setSelectionRange(area.value.length, area.value.length);
     } else if (editor && !editor.isDestroyed) {
+      focused.current = focusRequest;
       // Right away, not on the next frame as Tiptap's focus command does, so a popover opened
       // straight after (⌘N then ⌘K) keeps the keyboard.
       const { tr, doc } = editor.state;
       editor.view.dispatch(tr.setSelection(Selection.atEnd(doc)).scrollIntoView());
       editor.view.focus();
     }
-  }, [editor, focusRequest, noteId]);
+  }, [editor, focusRequest, noteId, source]);
 
   useEffect(() => {
     if (linkRequest > 0 && editor?.isEditable) setLinkOpen(true);
@@ -720,7 +735,8 @@ export function NoteEditor({
 
   // How tall the window would need to be to show the whole note: what's around the note,
   // plus the note's own height, measured to its last line so the window's height can't feed back in.
-  // A new text size (zoom) means measuring again.
+  // The editor fills the window whatever it holds, so it's measured again whenever the note
+  // changes (typed, or another note shown) and at a new text size (zoom).
   useLayoutEffect(() => {
     const box = scroller.current;
     if (!editor || !box) return;
@@ -743,15 +759,18 @@ export function NoteEditor({
         onHeightRef.current(Math.ceil(around + bottom + Number.parseFloat(style.paddingBottom)));
       });
     };
+    const onTransaction = ({ transaction }: EditorEvents['transaction']) => {
+      if (transaction.docChanged) measure();
+    };
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(box);
     observer.observe(editor.view.dom);
-    editor.on('update', measure);
+    editor.on('transaction', onTransaction);
     return () => {
       cancelAnimationFrame(frame);
       observer.disconnect();
-      editor.off('update', measure);
+      editor.off('transaction', onTransaction);
     };
   }, [editor, zoom]);
 
@@ -765,7 +784,7 @@ export function NoteEditor({
             value={text}
             onChange={(event) => {
               shownText.current = event.target.value;
-              onChangeRef.current(event.target.value);
+              onChangeRef.current(event.target.value, shownNote.current);
             }}
             aria-label="Note"
             disabled={!noteId}

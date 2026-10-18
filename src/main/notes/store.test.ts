@@ -17,6 +17,21 @@ vi.mock('node:crypto', async (importOriginal) => {
   };
 });
 
+/** A rename a test holds back until it lets it go; real ones otherwise. */
+const held = vi.hoisted(() => ({ rename: undefined as Promise<void> | undefined }));
+vi.mock('node:fs/promises', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs/promises')>();
+  return {
+    ...actual,
+    rename: async (...args: Parameters<typeof actual.rename>) => {
+      const wait = held.rename;
+      held.rename = undefined;
+      await wait;
+      return actual.rename(...args);
+    },
+  };
+});
+
 function setup() {
   const dir = join(mkdtempSync(join(tmpdir(), 'notes-')), 'notes');
   const trashed: string[] = [];
@@ -184,13 +199,20 @@ describe('NotesStore', () => {
     const { store } = setup();
     const note = await store.create('# Going');
     await store.watch();
+    let finishMoving = () => {};
+    held.rename = new Promise<void>((resolve) => {
+      finishMoving = resolve;
+    });
     try {
+      const deleting = store.delete(note.id);
+      // Listed while it's being deleted, the note is still there...
       expect(await store.list()).toHaveLength(1);
-      // Listed while it's being deleted, the note may still be there; listed after, it's gone.
-      const [, during] = await Promise.all([store.delete(note.id), store.list()]);
-      expect(during.length).toBeLessThanOrEqual(1);
+      finishMoving();
+      await deleting;
+      // ...and once it's gone, that listing isn't the one you get.
       expect(await store.list()).toHaveLength(0);
     } finally {
+      finishMoving();
       store.unwatch();
     }
   });

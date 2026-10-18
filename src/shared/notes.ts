@@ -63,10 +63,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function ids(value: unknown, limit: number): string[] | undefined {
+/** The note ids in a saved list, the last `limit` of them; `unique` drops repeats after the first. */
+function ids(value: unknown, limit: number, unique: boolean): string[] | undefined {
   if (!Array.isArray(value)) return undefined;
   const valid = value.filter((id): id is string => typeof id === 'string' && id.length > 0 && id.length <= 200);
-  return [...new Set(valid)].slice(-limit);
+  return (unique ? [...new Set(valid)] : valid).slice(-limit);
 }
 
 /** Clamps a text size to what the window offers, in steps of 10%. */
@@ -83,9 +84,10 @@ export function normalizeNotesState(raw: unknown): NotesWindowState {
   }
   if (raw.count === 'characters' || raw.count === 'words') state.count = raw.count;
   if (typeof raw.zoom === 'number' && Number.isFinite(raw.zoom)) state.zoom = clampZoom(raw.zoom);
-  state.pinned = ids(raw.pinned, 500) ?? state.pinned;
-  state.back = ids(raw.back, HISTORY_LIMIT) ?? state.back;
-  state.forward = ids(raw.forward, HISTORY_LIMIT) ?? state.forward;
+  state.pinned = ids(raw.pinned, 500, true) ?? state.pinned;
+  // History can visit a note more than once, like a browser's, and its order is what matters.
+  state.back = ids(raw.back, HISTORY_LIMIT, false) ?? state.back;
+  state.forward = ids(raw.forward, HISTORY_LIMIT, false) ?? state.forward;
   if (isRecord(raw.opened)) {
     for (const [id, time] of Object.entries(raw.opened)) {
       if (typeof time === 'number' && Number.isFinite(time) && time > 0) state.opened[id] = time;

@@ -37,6 +37,18 @@ describe('matchesShortcut', () => {
     expect(matchesShortcut(press('?', 'Slash', { metaKey: true, shiftKey: true }), autoResize, 'darwin')).toBe(true);
   });
 
+  it('leaves AltGr to type its character, though Windows reports it as Ctrl+Alt', () => {
+    const formatBar = { key: ',', modifiers: ['mod' as const, 'alt' as const] };
+    // AltGr+, types < on a Czech keyboard.
+    const altGr = press('<', 'Comma', { ctrlKey: true, altKey: true });
+    expect(matchesShortcut(altGr, formatBar, 'win32')).toBe(false);
+    expect(matchesShortcut({ ...altGr, getModifierState: (key) => key === 'AltGraph' }, formatBar, 'linux')).toBe(
+      false,
+    );
+    // Ctrl+Alt+, on a keyboard where it's still a comma.
+    expect(matchesShortcut(press(',', 'Comma', { ctrlKey: true, altKey: true }), formatBar, 'win32')).toBe(true);
+  });
+
   it('goes by the character typed when no modifier changes it', () => {
     // Dvorak: the key where QWERTY has N types B, so ⌘B is bold, not New Note.
     const newNote = { key: 'n', modifiers: ['mod' as const] };

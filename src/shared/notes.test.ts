@@ -228,6 +228,12 @@ describe('normalizeNotesState', () => {
     expect(state.back.at(-1)).toBe('n79');
   });
 
+  it('keeps Go Back’s history in order, notes visited twice and all', () => {
+    const state = normalizeNotesState({ back: ['a', 'b', 'a'], forward: ['c', 'd', 'c'] });
+    expect(state.back).toEqual(['a', 'b', 'a']);
+    expect(state.forward).toEqual(['c', 'd', 'c']);
+  });
+
   it('steps text size by 10% within its range', () => {
     expect(clampZoom(1.04)).toBe(1);
     expect(clampZoom(0.2)).toBe(0.6);

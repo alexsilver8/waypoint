@@ -174,8 +174,9 @@ export class NotesStore extends EventEmitter<{ change: [] }> {
       await mkdir(folder, { recursive: true });
       const to = await this.freePath(folder, id);
       await rename(from, to);
+      // The note's gone either way; without the new time it just leaves Recently Deleted sooner.
       const now = new Date();
-      await utimes(to, now, now);
+      await utimes(to, now, now).catch(() => undefined);
     } finally {
       this.invalidate();
     }
