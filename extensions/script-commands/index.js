@@ -339,7 +339,8 @@ async function startSilently(script, args, platform) {
       stdio: 'ignore',
       windowsHide: true,
       windowsVerbatimArguments: command.verbatim,
-      detached: true,
+      // Not on Windows: a detached PowerShell or cmd.exe has no console, and exits at once.
+      detached: platform !== 'win32',
     });
     child.once('error', (error) =>
       reject(

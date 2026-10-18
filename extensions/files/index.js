@@ -783,7 +783,8 @@ function openFile(platform, path) {
   const { file, args, env } = openCommand(platform, path);
   return new Promise((resolve, reject) => {
     const child = spawn(file, args, {
-      detached: true,
+      // Not on Windows, where it's PowerShell: a detached one has no console, and exits at once.
+      detached: platform !== 'win32',
       stdio: 'ignore',
       windowsHide: true,
       ...(env ? { env: { ...process.env, ...env } } : {}),

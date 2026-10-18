@@ -168,7 +168,9 @@ async function start(ctx, seconds) {
   }
 
   const child = spawn(command.file, command.args, {
-    detached: true,
+    // Its own process group on macOS and Linux, so it outlives the extension host. Not on
+    // Windows: a detached PowerShell has no console, and exits without running anything.
+    detached: ctx.platform !== 'win32',
     stdio: ['ignore', 'pipe', 'pipe'],
     windowsHide: true,
   });
@@ -208,7 +210,12 @@ async function start(ctx, seconds) {
       const missing = /** @type {NodeJS.ErrnoException} */ (early.error).code === 'ENOENT';
       throw new Error(missing ? `${command.file} isn't installed.` : early.error.message);
     }
-    const said = stderr.trim().split('\n').pop()?.trim();
+    // PowerShell wraps what it says in CLIXML when its output is piped; those lines aren't news.
+    const said = stderr
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line && !line.startsWith('#<') && !line.startsWith('<'))
+      .pop();
     throw new Error(said || `${command.name} stopped straight away (exit code ${early.code}).`);
   }
   child.stdout?.destroy();

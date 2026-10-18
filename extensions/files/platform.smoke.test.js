@@ -73,6 +73,28 @@ describe.runIf(enabled)(`Files on ${platform}`, () => {
     if (platform !== 'linux') expect(result).toEqual({ hide: true });
   });
 
+  it.runIf(platform === 'win32')('opens the latest download', { timeout: 30_000 }, async () => {
+    const downloads = join(homedir(), 'Downloads');
+    mkdirSync(downloads, { recursive: true });
+    const notepads = () =>
+      execFileSync('tasklist', ['/FI', 'IMAGENAME eq notepad.exe', '/FO', 'CSV', '/NH'], { encoding: 'utf8' })
+        .split(/\r?\n/)
+        .filter((line) => line.toLowerCase().includes('notepad.exe')).length;
+    const before = notepads();
+    const latest = join(downloads, `${name}.txt`);
+    writeFileSync(latest, 'opened by the smoke test\n');
+    try {
+      const result = await extension.commands['open-latest-download']?.run?.(ctx);
+      console.log('open:', result);
+      expect(result).toEqual({ hide: true });
+      // PowerShell's Start-Process opens it in Notepad, the default for .txt files.
+      await new Promise((resolve) => setTimeout(resolve, 4000));
+      expect(notepads()).toBeGreaterThan(before);
+    } finally {
+      rmSync(latest, { force: true });
+    }
+  });
+
   it.runIf(platform === 'win32')('moves a file to the Recycle Bin', { timeout: 30_000 }, async () => {
     const doomed = join(folder, 'recycle me.txt');
     mkdirSync(folder, { recursive: true });
