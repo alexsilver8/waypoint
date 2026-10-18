@@ -24,6 +24,8 @@ export interface Settings {
   snippetExpansion: boolean;
   /** A global shortcut for any command, as an Electron accelerator, by `"<extension>/<command>"`. */
   commandHotkeys: Record<string, string>;
+  /** Look for new versions every few hours (the installed app). */
+  checkForUpdates: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -37,6 +39,7 @@ export const DEFAULT_SETTINGS: Settings = {
   pasteIntoApps: true,
   snippetExpansion: false,
   commandHotkeys: {},
+  checkForUpdates: true,
 };
 
 export interface NormalizedSettings {
@@ -78,6 +81,9 @@ export function normalizeSettings(raw: unknown): NormalizedSettings {
   });
   take('snippetExpansion', raw.snippetExpansion, isBoolean, (v) => {
     settings.snippetExpansion = v;
+  });
+  take('checkForUpdates', raw.checkForUpdates, isBoolean, (v) => {
+    settings.checkForUpdates = v;
   });
   take(
     'theme',

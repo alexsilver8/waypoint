@@ -33,7 +33,20 @@ Website: [waypoint.alexsilver.dev](https://waypoint.alexsilver.dev/)
 
 Download the latest build for your system from [Releases](https://github.com/alexsilver8/waypoint/releases).
 
-Builds aren't code-signed yet, so your system will warn you the first time you open one. On macOS, allow it under **System Settings → Privacy & Security → Open Anyway**. On Windows, choose **More info → Run anyway**.
+Builds aren't code-signed yet, so your system will warn you the first time you open one. On Windows, choose **More info → Run anyway**.
+
+**On macOS, run Waypoint from source for now.** The Mac build isn't signed with an Apple Developer ID, so macOS doesn't let it run properly. Until it is, clone the repository and start it with `pnpm dev` (you need Node.js 22.12 or later, and `corepack enable` for pnpm):
+
+```sh
+git clone https://github.com/alexsilver8/waypoint.git
+cd waypoint
+pnpm install
+pnpm dev
+```
+
+Run from source, Waypoint doesn't update itself: `git pull`, then `pnpm install` and `pnpm dev` again, to get the latest version.
+
+Waypoint keeps itself up to date from these releases. On Windows and from the AppImage, a new version downloads in the background and installs when you restart Waypoint: choose **Restart to Update** in the tray menu or the notification, or just quit. macOS only installs updates to apps signed with an Apple Developer ID, which Waypoint isn't yet, and a `.deb` belongs to your package manager, so there Waypoint tells you a new version is out and **Download Waypoint …** opens its release. It looks a little after it starts and every six hours; **Check for Updates…** in the tray menu or **Settings → About** looks right away, and **Check for updates** in **Settings → General** turns the automatic check off.
 
 The first time it starts, Waypoint opens a short setup in place of the launcher: pick the shortcut that opens it (and try it right there), allow Accessibility on macOS so it can paste into other apps and move their windows, choose light or dark, and decide whether to keep clipboard history and open at login. <kbd>↵</kbd> moves on and <kbd>Esc</kbd> goes back. Pressing your shortcut on the last step opens the launcher. If you quit halfway it opens again next time; once you finish or skip it, it doesn't. Run **Set Up Waypoint**, or **Run Setup Again** under **Settings → About**, to go through it again.
 
@@ -263,6 +276,7 @@ Everything is also saved in `settings.json` (**Settings → About → Edit setti
   "clipboardHistory": { "enabled": true, "maxItems": 200 },
   "extensionDirectories": [],         // more places to load extensions from
   "notesDirectory": "",               // where notes are saved; empty means the app's data folder
+  "checkForUpdates": true,            // look for a new version every few hours (the installed app)
   "commandHotkeys": {                 // a shortcut for any command, by "<extension>/<command>"
     "window-management/left-half": "Control+Alt+Left"
   }
@@ -311,7 +325,7 @@ Built-in commands implement the same interface as extensions, so anything a buil
 
 ## Roadmap
 
-- Code-signed, auto-updating releases
+- Code-signed releases, so macOS installs updates by itself too
 
 Ideas and bug reports are welcome in [Issues](https://github.com/alexsilver8/waypoint/issues).
 

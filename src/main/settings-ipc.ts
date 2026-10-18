@@ -18,6 +18,7 @@ import type { CommandRegistry } from './registry';
 import type { SettingsStore } from './settings';
 import { registerEntriesIpc, type SettingsEntries } from './settings-entries-ipc';
 import type { SettingsWindow } from './settings-window';
+import type { Updater } from './updater';
 
 export interface SettingsIpcOptions {
   store: SettingsStore;
@@ -34,6 +35,7 @@ export interface SettingsIpcOptions {
   entries: SettingsEntries;
   /** Whether snippets expand as you type, and asking macOS for what that needs. */
   snippetExpansion: { readonly status: SnippetExpansionStatus; askForAccess(): void };
+  updater: Updater;
 }
 
 const PATCHABLE: Array<keyof Settings> = [
@@ -45,6 +47,7 @@ const PATCHABLE: Array<keyof Settings> = [
   'clipboardHistory',
   'extensionDirectories',
   'notesDirectory',
+  'checkForUpdates',
 ];
 
 /** Wires the Settings window's `window.settings` API. */
@@ -61,6 +64,7 @@ export function registerSettingsIpc(options: SettingsIpcOptions): { notifyChange
     openOnboarding,
     entries,
     snippetExpansion,
+    updater,
   } = options;
 
   const check = (event: Electron.IpcMainInvokeEvent | Electron.IpcMainEvent) => {
@@ -96,6 +100,7 @@ export function registerSettingsIpc(options: SettingsIpcOptions): { notifyChange
         canLaunchAtLogin: canLaunchAtLogin(),
         packaged: app.isPackaged,
         snippetExpansion: snippetExpansion.status,
+        updates: { mode: updater.mode, status: updater.status },
       },
     };
   };
@@ -165,6 +170,11 @@ export function registerSettingsIpc(options: SettingsIpcOptions): { notifyChange
   ipcMain.on(SettingsChannel.openOnboarding, (event) => {
     check(event);
     openOnboarding();
+  });
+
+  ipcMain.on(SettingsChannel.updateAction, (event) => {
+    check(event);
+    updater.act();
   });
 
   ipcMain.handle(SettingsChannel.clearClipboard, (event) => {

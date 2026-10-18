@@ -4,6 +4,7 @@ import type { Quicklink, QuicklinkDraft } from './quicklinks';
 import type { Settings } from './settings';
 import type { Snippet, SnippetDraft, SnippetExpansionStatus } from './snippets';
 import type { ExtensionSource, Platform } from './types';
+import type { UpdateMode, UpdateStatus } from './updates';
 
 export interface ExtensionSummary {
   name: string;
@@ -43,6 +44,7 @@ export interface SettingsState {
     packaged: boolean;
     /** Whether snippets expand as you type in other apps, and if not, why. */
     snippetExpansion: SnippetExpansionStatus;
+    updates: { mode: UpdateMode; status: UpdateStatus };
   };
 }
 
@@ -91,6 +93,7 @@ export const SettingsChannel = {
   listApps: 'settings:list-apps',
   takeTarget: 'settings:take-target',
   openAccessibility: 'settings:open-accessibility',
+  updateAction: 'settings:update-action',
   /** main → window: something changed; fetch the state again. */
   changed: 'settings:changed',
   /** main → window: the window was asked to go somewhere; `takeTarget()` says where. */
@@ -120,6 +123,8 @@ export interface SettingsApi {
   openLink(link: SettingsLink): void;
   reloadExtensions(): Promise<SettingsState>;
   clearClipboard(): Promise<SettingsState>;
+  /** Checks for updates, opens the download, or restarts into the new version, as updates stand. */
+  updateAction(): void;
   /** Opens first-launch setup again. */
   openOnboarding(): void;
   /** Gives a command its own shortcut, or none with `null`; on failure the old one stays and `error` says why. */

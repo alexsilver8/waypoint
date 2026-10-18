@@ -1,11 +1,22 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { app, BrowserWindow, clipboard, nativeTheme, powerSaveBlocker, shell, systemPreferences } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  clipboard,
+  Notification,
+  nativeTheme,
+  powerSaveBlocker,
+  shell,
+  systemPreferences,
+} from 'electron';
+import electronUpdater from 'electron-updater';
 import { commandFromDeeplink, commandInArgv, launchArguments } from '../shared/command-hotkeys';
 import { NotesChannel, noteIdFromDeeplink, RECENTLY_DELETED_DAYS } from '../shared/notes';
 import type { OnboardingOutcome } from '../shared/onboarding';
 import type { Platform } from '../shared/types';
+import { updateMode } from '../shared/updates';
 import { AppIndex } from './apps/app-index';
 import { electronClipboard } from './clipboard/electron-source';
 import { ClipboardHistory } from './clipboard/history';
@@ -41,6 +52,7 @@ import { SettingsWindow } from './settings-window';
 import { SnippetExpander } from './snippet-expansion/expander';
 import { electronClipboardKeeper, loadKeyboardHook } from './snippet-expansion/system';
 import { AppTray } from './tray';
+import { Updater } from './updater';
 import { UsageTracker } from './usage';
 import { LauncherWindow } from './window';
 
@@ -200,6 +212,26 @@ async function main(): Promise<void> {
 
   const launcher = new LauncherWindow({ hideOnBlur: () => settings.get().hideOnBlur });
 
+  // New versions come from the GitHub releases (see `publish` in electron-builder.yml).
+  // The notification is kept, or it can be collected before it's clicked.
+  let updateNotification: Notification | undefined;
+  const updater = new Updater({
+    mode: updateMode({ platform, packaged: app.isPackaged, appImage: process.env.APPIMAGE }),
+    backend: () => {
+      const { autoUpdater } = electronUpdater;
+      autoUpdater.logger = console;
+      return autoUpdater;
+    },
+    enabled: () => settings.get().checkForUpdates,
+    notify: (text, onClick) => {
+      if (!Notification.isSupported()) return;
+      updateNotification = new Notification({ title: 'Waypoint', body: text });
+      updateNotification.on('click', onClick);
+      updateNotification.show();
+    },
+    openUrl: (url) => void shell.openExternal(url),
+  });
+
   let quitting = false;
   app.on('before-quit', () => {
     quitting = true;
@@ -256,6 +288,7 @@ async function main(): Promise<void> {
     openOnboarding: () => onboardingWindow.open(),
     entries: { quicklinks, snippets, apps },
     snippetExpansion: snippetExpander,
+    updater,
   });
   snippetExpander.on('status', () => settingsIpc.notifyChanged());
   const onboardingIpc = registerOnboardingIpc({
@@ -302,7 +335,14 @@ async function main(): Promise<void> {
     onOpenSettings: () => settingsWindow.open(),
     onOpenExtensionsFolder: () => void shell.openPath(extensionsDir),
     onReloadExtensions: () => void registry.loadUserExtensions(),
+    updates: () => ({ status: updater.status, mode: updater.mode }),
+    onUpdate: () => updater.act(),
   });
+  updater.on('change', () => {
+    tray.refresh();
+    settingsIpc.notifyChanged();
+  });
+  updater.start();
 
   const apply = (current: Settings, previous?: Settings) => {
     if (current.hotkey !== previous?.hotkey && !hotkeys.set(current.hotkey)) {
@@ -351,6 +391,7 @@ async function main(): Promise<void> {
   apps.startAutoRefresh();
 
   app.on('will-quit', () => {
+    updater.stop();
     hotkeys.dispose();
     snippetExpander.dispose();
     usage.flush();
