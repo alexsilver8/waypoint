@@ -1,0 +1,32 @@
+{
+  "name": "dictionary",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Definitions, examples and synonyms of English words, from Wiktionary.",
+  "type": "module",
+  "main": "index.js",
+  "license": "MIT",
+  "waypoint": {
+    "title": "Dictionary",
+    "icon": "📖",
+    "commands": [
+      {
+        "name": "define",
+        "title": "Define Word",
+        "mode": "view",
+        "icon": "📖",
+        "keywords": [
+          "dictionary",
+          "define",
+          "definition",
+          "meaning",
+          "synonym",
+          "thesaurus",
+          "word",
+          "english"
+        ],
+        "fallback": true
+      }
+    ]
+  }
+}

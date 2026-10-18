@@ -1,0 +1,34 @@
+{
+  "name": "deepl",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Translate text with DeepL, into your language or a second one.",
+  "type": "module",
+  "main": "index.js",
+  "license": "MIT",
+  "waypoint": {
+    "title": "DeepL",
+    "icon": "🌐",
+    "commands": [
+      {
+        "name": "translate",
+        "title": "Translate",
+        "mode": "view",
+        "icon": "🌐",
+        "keywords": [
+          "deepl",
+          "translate",
+          "translation",
+          "translator",
+          "language",
+          "english",
+          "german",
+          "french",
+          "spanish",
+          "portuguese"
+        ],
+        "fallback": true
+      }
+    ]
+  }
+}
