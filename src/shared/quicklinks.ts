@@ -54,6 +54,21 @@ export function isUrlLink(link: string): boolean {
   return (SCHEME.test(link) && !WINDOWS_PATH.test(link)) || isBareDomain(link);
 }
 
+/**
+ * Whether the link starts with a placeholder, like `{clipboard}`, so what's filled in decides
+ * what kind of link it is. Such a link only opens web addresses (see `isWebAddress`): text copied
+ * from anywhere mustn't open a file, a program or another app's link.
+ */
+export function startsWithPlaceholder(link: string): boolean {
+  return /^\{(argument|clipboard|date|time|datetime|uuid)\b/.test(link.trimStart());
+}
+
+/** A web address: `https://` or `http://`, or a bare one like `github.com/search`. */
+export function isWebAddress(link: string): boolean {
+  const value = link.trim();
+  return /^https?:\/\/[^\s/]/i.test(value) || isBareDomain(value);
+}
+
 /** Why a link can't be opened, or `undefined` if it looks fine. */
 export function linkProblem(link: string): string | undefined {
   const value = link.trim();

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { linkTarget, openLink, openWithCommand, resolveApp } from './open-link';
+import { linkTarget, openLink, openWithCommand, resolveApp, windowsArgument } from './open-link';
 
 describe('linkTarget', () => {
   it('opens web addresses and app links as URLs', () => {
@@ -28,6 +28,17 @@ describe('linkTarget', () => {
     });
   });
 
+  it('gives a web address as the URL parser writes it, so quotes and spaces can’t split it', () => {
+    expect(linkTarget('https://example.com/" --renderer-cmd-prefix=calc.exe "', 'win32', 'C:\\')).toEqual({
+      type: 'url',
+      url: 'https://example.com/%22%20--renderer-cmd-prefix=calc.exe%20%22',
+    });
+    expect(linkTarget('example.com/"--flag"', 'win32', 'C:\\')).toEqual({
+      type: 'url',
+      url: 'https://example.com/%22--flag%22',
+    });
+  });
+
   it('refuses what it can’t or mustn’t open', () => {
     expect(() => linkTarget('javascript:alert(1)', 'darwin', '/')).toThrow("Can't open javascript: links.");
     expect(() => linkTarget('two words', 'darwin', '/')).toThrow('Not a link or a path: two words');
@@ -45,9 +56,33 @@ describe('openWithCommand', () => {
       args: ['launch', '/usr/share/applications/firefox.desktop', 'https://x.com'],
     });
     expect(openWithCommand('linux', '/usr/bin/code', '/tmp/a')).toEqual({ file: '/usr/bin/code', args: ['/tmp/a'] });
-    expect(openWithCommand('win32', "C:\\Start Menu\\Bob's Editor.lnk", 'C:\\a b.txt').args.at(-1)).toBe(
-      `Start-Process -FilePath 'C:\\Start Menu\\Bob''s Editor.lnk' -ArgumentList '"C:\\a b.txt"'`,
+  });
+
+  it('hands Windows the app and the target as values, never as PowerShell code', () => {
+    const command = openWithCommand('win32', "C:\\Start Menu\\Bob's ‘Editor’.lnk", 'C:\\it’s; calc\\a b.txt');
+    expect(command.file).toBe('powershell.exe');
+    expect(command.args.at(-1)).toBe(
+      'Start-Process -FilePath $env:WAYPOINT_OPEN_APP -ArgumentList $env:WAYPOINT_OPEN_ARGUMENT',
     );
+    expect(command.env).toEqual({
+      WAYPOINT_OPEN_APP: "C:\\Start Menu\\Bob's ‘Editor’.lnk",
+      WAYPOINT_OPEN_ARGUMENT: '"C:\\it’s; calc\\a b.txt"',
+    });
+    // A quote in the target stays inside the one argument, rather than starting a switch.
+    expect(
+      openWithCommand('win32', 'chrome', 'foo:" --renderer-cmd-prefix=calc.exe "').env?.WAYPOINT_OPEN_ARGUMENT,
+    ).toBe('"foo:\\" --renderer-cmd-prefix=calc.exe \\""');
+  });
+});
+
+describe('windowsArgument', () => {
+  it('quotes one argument so a Windows program reads it back whole', () => {
+    expect(windowsArgument('C:\\a b.txt')).toBe('"C:\\a b.txt"');
+    expect(windowsArgument('say "hi"')).toBe('"say \\"hi\\""');
+    // Backslashes are doubled only before a quote, or the closing one.
+    expect(windowsArgument('C:\\folder\\')).toBe('"C:\\folder\\\\"');
+    expect(windowsArgument('a\\"b')).toBe('"a\\\\\\"b"');
+    expect(windowsArgument('')).toBe('""');
   });
 });
 

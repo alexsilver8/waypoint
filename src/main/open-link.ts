@@ -39,25 +39,35 @@ export function linkTarget(link: string, platform: Platform, home: string): Link
       throw new Error(`Not a valid link: ${value}`);
     }
     if (BLOCKED_SCHEMES.has(url.protocol)) throw new Error(`Can't open ${url.protocol} links.`);
-    return { type: 'url', url: value };
+    // As the URL parser writes it: spaces and quotes in a web address are percent-encoded.
+    return { type: 'url', url: url.href };
   }
-  if (isBareDomain(value)) return { type: 'url', url: `https://${value}` };
+  if (isBareDomain(value)) return { type: 'url', url: new URL(`https://${value}`).href };
   throw new Error(`Not a link or a path: ${value}`);
 }
 
 export interface LaunchCommand {
   file: string;
   args: string[];
+  /** Environment variables to add, for values a command reads rather than has written into it. */
+  env?: Record<string, string>;
 }
 
-function powershellQuote(text: string): string {
-  return `'${text.replaceAll("'", "''")}'`;
+/**
+ * One argument as Windows programs split their command line (`CommandLineToArgvW`): in quotes,
+ * with any quote inside escaped and the backslashes before a quote, or the end, doubled. Nothing
+ * in it can close the quotes and start another argument, like a switch for the app.
+ */
+export function windowsArgument(text: string): string {
+  return `"${text.replace(/(\\*)"/g, '$1$1\\"').replace(/(\\+)$/, '$1$1')}"`;
 }
 
 /**
  * How to open a link or path with a given app: `open -a` on macOS, which takes the app's name or
  * path; PowerShell's Start-Process on Windows, which also follows Start menu shortcuts; and on
- * Linux `gio launch` for a `.desktop` file, or the program itself.
+ * Linux `gio launch` for a `.desktop` file, or the program itself. Each is started with a list of
+ * arguments, never through a shell's command line: on Windows the app and the target reach
+ * PowerShell as environment variables, which it reads as values and never as code.
  */
 export function openWithCommand(platform: Platform, app: string, target: string): LaunchCommand {
   switch (platform) {
@@ -70,8 +80,9 @@ export function openWithCommand(platform: Platform, app: string, target: string)
           '-NoProfile',
           '-NonInteractive',
           '-Command',
-          `Start-Process -FilePath ${powershellQuote(app)} -ArgumentList ${powershellQuote(`"${target}"`)}`,
+          'Start-Process -FilePath $env:WAYPOINT_OPEN_APP -ArgumentList $env:WAYPOINT_OPEN_ARGUMENT',
         ],
+        env: { WAYPOINT_OPEN_APP: app, WAYPOINT_OPEN_ARGUMENT: windowsArgument(target) },
       };
     default:
       return app.endsWith('.desktop') ? { file: 'gio', args: ['launch', app, target] } : { file: app, args: [target] };
@@ -95,9 +106,14 @@ export function resolveApp(app: string, apps: readonly InstalledApp[], platform:
   return found.path;
 }
 
-function run({ file, args }: LaunchCommand): Promise<void> {
+function run({ file, args, env }: LaunchCommand): Promise<void> {
   return new Promise((resolve, reject) => {
-    execFile(file, args, { timeout: 15_000, windowsHide: true }, (error) => (error ? reject(error) : resolve()));
+    execFile(
+      file,
+      args,
+      { timeout: 15_000, windowsHide: true, ...(env ? { env: { ...process.env, ...env } } : {}) },
+      (error) => (error ? reject(error) : resolve()),
+    );
   });
 }
 

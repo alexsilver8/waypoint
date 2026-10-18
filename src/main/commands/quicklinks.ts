@@ -8,11 +8,13 @@ import {
 import {
   argumentName,
   expandLink,
+  isWebAddress,
   linkProblem,
   needsArgument,
   type Quicklink,
   quicklinkFields,
   shortLink,
+  startsWithPlaceholder,
   takesArgument,
 } from '../../shared/quicklinks';
 import type {
@@ -249,7 +251,12 @@ export function quicklinksExtension(options: QuicklinksOptions): BuiltinExtensio
       };
     }
     const values = await valuesFor([quicklink.link]);
-    await open(expandLink(quicklink.link, { ...values, argument: text }), quicklink.openWith);
+    const link = expandLink(quicklink.link, { ...values, argument: text });
+    // What's filled in only decides where a web address goes, never that a file or an app opens.
+    if (startsWithPlaceholder(quicklink.link) && !isWebAddress(link)) {
+      return { toast: `“${quicklink.name}” only opens web addresses, and that isn’t one`, toastStyle: 'failure' };
+    }
+    await open(link, quicklink.openWith);
     return { hide: true };
   };
 

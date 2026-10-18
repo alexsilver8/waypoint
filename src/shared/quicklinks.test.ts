@@ -5,10 +5,12 @@ import {
   checkQuicklink,
   expandLink,
   isUrlLink,
+  isWebAddress,
   linkProblem,
   needsArgument,
   normalizeQuicklinks,
   shortLink,
+  startsWithPlaceholder,
   takesArgument,
 } from './quicklinks';
 
@@ -141,6 +143,26 @@ describe('placeholders in links', () => {
     expect(takesArgument('https://x.com/{clipboard}')).toBe(false);
     expect(argumentName('https://x.com/?q={argument name="term"}')).toBe('term');
     expect(argumentName('https://x.com/?q={argument}')).toBe('text');
+  });
+});
+
+describe('startsWithPlaceholder and isWebAddress', () => {
+  it('tells a link whose kind comes from what’s filled in', () => {
+    expect(startsWithPlaceholder('{clipboard}')).toBe(true);
+    expect(startsWithPlaceholder(' {argument default="x"}')).toBe(true);
+    expect(startsWithPlaceholder('https://x.com/{clipboard}')).toBe(false);
+    expect(startsWithPlaceholder('{"not":"a placeholder"}')).toBe(false);
+  });
+
+  it('knows a web address from a file, a program or an app’s link', () => {
+    expect(isWebAddress('https://example.com/a b')).toBe(true);
+    expect(isWebAddress('HTTP://example.com')).toBe(true);
+    expect(isWebAddress('github.com/search')).toBe(true);
+    expect(isWebAddress('file:///etc/passwd')).toBe(false);
+    expect(isWebAddress('C:\\Windows\\System32\\calc.exe')).toBe(false);
+    expect(isWebAddress('/usr/bin/xterm')).toBe(false);
+    expect(isWebAddress('ms-settings:')).toBe(false);
+    expect(isWebAddress('https:///etc/passwd')).toBe(false);
   });
 });
 

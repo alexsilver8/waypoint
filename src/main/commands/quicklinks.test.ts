@@ -12,7 +12,7 @@ const ctx = (argument?: string): CommandContext => ({
   ...(argument ? { argument } : {}),
 });
 
-function setUp() {
+function setUp(clipboard = 'https://example.com/a b') {
   const store = new QuicklinkStore(join(mkdtempSync(join(tmpdir(), 'quicklinks-')), 'quicklinks.json'));
   store.add({ name: 'GitHub Search', link: 'https://github.com/search?q={argument name="term"}', icon: '🐙' });
   store.add({ name: 'Copied Link', link: '{clipboard}', openWith: '/usr/share/applications/firefox.desktop' });
@@ -24,7 +24,7 @@ function setUp() {
     open,
     editInSettings,
     apps: () => APPS,
-    readClipboard: async () => 'https://example.com/a b',
+    readClipboard: async () => clipboard,
   });
   return { store, open, editInSettings, commands: extension.commands, extension };
 }
@@ -99,6 +99,20 @@ describe('quicklinksExtension', () => {
     await commands.open?.run?.(ctx('copied-link'));
     // The link is only a placeholder, so it isn't a URL to encode for.
     expect(open).toHaveBeenCalledWith('https://example.com/a b', '/usr/share/applications/firefox.desktop');
+  });
+
+  it('opens only web addresses from a link that starts with a placeholder', async () => {
+    for (const copied of ['C:\\Windows\\System32\\calc.exe', 'file:///etc/passwd', '~/.ssh', 'ms-settings:']) {
+      const { commands, open } = setUp(copied);
+      expect(await commands.open?.run?.(ctx('copied-link'))).toEqual({
+        toast: '“Copied Link” only opens web addresses, and that isn’t one',
+        toastStyle: 'failure',
+      });
+      expect(open).not.toHaveBeenCalled();
+    }
+    const { commands, open } = setUp('example.com/page');
+    await commands.open?.run?.(ctx('copied-link'));
+    expect(open).toHaveBeenCalledWith('example.com/page', '/usr/share/applications/firefox.desktop');
   });
 
   it('says so when the quicklink is gone', async () => {

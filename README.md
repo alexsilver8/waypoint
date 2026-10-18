@@ -139,7 +139,7 @@ Saving an edit goes back to the list with the change in it. **Edit in Settings**
 | `{date}`, `{time}`, `{datetime}` | Now, written the way your system writes dates and times. `format="yyyy-MM-dd HH:mm"` writes it your way: `yyyy` `yy` years, `MMMM` `MMM` `MM` `M` months, `dd` `d` days, `EEEE` `EEE` weekdays, `HH` `H` `hh` `h` hours, `mm` minutes, `ss` seconds, `a` AM or PM, and words in single quotes as they are. `offset="+1d"` moves it, in `y` years, `M` months, `w` weeks, `d` days, `h` hours or `m` minutes, like `-2w` or `+1M -3h`. |
 | `{uuid}` | A new random ID each time. |
 
-In a link that's a web address or an app's link, what goes in is percent-encoded, so `cats & dogs` arrives as `cats%20%26%20dogs`; in a path it goes in as it is. Anything else in braces stays as it is, so JSON in a snippet comes out intact.
+In a link that's a web address or an app's link, what goes in is percent-encoded, so `cats & dogs` arrives as `cats%20%26%20dogs`; in a path it goes in as it is. Anything else in braces stays as it is, so JSON in a snippet comes out intact. A link that starts with a placeholder, like `{clipboard}` on its own, only opens web addresses, so text copied from anywhere can't open a file, a program or another app's link.
 
 Quicklinks and snippets are kept in `quicklinks.json` and `snippets.json` in Waypoint's data folder, and changes you save there show up right away. One Waypoint can't use, like a quicklink without a link, is left out with a warning in the log, and the rest still load:
 
