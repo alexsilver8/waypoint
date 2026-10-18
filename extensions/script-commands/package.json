@@ -1,0 +1,44 @@
+{
+  "name": "script-commands",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Run your own scripts from the launcher; Raycast's script commands work too.",
+  "type": "module",
+  "main": "index.js",
+  "license": "MIT",
+  "waypoint": {
+    "title": "Script Commands",
+    "icon": "📜",
+    "commands": [
+      {
+        "name": "search",
+        "title": "Search Script Commands",
+        "mode": "view",
+        "icon": "📜",
+        "keywords": [
+          "script",
+          "scripts",
+          "shell",
+          "bash",
+          "automation",
+          "raycast",
+          "run"
+        ]
+      },
+      {
+        "name": "create",
+        "title": "Create Script Command",
+        "mode": "view",
+        "icon": "📜",
+        "keywords": [
+          "script",
+          "new script",
+          "template",
+          "bash",
+          "python",
+          "node"
+        ]
+      }
+    ]
+  }
+}
