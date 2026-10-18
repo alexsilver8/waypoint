@@ -141,7 +141,7 @@ Saving an edit goes back to the list with the change in it. **Edit in Settings**
 
 In a link that's a web address or an app's link, what goes in is percent-encoded, so `cats & dogs` arrives as `cats%20%26%20dogs`; in a path it goes in as it is. Anything else in braces stays as it is, so JSON in a snippet comes out intact. A link that starts with a placeholder, like `{clipboard}` on its own, only opens web addresses, so text copied from anywhere can't open a file, a program or another app's link.
 
-Quicklinks and snippets are kept in `quicklinks.json` and `snippets.json` in Waypoint's data folder, and changes you save there show up right away. One Waypoint can't use, like a quicklink without a link, is left out with a warning in the log, and the rest still load:
+Quicklinks and snippets are kept in `quicklinks.json` and `snippets.json` in Waypoint's data folder, and changes you save there show up right away. One Waypoint can't use, like a quicklink without a link, is left out with a warning in the log, and the rest still load. It stays in the file, where it was, when Waypoint saves a change, so you can fix it. While a file isn't valid JSON, changes from the launcher and Settings are refused with a message, rather than written over it:
 
 ```json
 [

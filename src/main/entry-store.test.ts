@@ -75,6 +75,76 @@ describe('QuicklinkStore', () => {
     expect(new QuicklinkStore(path).list()).toEqual([]);
   });
 
+  it('writes the entries it can’t use back as they were, where they were', () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const path = tempPath('quicklinks.json');
+    const broken = { name: 'Half done', lnk: 'https://typo.dev', note: 'kept' };
+    writeFileSync(
+      path,
+      JSON.stringify([
+        { name: 'One', link: 'https://one.dev' },
+        broken,
+        'not even an object',
+        { name: 'Two', link: 'two.dev' },
+      ]),
+    );
+    const store = new QuicklinkStore(path);
+    expect(store.list().map((q) => q.name)).toEqual(['One', 'Two']);
+
+    store.add({ name: 'Three', link: 'https://three.dev' });
+    expect(onDisk(path)).toEqual([
+      { id: 'one', name: 'One', link: 'https://one.dev' },
+      broken,
+      'not even an object',
+      { id: 'two', name: 'Two', link: 'two.dev' },
+      { id: 'three', name: 'Three', link: 'https://three.dev' },
+    ]);
+    store.remove('one');
+    store.update('two', { name: 'Second' });
+    expect(onDisk(path)).toEqual([
+      { id: 'two', name: 'Second', link: 'two.dev' },
+      broken,
+      'not even an object',
+      { id: 'three', name: 'Three', link: 'https://three.dev' },
+    ]);
+  });
+
+  it('changes nothing while the file can’t be read, and says why', () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const path = tempPath('quicklinks.json');
+    const store = new QuicklinkStore(path);
+    store.add({ name: 'One', link: 'https://one.dev' });
+    // A half-finished edit by hand.
+    const typing = '[{ "name": "One", "link": "https://one.dev" }, { "name": "Tw';
+    writeFileSync(path, typing);
+    expect(() => store.add({ name: 'Two', link: 'https://two.dev' })).toThrow(
+      /^quicklinks\.json can’t be read \(.+\), so nothing was changed\. Fix the file, then try again\.$/,
+    );
+    expect(() => store.update('one', { name: 'Uno' })).toThrow(EntryError);
+    expect(() => store.remove('one')).toThrow(EntryError);
+    expect(readFileSync(path, 'utf8')).toBe(typing);
+    // What was loaded before still shows.
+    expect(store.list().map((q) => q.id)).toEqual(['one']);
+
+    writeFileSync(path, JSON.stringify({ quicklinks: [] }));
+    expect(() => store.add({ name: 'Two', link: 'https://two.dev' })).toThrow(/it must be a list/);
+    expect(onDisk(path)).toEqual({ quicklinks: [] });
+
+    // Once it's fixed, changes go through again.
+    writeFileSync(path, JSON.stringify([{ name: 'One', link: 'https://one.dev' }]));
+    store.add({ name: 'Two', link: 'https://two.dev' });
+    expect(onDisk(path).map((q: { name: string }) => q.name)).toEqual(['One', 'Two']);
+  });
+
+  it('refuses changes when the file couldn’t be read at launch', () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const path = tempPath('quicklinks.json');
+    writeFileSync(path, '{ not json');
+    const store = new QuicklinkStore(path);
+    expect(() => store.add({ name: 'One', link: 'https://one.dev' })).toThrow(EntryError);
+    expect(readFileSync(path, 'utf8')).toBe('{ not json');
+  });
+
   it('doesn’t save over a change made by hand a moment before', () => {
     const path = tempPath('quicklinks.json');
     const store = new QuicklinkStore(path);

@@ -197,9 +197,13 @@ export function QuicklinksSection({
     setEditorKey((key) => key + 1);
   }, [target, state.quicklinks]);
 
+  // Why the last delete didn't happen, like a quicklinks.json that can't be read.
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const remove = async (id: string) => {
-    if (editing?.id === id) setEditing(null);
-    setState(await api.deleteQuicklink(id));
+    const result = await api.deleteQuicklink(id);
+    setState(result.state);
+    setDeleteError(result.error ?? null);
+    if (!result.error && editing?.id === id) setEditing(null);
   };
 
   return (
@@ -225,6 +229,11 @@ export function QuicklinksSection({
         />
       )}
       <Group title="Your quicklinks">
+        {deleteError && (
+          <p className="entry-list__error" role="alert">
+            {deleteError}
+          </p>
+        )}
         {state.quicklinks.length === 0 ? (
           <p className="group__empty">No quicklinks yet.</p>
         ) : (

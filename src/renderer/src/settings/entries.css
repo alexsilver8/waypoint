@@ -156,6 +156,15 @@
   line-height: 1.45;
 }
 
+/* Why a delete didn't happen, above the list. */
+.entry-list__error {
+  margin: 0;
+  padding: 12px 16px 0;
+  color: var(--pigment-red);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
 .button[data-tone="primary"] {
   background: var(--accent);
   color: #fff;

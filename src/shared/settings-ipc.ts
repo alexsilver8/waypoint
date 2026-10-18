@@ -123,10 +123,12 @@ export interface SettingsApi {
   setCommandHotkey(key: string, accelerator: string | null): Promise<{ state: SettingsState; error?: string }>;
   /** Adds a quicklink, or changes the one with the draft's `id`. */
   saveQuicklink(draft: QuicklinkDraft): Promise<SaveResult>;
-  deleteQuicklink(id: string): Promise<SettingsState>;
+  /** Removes a quicklink; `error` says why when it couldn't be. */
+  deleteQuicklink(id: string): Promise<SaveResult>;
   /** Adds a snippet, or changes the one with the draft's `id`. */
   saveSnippet(draft: SnippetDraft): Promise<SaveResult>;
-  deleteSnippet(id: string): Promise<SettingsState>;
+  /** Removes a snippet; `error` says why when it couldn't be. */
+  deleteSnippet(id: string): Promise<SaveResult>;
   /** The installed apps, A to Z. */
   listApps(): Promise<AppChoice[]>;
   /** Where the window was last asked to go, once; `null` when nowhere in particular. */

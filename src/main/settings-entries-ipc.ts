@@ -35,6 +35,18 @@ function save<T>(
   }
 }
 
+/** Removes an entry. A problem, like a file that can't be read, comes back as `error`. */
+function remove(id: unknown, removeEntry: (id: string) => unknown): string | undefined {
+  try {
+    if (typeof id === 'string') removeEntry(id);
+    return undefined;
+  } catch (error) {
+    if (error instanceof EntryError) return error.message;
+    console.error('[settings] Could not delete:', error);
+    return `Couldn't delete it: ${(error as Error).message}`;
+  }
+}
+
 /** The Settings window's quicklinks and snippets, wired to their stores. */
 export function registerEntriesIpc(
   check: (event: Sender) => void,
@@ -52,10 +64,10 @@ export function registerEntriesIpc(
     return error ? { state: state(), error } : { state: state() };
   });
 
-  ipcMain.handle(SettingsChannel.deleteQuicklink, (event, id: unknown) => {
+  ipcMain.handle(SettingsChannel.deleteQuicklink, (event, id: unknown): SaveResult => {
     check(event);
-    if (typeof id === 'string') quicklinks.remove(id);
-    return state();
+    const error = remove(id, (entry) => quicklinks.remove(entry));
+    return error ? { state: state(), error } : { state: state() };
   });
 
   ipcMain.handle(SettingsChannel.saveSnippet, (event, raw: unknown): SaveResult => {
@@ -69,10 +81,10 @@ export function registerEntriesIpc(
     return error ? { state: state(), error } : { state: state() };
   });
 
-  ipcMain.handle(SettingsChannel.deleteSnippet, (event, id: unknown) => {
+  ipcMain.handle(SettingsChannel.deleteSnippet, (event, id: unknown): SaveResult => {
     check(event);
-    if (typeof id === 'string') snippets.remove(id);
-    return state();
+    const error = remove(id, (entry) => snippets.remove(entry));
+    return error ? { state: state(), error } : { state: state() };
   });
 
   ipcMain.handle(SettingsChannel.listApps, (event): AppChoice[] => {
