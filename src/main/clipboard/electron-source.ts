@@ -1,4 +1,5 @@
-import { clipboard } from 'electron';
+import { readFile } from 'node:fs/promises';
+import { ClipboardItem, clipboard, nativeImage } from 'electron';
 import type { ClipboardSource } from './history';
 
 /**
@@ -12,8 +13,33 @@ const PRIVATE_FORMATS: Partial<Record<NodeJS.Platform, string[]>> = {
   linux: ['x-kde-passwordManagerHint'],
 };
 
+/** Screenshots and copied pictures come as PNG, whatever form the system keeps them in. */
+const PNG = 'image/png';
+
 export const electronClipboard: ClipboardSource = {
   readText: () => clipboard.readText(),
+  async readImage() {
+    if (!(await clipboard.has(PNG))) return undefined;
+    const item = (await clipboard.read()).find((each) => each.types.includes(PNG));
+    if (!item) return undefined;
+    const png = new Uint8Array(await (await item.getType(PNG)).arrayBuffer());
+    return {
+      png,
+      decode() {
+        const image = nativeImage.createFromBuffer(Buffer.from(png));
+        if (image.isEmpty()) return undefined;
+        return {
+          ...image.getSize(),
+          bitmap: image.toBitmap(),
+          thumbnail: (size) => new Uint8Array(image.resize({ ...size, quality: 'good' }).toPNG()),
+        };
+      },
+    };
+  },
+  async writeImage(path) {
+    const png = await readFile(path);
+    await clipboard.write([new ClipboardItem({ [PNG]: new Blob([png], { type: PNG }) })]);
+  },
   async isConcealed() {
     const formats = PRIVATE_FORMATS[process.platform] ?? [];
     const present = await Promise.all(

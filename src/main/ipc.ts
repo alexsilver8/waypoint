@@ -21,11 +21,20 @@ function toActionContext(value: unknown): ActionContext {
 }
 
 /**
+ * A result only Waypoint's own commands give, as theirs aren't validated: they may also paste what
+ * they put on the clipboard themselves, like an image from the clipboard history.
+ */
+export interface BuiltinActionResult extends ActionResult {
+  /** Paste what's on the clipboard now into the app that was in front, and close the launcher. */
+  pasteClipboard?: boolean;
+}
+
+/**
  * Does the part of an action's result that happens here: copying, pasting into the app you were
  * in and hiding the launcher. Returns the rest, for the launcher to show.
  */
 export async function finishAction(
-  { copy, paste, ...result }: ActionResult,
+  { copy, paste, pasteClipboard, ...result }: BuiltinActionResult,
   launcher: Pick<LauncherWindow, 'hide' | 'hideAndReturnFocus'>,
   options: { pasteIntoApps(): boolean },
 ): Promise<ActionResult> {
@@ -34,7 +43,8 @@ export async function finishAction(
     await clipboard.writeText(text);
     result.hide = true;
   }
-  if (paste !== undefined && options.pasteIntoApps()) {
+  if (pasteClipboard) result.hide = true;
+  if ((paste !== undefined || pasteClipboard) && options.pasteIntoApps()) {
     // Hand the keyboard back to the app you were in, then paste there.
     launcher.hideAndReturnFocus();
     void pasteIntoFrontApp();

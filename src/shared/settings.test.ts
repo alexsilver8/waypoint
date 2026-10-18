@@ -17,17 +17,22 @@ describe('normalizeSettings', () => {
     expect(problems).toEqual([]);
     expect(settings.hotkey).toBe('CommandOrControl+Shift+Space');
     expect(settings.theme).toBe('dark');
-    expect(settings.clipboardHistory).toEqual({ enabled: true, maxItems: 50 });
+    expect(settings.clipboardHistory).toEqual({ enabled: true, maxItems: 50, images: true });
     expect(settings.extensionDirectories).toEqual(['/tmp/ext']);
     expect(settings.notesDirectory).toBe('~/Dropbox/Notes');
   });
 
   it('replaces invalid values with defaults and reports them', () => {
-    const { settings, problems } = normalizeSettings({ hotkey: 42, theme: 'neon', clipboardHistory: { maxItems: -1 } });
+    const { settings, problems } = normalizeSettings({
+      hotkey: 42,
+      theme: 'neon',
+      clipboardHistory: { maxItems: -1, images: 'yes' },
+    });
     expect(settings.hotkey).toBe(DEFAULT_SETTINGS.hotkey);
     expect(settings.theme).toBe('system');
     expect(settings.clipboardHistory.maxItems).toBe(200);
-    expect(problems).toHaveLength(3);
+    expect(settings.clipboardHistory.images).toBe(true);
+    expect(problems).toHaveLength(4);
   });
 
   it('checks for updates unless turned off', () => {

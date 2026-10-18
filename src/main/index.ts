@@ -358,6 +358,7 @@ async function main(): Promise<void> {
     nativeTheme.themeSource = current.theme;
     syncLoginItem(platform, settings, current, previous);
     clipboardHistory.setMaxItems(current.clipboardHistory.maxItems);
+    clipboardHistory.setKeepImages(current.clipboardHistory.images);
     if (current.clipboardHistory.enabled) void clipboardHistory.start();
     else clipboardHistory.stop();
     if (current.snippetExpansion !== previous?.snippetExpansion) {
