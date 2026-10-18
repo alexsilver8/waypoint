@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculate, formatResult } from './calculator';
+import { calculate, evaluate, formatResult } from './calculator';
 
 describe('calculate', () => {
   it.each([
@@ -49,6 +49,20 @@ describe('calculate', () => {
     ['hello 2 + 2'],
   ])('%j is not a calculation', (input) => {
     expect(calculate(input)).toBeNull();
+  });
+});
+
+describe('evaluate', () => {
+  it('takes plain numbers as well as calculations', () => {
+    expect(evaluate('42')).toBe(42);
+    expect(evaluate('-5')).toBe(-5);
+    expect(evaluate('.5')).toBe(0.5);
+    expect(evaluate('2 * 5')).toBe(10);
+    expect(evaluate('1/2')).toBe(0.5);
+  });
+
+  it.each([[''], ['e'], ['pi'], ['5 k'], ['1 +'], ['1 / 0']])('%j is not a number', (input) => {
+    expect(evaluate(input)).toBeNull();
   });
 });
 
