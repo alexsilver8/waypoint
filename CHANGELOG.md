@@ -2,6 +2,14 @@
 
 Every release of Waypoint. `pnpm release` writes it from the commits, and each GitHub release shows its section.
 
+## 0.4.0 (2026-10-18)
+
+1 feature.
+
+### Features
+
+- emoji grid, Browse Extensions and colour themes ([#59](https://github.com/alexsilver8/waypoint/pull/59), [bc03075](https://github.com/alexsilver8/waypoint/commit/bc03075a92a9700c0a3a1b7c060fdf078f36761b))
+
 ## 0.3.0 (2026-10-18)
 
 4 features.

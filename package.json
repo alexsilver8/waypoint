@@ -1,7 +1,7 @@
 {
   "name": "waypoint",
   "productName": "Waypoint",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "An open-source, keyboard-first command palette and launcher for macOS, Windows and Linux.",
   "private": true,
   "type": "module",
