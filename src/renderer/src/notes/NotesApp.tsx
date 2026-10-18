@@ -18,6 +18,7 @@ import {
   TextQuote,
 } from 'lucide-react';
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   browseSections,
   clampZoom,
@@ -32,13 +33,14 @@ import {
 } from '../../../shared/notes';
 import type { Shortcut } from '../../../shared/types';
 import { shortcutKeys } from '../keys';
-import { type NoteAction, type NoteActionGroup, noteActions } from './actions';
+import { type NoteAction, type NoteActionGroup, type NotesPopover, noteActions } from './actions';
 import { BrowseNotes } from './BrowseNotes';
 import { FindBar } from './FindBar';
 import { historyTarget, type Move, nextHistory } from './history';
 import { BrowseIcon, CloseCircleIcon, CommandIcon, PlusIcon } from './icons';
 import { NoteActions } from './NoteActions';
 import { NoteEditor } from './NoteEditor';
+import { openPopoverHost, type PopoverHost } from './popover-host';
 import { RecentlyDeleted } from './RecentlyDeleted';
 import { matchesShortcut, pinnedNoteNumber } from './shortcuts';
 
@@ -46,9 +48,8 @@ const api = window.notes;
 const { platform } = api;
 const mac = platform === 'darwin';
 const SAVE_DELAY_MS = 400;
-/** Popovers open this far down the window, as Raycast's do. */
-const POPOVER_TOP = 100;
-const POPOVER_MARGIN = 8;
+/** How soon after a popover closes because you clicked its button that the click is ignored. */
+const REOPEN_GUARD_MS = 400;
 const TOAST_MS = 1800;
 const REVEAL_LABEL = mac ? 'Show in Finder' : platform === 'win32' ? 'Show in File Explorer' : 'Show in Folder';
 const ACTIONS_SHORTCUT: Shortcut = { key: 'k', modifiers: ['mod'] };
@@ -57,8 +58,6 @@ const DELETE_SHORTCUT: Shortcut = mac
   ? { key: 'x', modifiers: ['ctrl'] }
   : { key: 'Backspace', modifiers: ['mod', 'shift'] };
 const keys = (shortcut: Shortcut) => shortcutKeys(shortcut, platform).join(mac ? '' : '+');
-
-type Popover = 'browse' | 'actions' | 'deleted';
 
 function byRecent(a: Note, b: Note) {
   return b.updatedAt - a.updatedAt;
@@ -93,7 +92,9 @@ export function NotesApp() {
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const [ui, setUi] = useState<NotesWindowState>(DEFAULT_NOTES_STATE);
-  const [popover, setPopover] = useState<Popover | null>(null);
+  const [popover, setPopover] = useState<NotesPopover | null>(null);
+  /** The window popovers open in, beside this one, so they never make it taller. */
+  const [popoverHost, setPopoverHost] = useState<PopoverHost | null>(null);
   /** The action list to open the action panel on, like Copy Note As... for ⇧⌘C. */
   const [actionsSubmenu, setActionsSubmenu] = useState<string | null>(null);
   const [finding, setFinding] = useState(false);
@@ -108,9 +109,13 @@ export function NotesApp() {
   const ready = useRef(false);
   const openRequest = useRef<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  /** The heights the window should fit: the note's, and an open popover's. */
-  const heights = useRef({ content: 0, overlay: 0 });
-  const sentHeights = useRef('');
+  /** The height the window should fit: the note's. */
+  const contentHeight = useRef(0);
+  const sentHeight = useRef(0);
+  /** The popover that just closed because you went elsewhere, and when. */
+  const closedElsewhere = useRef<{ which: NotesPopover; at: number } | null>(null);
+  /** The popover's height its window was last given; 0 while it's hidden. */
+  const placedHeight = useRef(0);
   // Latest values for callbacks that outlive a render (IPC listeners, timers, shortcuts).
   const latest = useRef({ notes, currentId, draft, ui, popover, finding, editor, source });
   latest.current = { notes, currentId, draft, ui, popover, finding, editor, source };
@@ -129,10 +134,9 @@ export function NotesApp() {
   }, []);
 
   const fit = useCallback(() => {
-    const key = `${heights.current.content}:${heights.current.overlay}`;
-    if (key === sentHeights.current) return;
-    sentHeights.current = key;
-    api.fit(heights.current);
+    if (contentHeight.current === sentHeight.current) return;
+    sentHeight.current = contentHeight.current;
+    api.fit(contentHeight.current);
   }, []);
 
   const upsert = useCallback((note: Note) => {
@@ -312,20 +316,30 @@ export function NotesApp() {
     [updateUi, showToast],
   );
 
+  /**
+   * Closes the popover: `refocus` puts the cursor back where it was in the note, and
+   * `focusWindow` gives this window the keyboard back from the popover's.
+   */
   const closePopover = useCallback(
-    (refocus = true) => {
+    (refocus = true, focusWindow = true) => {
       setPopover(null);
       latest.current = { ...latest.current, popover: null };
       setActionsSubmenu(null);
-      heights.current = { ...heights.current, overlay: 0 };
-      fit();
+      placedHeight.current = 0;
+      api.hidePopover(focusWindow);
       if (refocus) refocusEditor();
     },
-    [fit, refocusEditor],
+    [refocusEditor],
   );
 
+  /** Opens a popover, or closes it if it's the one open. Another one open makes way for it. */
   const togglePopover = useCallback(
-    (which: Popover, submenu: string | null = null) => {
+    (which: NotesPopover, submenu: string | null = null) => {
+      const closed = closedElsewhere.current;
+      closedElsewhere.current = null;
+      // Clicking a popover's button while it's open closes it by taking the keyboard away from
+      // it, just before the click arrives: that click doesn't open it again.
+      if (!submenu && closed?.which === which && Date.now() - closed.at < REOPEN_GUARD_MS) return;
       if (latest.current.popover === which && !submenu) closePopover();
       else {
         setActionsSubmenu(submenu);
@@ -455,6 +469,34 @@ export function NotesApp() {
     ];
   }, []);
 
+  // The popover window, opened once and kept hidden, so a popover shows at once.
+  useEffect(() => {
+    setPopoverHost(openPopoverHost());
+  }, []);
+
+  // It closes by itself when you click elsewhere, or this window goes away.
+  useEffect(
+    () =>
+      api.onPopoverHidden(() => {
+        const which = latest.current.popover;
+        if (!which) return;
+        closedElsewhere.current = { which, at: Date.now() };
+        closePopover(false, false);
+      }),
+    [closePopover],
+  );
+
+  // A click in the clear margin around the popover, in its window, is a click outside it.
+  useEffect(() => {
+    const root = popoverHost?.root;
+    if (!root) return;
+    const onMouseDown = (event: MouseEvent) => {
+      if (event.target === root) closePopover();
+    };
+    root.addEventListener('mousedown', onMouseDown);
+    return () => root.removeEventListener('mousedown', onMouseDown);
+  }, [popoverHost, closePopover]);
+
   // Initial load: the note main asked for, else the last one open, else the newest, else a new one.
   useEffect(() => {
     let cancelled = false;
@@ -547,7 +589,6 @@ export function NotesApp() {
     newNote: () => void createNote(),
     duplicate: () => void createNote(latest.current.draft),
     togglePin: () => togglePin(),
-    browse: () => togglePopover('browse'),
     goBack: () => go('back'),
     goForward: () => go('forward'),
     find: openFind,
@@ -570,19 +611,25 @@ export function NotesApp() {
       const { currentId: id } = latest.current;
       if (id) void saveNow().then(() => api.reveal(id));
     },
-    recentlyDeleted: () => togglePopover('deleted'),
     deleteNote: () => void deleteNote(),
     deleteAll: () => void deleteAll(),
   });
   const groupsRef = useRef(groups);
   groupsRef.current = groups;
 
-  /** Runs an action from the panel or its shortcut. One with a list of its own opens the panel on it. */
+  /**
+   * Runs an action from the panel or its shortcut. One with a list of its own opens the panel
+   * on it, and one that opens a popover takes the open one's place (or closes it, if it's that one).
+   */
   const runAction = useCallback(
     (action: NoteAction) => {
       if (action.disabled) return;
       if (action.submenu) {
         togglePopover('actions', action.key);
+        return;
+      }
+      if (action.opens) {
+        togglePopover(action.opens);
         return;
       }
       if (latest.current.popover) closePopover();
@@ -631,19 +678,73 @@ export function NotesApp() {
         else api.hide();
       }
     };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [select, togglePopover, closePopover, closeFind, runAction]);
+    // The popover window is this page's too: its keys work there as well.
+    const windows = popoverHost ? [window, popoverHost.window] : [window];
+    for (const target of windows) target.addEventListener('keydown', onKeyDown);
+    return () => {
+      for (const target of windows) target.removeEventListener('keydown', onKeyDown);
+    };
+  }, [select, togglePopover, closePopover, closeFind, runAction, popoverHost]);
 
+  // Drawn, the popover says how tall it is, and its window is put in place and shown.
   const onPopoverHeight = useCallback(
     (height: number) => {
-      heights.current = { ...heights.current, overlay: POPOVER_TOP + height + POPOVER_MARGIN };
-      fit();
+      if (!popoverHost || height === placedHeight.current) return;
+      placedHeight.current = height;
+      api.placePopover(height);
     },
-    [fit],
+    [popoverHost],
   );
 
   const length = noteLength(draft, ui.count);
+
+  // Popovers are drawn in their window beside this one (over the note, should it be missing).
+  const popoverElement =
+    popover === 'browse' ? (
+      <BrowseNotes
+        notes={liveNotes}
+        currentId={currentId}
+        state={ui}
+        platform={platform}
+        now={now}
+        pinShortcut={PIN_SHORTCUT}
+        deleteShortcut={DELETE_SHORTCUT}
+        onOpen={(id) => {
+          closePopover(false);
+          if (id !== currentId) void select(id);
+          else focusEditor();
+        }}
+        onTogglePin={(id) => togglePin(id)}
+        onDelete={(id) => void deleteNote(id)}
+        onCreate={(text) => {
+          closePopover(false);
+          void createNote(text ? `${text}\n` : '');
+        }}
+        onClose={() => closePopover()}
+        onHeight={onPopoverHeight}
+      />
+    ) : popover === 'actions' ? (
+      <NoteActions
+        key={actionsSubmenu ?? 'actions'}
+        groups={groups}
+        initialSubmenu={actionsSubmenu}
+        platform={platform}
+        onRun={runAction}
+        onClose={() => closePopover()}
+        onHeight={onPopoverHeight}
+      />
+    ) : popover === 'deleted' ? (
+      <RecentlyDeleted
+        count={ui.count}
+        now={now}
+        onRestore={(id) => {
+          closePopover(false);
+          void restore(id);
+        }}
+        onClose={() => closePopover()}
+        onHeight={onPopoverHeight}
+      />
+    ) : null;
 
   return (
     <div className="notes" data-popover={popover ?? undefined} style={{ '--note-zoom': ui.zoom } as CSSProperties}>
@@ -699,7 +800,7 @@ export function NotesApp() {
         onEditor={setEditor}
         onSourceChange={setSource}
         onHeightChange={(height) => {
-          heights.current = { ...heights.current, content: height };
+          contentHeight.current = height;
           fit();
         }}
         onChange={(text, id) => {
@@ -714,53 +815,7 @@ export function NotesApp() {
       />
 
       {popover && <div className="notes__scrim" onMouseDown={() => closePopover()} aria-hidden="true" />}
-      {popover === 'browse' && (
-        <BrowseNotes
-          notes={liveNotes}
-          currentId={currentId}
-          state={ui}
-          platform={platform}
-          now={now}
-          pinShortcut={PIN_SHORTCUT}
-          deleteShortcut={DELETE_SHORTCUT}
-          onOpen={(id) => {
-            closePopover(false);
-            if (id !== currentId) void select(id);
-            else focusEditor();
-          }}
-          onTogglePin={(id) => togglePin(id)}
-          onDelete={(id) => void deleteNote(id)}
-          onCreate={(text) => {
-            closePopover(false);
-            void createNote(text ? `${text}\n` : '');
-          }}
-          onClose={() => closePopover()}
-          onHeight={onPopoverHeight}
-        />
-      )}
-      {popover === 'actions' && (
-        <NoteActions
-          key={actionsSubmenu ?? 'actions'}
-          groups={groups}
-          initialSubmenu={actionsSubmenu}
-          platform={platform}
-          onRun={runAction}
-          onClose={() => closePopover()}
-          onHeight={onPopoverHeight}
-        />
-      )}
-      {popover === 'deleted' && (
-        <RecentlyDeleted
-          count={ui.count}
-          now={now}
-          onRestore={(id) => {
-            closePopover(false);
-            void restore(id);
-          }}
-          onClose={() => closePopover()}
-          onHeight={onPopoverHeight}
-        />
-      )}
+      {popoverHost && popoverElement ? createPortal(popoverElement, popoverHost.root) : popoverElement}
       {popover && (
         <button
           type="button"

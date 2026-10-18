@@ -208,8 +208,12 @@ test('keeps notes safe from what the editor would change', async () => {
   const editor = notes.getByRole('textbox', { name: 'Note', exact: true });
   const openNote = async (title: RegExp) => {
     await notes.getByRole('button', { name: 'Browse Notes' }).click();
-    await notes.getByRole('dialog', { name: 'Browse Notes' }).getByRole('option', { name: title }).click();
-    await expect(notes.getByRole('dialog', { name: 'Browse Notes' })).toHaveCount(0);
+    // Browse Notes opens in a window of its own.
+    await expect.poll(() => app.windows().some((window) => window.url() === 'about:blank')).toBe(true);
+    const popover = app.windows().find((window) => window.url() === 'about:blank');
+    if (!popover) throw new Error('No popover window');
+    await popover.getByRole('dialog', { name: 'Browse Notes' }).getByRole('option', { name: title }).click();
+    await expect(popover.getByRole('dialog', { name: 'Browse Notes' })).toHaveCount(0);
   };
 
   // A table can't be shown formatted, so the note is edited as Markdown and keeps it.

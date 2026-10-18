@@ -1,7 +1,8 @@
 /*
  * The Notes window, laid out like Raycast Notes: a small floating sheet of glass with the
  * note's title in the middle of its title bar, a glass capsule of buttons at the top right,
- * and popovers (Browse Notes, Actions) that open over the note.
+ * and popovers (Browse Notes, Actions) in a window of their own, over the note and hanging
+ * below it when it's short. The popover window's page uses these styles too (.notes-popover).
  *
  * Sizes are Raycast's, measured in points from its window: a 52pt title bar, a 36pt capsule
  * 8pt in from the corner, 320pt popovers 100pt down, 36pt action rows and 58pt note rows.
@@ -34,7 +35,8 @@ button {
   color: inherit;
 }
 
-.notes {
+.notes,
+.notes-popover {
   /* Light */
   --n-tint: rgb(255 255 255 / 0.46);
   --n-text: rgb(0 0 0 / 0.86);
@@ -48,7 +50,8 @@ button {
   --n-selection: rgb(0 0 0 / 0.07);
   --n-popover: rgb(250 250 250 / 0.84);
   --n-popover-border: rgb(0 0 0 / 0.1);
-  --n-popover-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.12), 0 16px 44px rgb(0 0 0 / 0.18), 0 3px 10px rgb(0 0 0 / 0.08);
+  /* Small enough to fit the clear margin around a popover in its window. */
+  --n-popover-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.12), 0 6px 14px rgb(0 0 0 / 0.16), 0 1px 3px rgb(0 0 0 / 0.08);
   --n-separator: rgb(0 0 0 / 0.08);
   --n-keycap-border: rgb(0 0 0 / 0.16);
   --n-keycap-text: rgb(0 0 0 / 0.5);
@@ -58,7 +61,9 @@ button {
   --n-match: rgb(255 204 0 / 0.35);
   --n-match-current: rgb(255 204 0);
   --n-code: rgb(0 0 0 / 0.05);
+}
 
+.notes {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -70,7 +75,8 @@ button {
 
 /* Dark, as in Raycast's screenshots: a deep tint over the blur, white text, grey details. */
 @media (prefers-color-scheme: dark) {
-  .notes {
+  .notes,
+  .notes-popover {
     --n-tint: rgb(0 0 0 / 0.46);
     --n-text: rgb(255 255 255 / 0.94);
     --n-strong: #fff;
@@ -83,7 +89,7 @@ button {
     --n-selection: rgb(255 255 255 / 0.1);
     --n-popover: rgb(26 26 27 / 0.72);
     --n-popover-border: rgb(255 255 255 / 0.16);
-    --n-popover-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.7), 0 18px 48px rgb(0 0 0 / 0.45), 0 4px 12px rgb(0 0 0 / 0.25);
+    --n-popover-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.7), 0 6px 14px rgb(0 0 0 / 0.4), 0 1px 3px rgb(0 0 0 / 0.25);
     --n-separator: rgb(255 255 255 / 0.1);
     --n-keycap-border: rgb(255 255 255 / 0.2);
     --n-keycap-text: rgb(255 255 255 / 0.6);
@@ -96,14 +102,14 @@ button {
   }
 }
 
-/* No system blur (Linux, older Windows): solid surfaces instead of tints. */
-:root[data-glass="none"] .notes {
+/* No system blur (Linux, older Windows, and the popover window): solid surfaces instead of tints. */
+:root[data-glass="none"] :is(.notes, .notes-popover) {
   --n-tint: rgb(246 246 246);
   --n-popover: rgb(255 255 255);
 }
 
 @media (prefers-color-scheme: dark) {
-  :root[data-glass="none"] .notes {
+  :root[data-glass="none"] :is(.notes, .notes-popover) {
     --n-tint: rgb(24 24 24);
     --n-popover: rgb(27 27 28);
   }
@@ -440,35 +446,52 @@ button {
 
 /* ── Popovers: Browse Notes, Actions, Recently Deleted ───── */
 
-/* Clicking anywhere else closes a popover. The title bar stays free to drag the window. */
+/* Clicking the note closes a popover. The title bar stays free to drag the window. */
 .notes__scrim {
   position: absolute;
   inset: 52px 0 0;
   z-index: 29;
 }
 
+/*
+ * The popover window's page: clear, with the popover in it and a margin for its shadow
+ * (POPOVER_INSET in shared/notes.ts). The window is sized to the popover.
+ */
+.notes-popover {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 20px;
+}
+
 .popover {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: 100%;
+  overflow: hidden;
+  border: 1px solid var(--n-popover-border);
+  border-radius: 16px;
+  background: var(--n-popover);
+  box-shadow: var(--n-popover-shadow);
+  color: var(--n-strong);
+  font-size: 14px;
+  animation: popover-in 110ms ease-out;
+}
+
+/* Should the popover window be missing, a popover opens over the note instead. */
+.notes > .popover {
   position: absolute;
   z-index: 30;
   top: 100px;
   right: 0;
   left: 0;
-  display: flex;
-  flex-direction: column;
   width: 320px;
   max-width: calc(100% - 16px);
   max-height: min(420px, calc(100% - 108px));
   margin: 0 auto;
-  overflow: hidden;
-  border: 1px solid var(--n-popover-border);
-  border-radius: 16px;
-  background: var(--n-popover);
   -webkit-backdrop-filter: blur(40px) saturate(1.6);
   backdrop-filter: blur(40px) saturate(1.6);
-  box-shadow: var(--n-popover-shadow);
-  color: var(--n-strong);
-  font-size: 14px;
-  animation: popover-in 110ms ease-out;
 }
 
 @keyframes popover-in {

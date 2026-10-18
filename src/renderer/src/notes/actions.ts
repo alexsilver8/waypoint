@@ -30,6 +30,9 @@ import type { PopoverEntry } from './ListPopover';
 
 export type IconComponent = ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
 
+/** The popovers: Browse Notes, the action panel and Recently Deleted. */
+export type NotesPopover = 'browse' | 'actions' | 'deleted';
+
 export interface NoteAction extends PopoverEntry {
   title: string;
   icon: IconComponent;
@@ -40,6 +43,8 @@ export interface NoteAction extends PopoverEntry {
   run?(): void;
   /** Actions that open a list of their own, like Copy Note As... */
   submenu?(): NoteAction[];
+  /** The popover it opens in place of the one that's open; its shortcut closes it again. */
+  opens?: Exclude<NotesPopover, 'actions'>;
 }
 
 export interface NoteActionGroup {
@@ -68,7 +73,6 @@ export interface NoteActionContext {
   newNote(): void;
   duplicate(): void;
   togglePin(): void;
-  browse(): void;
   goBack(): void;
   goForward(): void;
   find(): void;
@@ -83,7 +87,6 @@ export interface NoteActionContext {
   zoomBy(step: number): void;
   resetZoom(): void;
   reveal(): void;
-  recentlyDeleted(): void;
   deleteNote(): void;
   deleteAll(): void;
 }
@@ -132,7 +135,7 @@ export function noteActions(context: NoteActionContext): NoteActionGroup[] {
           shortcut: mod('p', 'shift'),
           run: context.togglePin,
         },
-        { key: 'browse', title: 'Browse Notes', icon: BrowseIcon, shortcut: mod('p'), run: context.browse },
+        { key: 'browse', title: 'Browse Notes', icon: BrowseIcon, shortcut: mod('p'), opens: 'browse' },
         {
           key: 'back',
           title: 'Go Back',
@@ -247,7 +250,7 @@ export function noteActions(context: NoteActionContext): NoteActionGroup[] {
           key: 'recently-deleted',
           title: 'Show Recently Deleted Notes',
           icon: History,
-          run: context.recentlyDeleted,
+          opens: 'deleted',
         },
         {
           key: 'delete',

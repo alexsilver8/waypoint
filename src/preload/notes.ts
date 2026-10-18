@@ -21,8 +21,10 @@ const api: NotesApi = {
   openLink: (url) => ipcRenderer.send(NotesChannel.openLink, url),
   copy: (content) => ipcRenderer.send(NotesChannel.copy, content),
   export: (file) => ipcRenderer.invoke(NotesChannel.export, file),
-  fit: (heights) => ipcRenderer.send(NotesChannel.fit, heights),
+  fit: (height) => ipcRenderer.send(NotesChannel.fit, height),
   hide: () => ipcRenderer.send(NotesChannel.hide),
+  placePopover: (height) => ipcRenderer.send(NotesChannel.placePopover, height),
+  hidePopover: (focusWindow) => ipcRenderer.send(NotesChannel.hidePopover, focusWindow),
   onOpen: (listener) => {
     const handler = (_event: Electron.IpcRendererEvent, id: string) => listener(id);
     ipcRenderer.on(NotesChannel.open, handler);
@@ -32,6 +34,11 @@ const api: NotesApi = {
     const handler = () => listener();
     ipcRenderer.on(NotesChannel.changed, handler);
     return () => ipcRenderer.removeListener(NotesChannel.changed, handler);
+  },
+  onPopoverHidden: (listener) => {
+    const handler = () => listener();
+    ipcRenderer.on(NotesChannel.popoverHidden, handler);
+    return () => ipcRenderer.removeListener(NotesChannel.popoverHidden, handler);
   },
 };
 

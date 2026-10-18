@@ -118,16 +118,35 @@ export const NotesChannel = {
   openLink: 'notes:open-link',
   copy: 'notes:copy',
   export: 'notes:export',
-  /** The heights the note and an open popover need, for auto-resizing. */
+  /** The height the note needs, for auto-resizing. */
   fit: 'notes:fit',
   hide: 'notes:hide',
+  /** Shows the popover window (Browse Notes, Actions), sized to the popover in it. */
+  placePopover: 'notes:place-popover',
+  hidePopover: 'notes:hide-popover',
   /** main → window: show this note. */
   open: 'notes:open',
   /** main → window: files changed on disk. */
   changed: 'notes:changed',
+  /** main → window: the popover closed because you went elsewhere. */
+  popoverHidden: 'notes:popover-hidden',
 } as const;
 
 export type ExportFormat = 'md' | 'html' | 'txt';
+
+/**
+ * The name the Notes window opens its popover window with. Popovers (Browse Notes, Actions,
+ * Recently Deleted) are a window of their own, as in Raycast, so they can hang below a short
+ * note instead of making its window taller.
+ */
+export const NOTES_POPOVER_FRAME = 'waypoint-notes-popover';
+/** Popovers open this far down the Notes window, as Raycast's do, centred across it. */
+export const POPOVER_TOP = 100;
+export const POPOVER_WIDTH = 320;
+/** The tallest a popover gets before its list scrolls, as in Raycast. */
+export const POPOVER_MAX_HEIGHT = 420;
+/** The clear margin around a popover in its window, for its shadow (`.notes-popover` padding). */
+export const POPOVER_INSET = 20;
 
 /** What the Notes window's preload exposes as `window.notes`. */
 export interface NotesApi {
@@ -156,12 +175,18 @@ export interface NotesApi {
   copy(content: { text: string; html?: string }): void;
   /** Asks where to save a note, then saves it. Resolves whether it was saved. */
   export(file: { name: string; format: ExportFormat; content: string }): Promise<boolean>;
-  /** The heights the note and an open popover need; the window grows to fit them. */
-  fit(heights: { content: number; overlay: number }): void;
+  /** The height the note needs; the window grows to fit it. */
+  fit(height: number): void;
   /** Hides the window and hands the keyboard back to the app you were in. */
   hide(): void;
+  /** Shows the popover window over this one, sized to a popover this tall, and gives it the keyboard. */
+  placePopover(height: number): void;
+  /** Hides the popover window, handing the keyboard back to this one if `focusWindow`. */
+  hidePopover(focusWindow: boolean): void;
   onOpen(listener: (id: string) => void): () => void;
   onChanged(listener: () => void): () => void;
+  /** The popover window closed by itself: you clicked elsewhere, or the Notes window went away. */
+  onPopoverHidden(listener: () => void): () => void;
 }
 
 const ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };

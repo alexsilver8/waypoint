@@ -134,14 +134,22 @@ export function registerNotesIpc(store: NotesStore, notesWindow: NotesWindow): v
     await writeFile(result.filePath, content);
     return true;
   });
-  ipcMain.on(NotesChannel.fit, (event, heights: unknown) => {
+  ipcMain.on(NotesChannel.fit, (event, value: unknown) => {
     check(event);
-    const { content, overlay } = record(heights);
-    notesWindow.fit({ content: height(content), overlay: height(overlay) });
+    notesWindow.fit(height(value));
   });
   ipcMain.on(NotesChannel.hide, (event) => {
     check(event);
     notesWindow.hide();
+  });
+  ipcMain.on(NotesChannel.placePopover, (event, value: unknown) => {
+    check(event);
+    const popoverHeight = height(value);
+    if (popoverHeight > 0) notesWindow.placePopover(popoverHeight);
+  });
+  ipcMain.on(NotesChannel.hidePopover, (event, focusWindow: unknown) => {
+    check(event);
+    notesWindow.hidePopover(focusWindow === true);
   });
   ipcMain.handle(NotesChannel.getState, (event) => {
     check(event);

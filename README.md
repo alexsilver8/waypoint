@@ -55,11 +55,11 @@ On Linux under Wayland, global shortcuts may not reach the app. Bind a shortcut 
 
 ## Notes
 
-<img src="docs/images/notes.png" width="475" alt="The Notes window with Browse Notes open, listing a pinned note and the rest by when they were last open">
+<img src="docs/images/notes.png" width="531" alt="The Notes window with Browse Notes open over it and hanging below it, listing a pinned note and the rest by when they were last open">
 
 Run **Create Note** to start writing, or **Open Notes** to bring the window back. Notes show up in the launcher's search as you type, matching anything in them, not just the title; press <kbd>⇥</kbd> to see only notes, newest first, with a preview of the one you've selected. **Search Notes** lists them all on their own. **Create Note** also appears under **Use “…” with** for anything you type, so you can type a thought into the launcher and save it straight away.
 
-The Notes window works like Raycast Notes. It shows one note at a time, floats above your other windows, and grows as the note gets longer, then shrinks back; the first line is the note's title, in the middle of the title bar. The three buttons at the top right are **Actions** (<kbd>⌘</kbd> <kbd>K</kbd>), **Browse Notes** (<kbd>⌘</kbd> <kbd>P</kbd>) and **New Note** (<kbd>⌘</kbd> <kbd>N</kbd>). **Browse Notes** lists every note with when you last had it open and how long it is, pinned notes first; the selected note has buttons to pin and delete it. <kbd>Esc</kbd> closes a popover, then the window.
+The Notes window works like Raycast Notes. It shows one note at a time, floats above your other windows, and grows as the note gets longer, then shrinks back; the first line is the note's title, in the middle of the title bar. The three buttons at the top right are **Actions** (<kbd>⌘</kbd> <kbd>K</kbd>), **Browse Notes** (<kbd>⌘</kbd> <kbd>P</kbd>) and **New Note** (<kbd>⌘</kbd> <kbd>N</kbd>). **Browse Notes** lists every note with when you last had it open and how long it is, pinned notes first; the selected note has buttons to pin and delete it. Like Raycast's, popovers are a window of their own, so a short note's window doesn't grow to fit them: they hang below it. <kbd>Esc</kbd> closes a popover, then the window.
 
 | Keys | |
 | --- | --- |

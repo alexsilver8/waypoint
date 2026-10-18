@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { type ElectronApplication, _electron as electron, expect, type Page, test } from '@playwright/test';
 
 // The Notes window, which works like Raycast Notes: one note at a time, Browse Notes (⌘P),
-// the action panel (⌘K) and their shortcuts.
+// the action panel (⌘K) and their shortcuts. Popovers open in a window of their own beside it.
 
 const mac = process.platform === 'darwin';
 const mod = mac ? 'Meta' : 'Control';
@@ -12,19 +12,27 @@ const deleteKey = mac ? 'Control+x' : 'Control+Shift+Backspace';
 
 let app: ElectronApplication;
 let notes: Page;
+/** The page of the window popovers open in. */
+let popover: Page;
 let userData: string;
 
 const note = (name: string) => readFileSync(join(userData, 'notes', name), 'utf8');
 const title = () => notes.locator('.notes__title');
 const editor = () => notes.getByRole('textbox', { name: 'Note', exact: true });
-const browse = () => notes.getByRole('dialog', { name: 'Browse Notes' });
-const actions = () => notes.getByRole('dialog', { name: 'Actions' });
+const browse = () => popover.getByRole('dialog', { name: 'Browse Notes' });
+const actions = () => popover.getByRole('dialog', { name: 'Actions' });
 const toast = () => notes.locator('.notes__toast');
 const clipboardText = () => app.evaluate(({ clipboard }) => clipboard.readText());
 /** The Notes window's size and whether it's showing, from the main process. */
 const notesWindow = () =>
   app.evaluate(({ BrowserWindow }) => {
     const window = BrowserWindow.getAllWindows().find((w) => w.webContents.getURL().includes('notes.html'));
+    return window ? { visible: window.isVisible(), ...window.getBounds() } : undefined;
+  });
+/** The same for the popover window. */
+const popoverWindow = () =>
+  app.evaluate(({ BrowserWindow }) => {
+    const window = BrowserWindow.getAllWindows().find((w) => w.webContents.getURL() === 'about:blank');
     return window ? { visible: window.isVisible(), ...window.getBounds() } : undefined;
   });
 
@@ -52,6 +60,9 @@ test.beforeEach(async () => {
   // The newest note opens first.
   await expect(title()).toHaveText('Trip to Lisbon');
   await expect(editor()).toBeFocused();
+  // The Notes window opens the popover window, hidden, as it starts.
+  await expect.poll(() => app.windows().some((page) => page.url() === 'about:blank')).toBe(true);
+  popover = app.windows().find((page) => page.url() === 'about:blank') as Page;
 });
 
 test.afterEach(async () => {
@@ -88,12 +99,38 @@ test('browses notes with ⌘P, the note you’re on last', async () => {
   await expect(rows.last().getByRole('button', { name: 'Delete Note' })).toBeVisible();
   await expect(rows.first().getByRole('button')).toHaveCount(0);
 
-  await notes.keyboard.type('groc');
+  await popover.keyboard.type('groc');
   await expect(browse().locator('.browse__count')).toHaveText('1/2 Notes');
-  await notes.keyboard.press('Enter');
+  await popover.keyboard.press('Enter');
   await expect(browse()).toHaveCount(0);
   await expect(title()).toHaveText('Groceries');
   await expect(editor()).toBeFocused();
+});
+
+test('opens popovers in a window of their own, which hangs below a short note', async () => {
+  for (let i = 0; i < 6; i++) writeFileSync(join(userData, 'notes', `extra-${i}.md`), `# Extra ${i}`);
+  await notes.keyboard.press(`${mod}+p`);
+  await expect(browse().getByRole('option')).toHaveCount(8);
+  await expect.poll(async () => (await popoverWindow())?.visible).toBe(true);
+  const [window, popoverBounds] = [await notesWindow(), await popoverWindow()];
+  if (!window || !popoverBounds) throw new Error('No window');
+  // The Notes window stays the size it was; the popover is 100pt down it and centred across it,
+  // in a clear margin of 20 for its shadow, and runs past its bottom.
+  expect(window).toMatchObject({ width: 475, height: 308 });
+  expect(popoverBounds.y).toBe(window.y + 100 - 20);
+  const offCentre = popoverBounds.x + popoverBounds.width / 2 - (window.x + window.width / 2);
+  expect(Math.abs(offCentre)).toBeLessThanOrEqual(1);
+  expect(popoverBounds.width).toBe(320 + 40);
+  expect(popoverBounds.y + popoverBounds.height).toBeGreaterThan(window.y + window.height);
+
+  // Searching shrinks it to fit; closing it hides its window.
+  await popover.keyboard.type('extra 3');
+  await expect.poll(async () => (await popoverWindow())?.height).toBeLessThan(popoverBounds.height);
+  await popover.keyboard.press('Escape');
+  await popover.keyboard.press('Escape');
+  await expect.poll(async () => (await popoverWindow())?.visible).toBe(false);
+  await expect(editor()).toBeFocused();
+  expect((await notesWindow())?.height).toBe(308);
 });
 
 test('closes a popover with Esc, and the window with Esc after that', async () => {
@@ -101,7 +138,7 @@ test('closes a popover with Esc, and the window with Esc after that', async () =
   await expect(browse()).toBeVisible();
   // While a popover is open, a round button in the corner closes it too.
   await expect(notes.getByRole('button', { name: 'Close' })).toBeVisible();
-  await notes.keyboard.press('Escape');
+  await popover.keyboard.press('Escape');
   await expect(browse()).toHaveCount(0);
   await expect(editor()).toBeFocused();
   expect((await notesWindow())?.visible).toBe(true);
@@ -120,9 +157,11 @@ test('goes back and forward between notes with ⌘[ and ⌘]', async () => {
   await notes.keyboard.press(`${mod}+BracketRight`);
   await expect(title()).toHaveText('Groceries');
 
-  // Browse Notes says when each note was last open.
+  // Browse Notes says when each note was last open, and ⌘P closes it again.
   await notes.keyboard.press(`${mod}+p`);
   await expect(browse().getByRole('option', { name: /Trip to Lisbon/ })).toContainText('Opened just now');
+  await popover.keyboard.press(`${mod}+p`);
+  await expect(browse()).toHaveCount(0);
 });
 
 test('pins notes to the top of Browse Notes and opens them with ⌘1', async () => {
@@ -156,9 +195,9 @@ test('shows every action with its shortcut, and greys out what can’t be done',
   await expect(rows.nth(4)).toContainText('Go Back');
   await expect(rows.nth(4)).not.toHaveAttribute('aria-disabled');
 
-  await notes.keyboard.type('find in');
+  await popover.keyboard.type('find in');
   await expect(rows.first()).toContainText('Find in Note');
-  await notes.keyboard.press('Enter');
+  await popover.keyboard.press('Enter');
   await expect(actions()).toHaveCount(0);
   await expect(notes.getByRole('textbox', { name: 'Find in note' })).toBeFocused();
 });
@@ -210,18 +249,18 @@ test('deletes a note to Recently Deleted and brings it back', async () => {
   );
 
   await notes.keyboard.press(`${mod}+k`);
-  await notes.keyboard.type('recently deleted');
-  await notes.keyboard.press('Enter');
-  const deleted = notes.getByRole('dialog', { name: 'Recently Deleted Notes' });
+  await popover.keyboard.type('recently deleted');
+  await popover.keyboard.press('Enter');
+  const deleted = popover.getByRole('dialog', { name: 'Recently Deleted Notes' });
   await expect(deleted.getByRole('option')).toHaveCount(1);
   await expect(deleted.getByRole('option')).toContainText(/Trip to Lisbon.*Deleted just now/);
-  await notes.keyboard.press('Enter');
+  await popover.keyboard.press('Enter');
   await expect(title()).toHaveText('Trip to Lisbon');
   expect(note('trip.md')).toBe('# Trip to Lisbon\n\nBook the train');
 
   // Deleting the note you're on from Browse Notes leaves Browse Notes open, and typing in it.
   await notes.keyboard.press(`${mod}+p`);
-  await notes.keyboard.press(deleteKey);
+  await popover.keyboard.press(deleteKey);
   await expect(toast()).toHaveText('Moved to Recently Deleted');
   await expect(title()).toHaveText('Groceries');
   await expect(browse().locator('.browse__count')).toHaveText('1 Note');
@@ -247,9 +286,10 @@ test('grows the window as the note gets longer, and shrinks it back', async () =
 
   // With auto-resizing off, the window keeps its size.
   await notes.keyboard.press(`${mod}+k`);
-  await notes.keyboard.type('auto-resizing');
+  await popover.keyboard.type('auto-resizing');
   await expect(actions().getByRole('option').first()).toContainText('Disable Window Auto-Resizing');
-  await notes.keyboard.press('Enter');
+  await popover.keyboard.press('Enter');
+  await expect(actions()).toHaveCount(0);
   for (let i = 0; i < 16; i++) await notes.keyboard.press('Enter');
   await notes.waitForTimeout(400);
   expect((await notesWindow())?.height).toBe(308);
@@ -302,7 +342,7 @@ test('ticks a checklist item with ⌘↵', async () => {
 test('copies the note as plain text, and a link that opens it', async () => {
   // ⇧⌘C opens the action panel on Copy Note As...
   await notes.keyboard.press(`${mod}+Shift+c`);
-  const copyAs = notes.getByRole('dialog', { name: 'Copy Note As' });
+  const copyAs = popover.getByRole('dialog', { name: 'Copy Note As' });
   await expect(copyAs.getByRole('option')).toHaveText(['Markdown', 'HTML', 'Plain Text']);
   await copyAs.getByRole('option', { name: 'Plain Text' }).click();
   await expect.poll(clipboardText).toBe('Trip to Lisbon\n\nBook the train');

@@ -1,5 +1,6 @@
 import {
   type KeyboardEvent as ReactKeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
   type ReactNode,
   useEffect,
   useId,
@@ -8,6 +9,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { POPOVER_MAX_HEIGHT } from '../../../shared/notes';
 
 export interface PopoverEntry {
   /** Unique within the popover. */
@@ -21,9 +23,6 @@ export interface PopoverSection<T extends PopoverEntry> {
   title?: string;
   items: T[];
 }
-
-/** The tallest a popover gets before its list scrolls, as in Raycast. */
-export const POPOVER_MAX_HEIGHT = 420;
 
 export interface ListPopoverProps<T extends PopoverEntry> {
   label: string;
@@ -92,11 +91,22 @@ export function ListPopover<T extends PopoverEntry>({
   const selected = items.find((item) => item.key === selectedKey);
   const optionId = (key: string) => `${id}-${key.replace(/[^\w-]/g, '_')}`;
 
+  // The pointer selects what it moves over, not what the popover opened under: a window that
+  // appears beneath a still pointer gets a mouse move too.
+  const pointer = useRef<{ x: number; y: number } | null>(null);
+  const followPointer = (event: ReactMouseEvent, item: T) => {
+    const last = pointer.current;
+    pointer.current = { x: event.screenX, y: event.screenY };
+    if (!last || (last.x === event.screenX && last.y === event.screenY)) return;
+    if (!item.disabled && item.key !== selectedKey) setSelectedKey(item.key);
+  };
+
   useEffect(() => input.current?.focus(), []);
 
+  // Popovers are drawn in a window of their own, so its page is the one to look in.
   useLayoutEffect(() => {
     if (!selectedKey) return;
-    document.getElementById(optionId(selectedKey))?.scrollIntoView({ block: 'nearest' });
+    root.current?.ownerDocument.getElementById(optionId(selectedKey))?.scrollIntoView({ block: 'nearest' });
   });
 
   // Report the height the popover would like, list and all, whenever its content changes.
@@ -109,7 +119,9 @@ export function ListPopover<T extends PopoverEntry>({
       onHeight(Math.min(POPOVER_MAX_HEIGHT, chrome + scroller.scrollHeight));
     };
     measure();
-    const observer = new ResizeObserver(measure);
+    // Watched from the popover window's page, which lays it out.
+    const view = element.ownerDocument.defaultView ?? window;
+    const observer = new view.ResizeObserver(measure);
     for (const child of scroller.children) observer.observe(child);
     return () => observer.disconnect();
   });
@@ -190,9 +202,7 @@ export function ListPopover<T extends PopoverEntry>({
                     aria-selected={isSelected}
                     aria-disabled={item.disabled || undefined}
                     className={`popover__item${itemClassName ? ` ${itemClassName}` : ''}`}
-                    onMouseMove={() => {
-                      if (!item.disabled && !isSelected) setSelectedKey(item.key);
-                    }}
+                    onMouseMove={(event) => followPointer(event, item)}
                     onMouseDown={(event) => event.preventDefault()}
                     onClick={() => {
                       if (!item.disabled) onChoose(item);
