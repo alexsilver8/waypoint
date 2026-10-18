@@ -159,10 +159,18 @@ describe('QuicklinkStore', () => {
     const store = new QuicklinkStore(path);
     store.watch();
     const changed = new Promise((resolve) => store.once('change', resolve));
-    writeFileSync(path, JSON.stringify([{ name: 'Docs', link: 'https://docs.dev/{argument}' }]));
-    await changed;
+    // macOS starts watching a moment after watch() returns and misses what's written before then,
+    // so on a busy Mac the edit is saved again until it's seen.
+    const edit = () => writeFileSync(path, JSON.stringify([{ name: 'Docs', link: 'https://docs.dev/{argument}' }]));
+    edit();
+    const again = setInterval(edit, 250);
+    try {
+      await changed;
+    } finally {
+      clearInterval(again);
+      store.close();
+    }
     expect(store.list()).toEqual([{ id: 'docs', name: 'Docs', link: 'https://docs.dev/{argument}' }]);
-    store.close();
   });
 });
 
