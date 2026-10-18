@@ -1,8 +1,9 @@
 // Keep Awake: stops your computer sleeping for a while, until a time, or until you turn it
 // off. It runs caffeinate on macOS, gnome-session-inhibit or systemd-inhibit on Linux and a
-// small PowerShell script on Windows, started on their own so they keep going when the
-// extension restarts. The process is saved, and checked to be the same program started at
-// the same time before anything is stopped.
+// small PowerShell script on Windows. On macOS and Linux they're started on their own, so they
+// keep going when the extension host restarts; on Windows the script ends with the host. The
+// process is saved, and checked to be the same program started at the same time before
+// anything is stopped.
 
 import { execFile, spawn } from 'node:child_process';
 import { accessSync, constants } from 'node:fs';
@@ -34,6 +35,19 @@ import {
 const SETTLE_MS = 400;
 /** How long PowerShell may take to start and say it's holding Windows awake. */
 const READY_MS = 6000;
+/** Every call has to answer within the extension host's 10 seconds. */
+const BUDGET_MS = 8500;
+/** How long a process found to be its session's is trusted to still be, while it's running. */
+const CHECKED_MS = 30_000;
+
+/** When each session's process was last found to be its own, by `pid:startedAt`. */
+const checked = new Map();
+
+/** @param {Session} session */
+const keyOf = (session) => `${session.pid}:${session.startedAt}`;
+
+/** @param {number} deadline */
+const left = (deadline) => Math.max(0, deadline - Date.now());
 
 /** @type {Array<{ id: string, title: string, seconds: number | undefined }>} */
 const PRESETS = [
@@ -72,12 +86,13 @@ function findGnomeInhibit() {
 /**
  * How long the process with this ID has been running and what it's called, from `ps`, or
  * Get-Process on Windows. `null` when there's no such process, `undefined` when there's no
- * way to tell.
+ * way to tell, or no answer in time.
  * @param {number} pid
  * @param {string} platform
+ * @param {number} timeoutMs
  * @returns {Promise<{ elapsed: number, program: string } | null | undefined>}
  */
-function processOf(pid, platform) {
+function processOf(pid, platform, timeoutMs) {
   const [file, args] =
     platform === 'win32'
       ? [
@@ -91,8 +106,9 @@ function processOf(pid, platform) {
         ]
       : ['ps', ['-p', String(pid), '-o', 'etime=,comm=']];
   return new Promise((resolve) => {
-    execFile(file, args, { timeout: 6000, windowsHide: true }, (error, stdout) => {
-      if (/** @type {NodeJS.ErrnoException | null} */ (error)?.code === 'ENOENT') return resolve(undefined);
+    execFile(file, args, { timeout: Math.max(500, timeoutMs), windowsHide: true }, (error, stdout) => {
+      const failure = /** @type {(NodeJS.ErrnoException & { killed?: boolean }) | null} */ (error);
+      if (failure?.code === 'ENOENT' || failure?.killed) return resolve(undefined);
       resolve(parseProcess(`${stdout ?? ''}`) ?? null);
     });
   });
@@ -110,11 +126,14 @@ function isRunning(pid) {
 
 /**
  * The session that's keeping the computer awake, if there is one. A saved one that's over, or
- * whose process is gone or is another program now, is forgotten.
+ * whose process is gone or is another program now, is forgotten. Looking takes a PowerShell on
+ * Windows, so a process found to be the session's is trusted for a while after, as long as
+ * it's running: the view is drawn again with every key typed.
  * @param {Context} ctx
+ * @param {number} deadline
  * @returns {Promise<Session | undefined>}
  */
-async function currentSession(ctx) {
+async function currentSession(ctx, deadline) {
   const session = toSession(ctx.storage.get('session'));
   if (!session) {
     // One saved by an earlier version, without its program: forget it rather than guess.
@@ -123,10 +142,15 @@ async function currentSession(ctx) {
   }
   const now = Date.now();
   if (!isOver(session, { now, bootTime: now - uptime() * 1000 }) && isRunning(session.pid)) {
-    const found = await processOf(session.pid, ctx.platform);
-    // With no way to look, a running process the session started is trusted.
-    if (found === undefined || (found && isSessionProcess(found, session, Date.now()))) return session;
+    if (now - (checked.get(keyOf(session)) ?? Number.NEGATIVE_INFINITY) < CHECKED_MS) return session;
+    const found = await processOf(session.pid, ctx.platform, Math.min(6000, left(deadline)));
+    // With no way to look, or no answer in time, a running process the session started is trusted.
+    if (found === undefined || (found && isSessionProcess(found, session, Date.now()))) {
+      checked.set(keyOf(session), Date.now());
+      return session;
+    }
   }
+  checked.delete(keyOf(session));
   ctx.storage.remove('session');
   return undefined;
 }
@@ -154,16 +178,19 @@ function stopProcess(session, platform) {
  * Starts keeping the computer awake, after stopping a session that's already going.
  * @param {Context} ctx
  * @param {number | undefined} seconds Nothing to keep going until stopped.
+ * @param {number} deadline
  * @returns {Promise<Session>}
  */
-async function start(ctx, seconds) {
+async function start(ctx, seconds, deadline) {
   const command = awakeCommand(ctx.platform, seconds, {
     gnome: ctx.platform === 'linux' ? findGnomeInhibit() : undefined,
   });
   if (!command) throw new Error('Keep Awake works on macOS, Windows and Linux.');
-  const previous = await currentSession(ctx);
+  // Looking at the session that's going mustn't take the time starting the new one needs.
+  const previous = await currentSession(ctx, deadline - (command.ready ? READY_MS : SETTLE_MS) - 500);
   if (previous) {
     stopProcess(previous, ctx.platform);
+    checked.delete(keyOf(previous));
     ctx.storage.remove('session');
   }
 
@@ -185,7 +212,7 @@ async function start(ctx, seconds) {
     // when it's ready, as PowerShell takes a while to start.
     const timer = setTimeout(
       () => resolve(command.ready ? { code: null } : undefined),
-      command.ready ? READY_MS : SETTLE_MS,
+      command.ready ? Math.min(READY_MS, left(deadline)) : SETTLE_MS,
     );
     child.stdout?.on('data', (data) => {
       stdout += String(data);
@@ -231,6 +258,7 @@ async function start(ctx, seconds) {
     until: seconds ? now + seconds * 1000 : null,
   };
   ctx.storage.set('session', session);
+  checked.set(keyOf(session), now);
   return session;
 }
 
@@ -247,12 +275,14 @@ function startedToast(session, platform) {
 
 /**
  * @param {Context} ctx
+ * @param {number} deadline
  * @returns {Promise<ActionResult>}
  */
-async function allowSleep(ctx) {
-  const session = await currentSession(ctx);
+async function allowSleep(ctx, deadline) {
+  const session = await currentSession(ctx, deadline);
   if (!session) return { toast: "Keep Awake isn't on" };
   stopProcess(session, ctx.platform);
+  checked.delete(keyOf(session));
   ctx.storage.remove('session');
   return { toast: `Your ${computerName(ctx.platform)} can sleep again` };
 }
@@ -289,7 +319,15 @@ function sessionItem(session) {
  * @returns {Promise<ListView>}
  */
 async function keepAwakeView(ctx) {
-  const session = await currentSession(ctx);
+  return renderView(ctx, await currentSession(ctx, Date.now() + BUDGET_MS));
+}
+
+/**
+ * @param {Context} ctx
+ * @param {Session | undefined} session
+ * @returns {ListView}
+ */
+function renderView(ctx, session) {
   const computer = computerName(ctx.platform);
   const typed = ctx.query.trim();
   const now = new Date();
@@ -341,16 +379,17 @@ export default {
     'keep-awake': {
       view: keepAwakeView,
       async onAction(id, payload, ctx) {
+        const deadline = Date.now() + BUDGET_MS;
         if (id === 'stop') {
-          const result = await allowSleep(ctx);
-          return { ...result, replace: await keepAwakeView({ ...ctx, query: '' }), clearSearch: true };
+          const result = await allowSleep(ctx, deadline);
+          return { ...result, replace: renderView({ ...ctx, query: '' }, undefined), clearSearch: true };
         }
         if (id === 'start' && typeof payload === 'number') {
           try {
-            const session = await start(ctx, payload > 0 ? payload : undefined);
+            const session = await start(ctx, payload > 0 ? payload : undefined, deadline);
             return {
               toast: startedToast(session, ctx.platform),
-              replace: await keepAwakeView({ ...ctx, query: '' }),
+              replace: renderView({ ...ctx, query: '' }, session),
               clearSearch: true,
             };
           } catch (error) {
@@ -365,9 +404,10 @@ export default {
     },
     toggle: {
       async run(ctx) {
-        if (await currentSession(ctx)) return allowSleep(ctx);
+        const deadline = Date.now() + BUDGET_MS;
+        if (await currentSession(ctx, deadline)) return allowSleep(ctx, deadline);
         try {
-          return { toast: startedToast(await start(ctx, undefined), ctx.platform) };
+          return { toast: startedToast(await start(ctx, undefined, deadline), ctx.platform) };
         } catch (error) {
           return {
             toast: `Couldn't keep your ${computerName(ctx.platform)} awake: ${message(error)}`,
@@ -376,6 +416,6 @@ export default {
         }
       },
     },
-    'allow-sleep': { run: allowSleep },
+    'allow-sleep': { run: (ctx) => allowSleep(ctx, Date.now() + BUDGET_MS) },
   },
 };
