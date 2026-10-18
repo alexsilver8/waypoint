@@ -1,5 +1,6 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { formatBytes } from '../../shared/bytes';
 import type { ActionResult, CommandImplementation, Json, ListItem, Platform, View } from '../../shared/types';
 import { exec as defaultExec, type Exec, isMissing, reasonOf } from '../exec';
 import { type Disk, ejectDisk, listDisks } from '../system/disks';
@@ -71,16 +72,8 @@ const WORDS: Record<Platform, { computer: string; trash: string }> = {
   linux: { computer: 'computer', trash: 'Trash' },
 };
 
-function formatBytes(bytes: number | undefined): string | undefined {
-  if (!bytes) return undefined;
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  let value = bytes;
-  let unit = 0;
-  while (value >= 1000 && unit < units.length - 1) {
-    value /= 1000;
-    unit++;
-  }
-  return `${value >= 100 || unit === 0 ? Math.round(value) : value.toFixed(1)} ${units[unit]}`;
+function diskBytes(bytes: number | undefined): string | undefined {
+  return bytes ? formatBytes(bytes) : undefined;
 }
 
 const DISK_KIND: Record<Disk['kind'], string> = {
@@ -141,8 +134,8 @@ export function systemExtension({
       };
     }
     const items: ListItem[] = disks.map((disk) => {
-      const size = formatBytes(disk.size);
-      const free = formatBytes(disk.free);
+      const size = diskBytes(disk.size);
+      const free = diskBytes(disk.free);
       return {
         id: `disk:${disk.id}`,
         title: disk.name,

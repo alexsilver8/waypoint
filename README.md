@@ -13,12 +13,12 @@ Website: [waypoint.alexsilver.dev](https://waypoint.alexsilver.dev/)
 
 ## What it does
 
-- **Finds everything from one box** — apps, commands, notes and copied text all show up as you type. <kbd>⇥</kbd>, or the icons down the left of the window, narrow the list to Apps, Commands, Notes or Clipboard, or to **Extensions**, which lists every extension with its commands so you can pick one without remembering its name. A preview beside the results shows the note or copied text you've selected.
+- **Finds everything from one box** — apps, commands, notes and what you copied all show up as you type. <kbd>⇥</kbd>, or the icons down the left of the window, narrow the list to Apps, Commands, Notes or Clipboard, or to **Extensions**, which lists every extension with its commands so you can pick one without remembering its name. A preview beside the results shows the note, copied text or image you've selected.
 - **Opens apps** — finds installed applications on every platform.
 - **Keeps notes, as many as you want** — a floating Notes window that works like Raycast Notes: one note at a time in a small window that grows as you write, **Browse Notes** (<kbd>⌘</kbd> <kbd>P</kbd>), an action panel (<kbd>⌘</kbd> <kbd>K</kbd>), pinned notes, back and forward, find and replace, and Recently Deleted. Every note is a plain Markdown file, so you can sync, back up or edit them with anything. There's no limit on how many you keep.
 - **Calculates as you type** — `1200 * 1.077 + 2^5` shows `1,324.4`; <kbd>↵</kbd> copies it.
 - **Converts units and currencies** — `5 km to mi` shows `3.11 mi`, and `72 f in c`, `3 ft 4 in to cm`, `1.5 gb in mb`, `90 min to h` and `2 cups to ml` work too: length, weight, volume, temperature, time, data, speed and area, by name, plural or symbol. `100 usd in eur` and `€50 to gbp` use the European Central Bank's rates, fetched once a day and kept for when you're offline; the answer says which day they're from. <kbd>↵</kbd> copies the number.
-- **Remembers your clipboard** — searchable history of copied text, skipping anything password managers mark as private.
+- **Remembers your clipboard** — searchable history of copied text and images, skipping anything password managers mark as private. Images are kept as files on your computer; <kbd>↵</kbd> copies one back and <kbd>⌘</kbd> <kbd>↵</kbd> pastes it.
 - **Quicklinks and snippets** — save a link (a website, a file or folder, a place in an app) or some text you paste often, and open or paste it with a few keys: `gh waypoint` searches GitHub for “waypoint”, `!sig` pastes your signature. See [Quicklinks and snippets](#quicklinks-and-snippets).
 - **Searches the web** — anything that doesn't match falls back to Google, DuckDuckGo or any extension that offers itself.
 - **Learns what you use** — frequently used items rise to the top.
@@ -279,7 +279,7 @@ It goes in your extensions folder, and its commands are there straight away. npm
 
 ## Settings
 
-Open **Settings** with <kbd>⌘</kbd> <kbd>,</kbd> in the launcher, the **Open Settings** command, or **Settings…** in the tray menu. There you can record a new shortcut, pick light or dark, choose how much clipboard history to keep, move your notes folder, make quicklinks and snippets, install and manage extensions and give any command a [shortcut of its own](#command-shortcuts).
+Open **Settings** with <kbd>⌘</kbd> <kbd>,</kbd> in the launcher, the **Open Settings** command, or **Settings…** in the tray menu. There you can record a new shortcut, pick light or dark, choose how much clipboard history to keep and whether it saves images, move your notes folder, make quicklinks and snippets, install and manage extensions and give any command a [shortcut of its own](#command-shortcuts).
 
 **Open at login** starts Waypoint quietly in the tray when you log in. On macOS and Windows it's added to the system's login items. On Linux, Waypoint writes `~/.config/autostart/dev.waypoint.app.desktop` (under `$XDG_CONFIG_HOME` if you set it), which GNOME, KDE, Xfce, Cinnamon and most other desktops follow, and turning it off removes the file. An AppImage is started from where the AppImage file is: if you move it, open it once from its new place and the entry follows. It works in the installed app, not when running from source.
 
@@ -291,7 +291,7 @@ Everything is also saved in `settings.json` (**Settings → About → Edit setti
   "hideOnBlur": true,                 // close when you click elsewhere
   "launchAtLogin": false,             // start in the tray when you log in (the installed app)
   "theme": "system",                  // "light" or "dark"
-  "clipboardHistory": { "enabled": true, "maxItems": 200 },
+  "clipboardHistory": { "enabled": true, "maxItems": 200, "images": true },
   "extensionDirectories": [],         // more places to load extensions from
   "notesDirectory": "",               // where notes are saved; empty means the app's data folder
   "checkForUpdates": true,            // look for a new version every few hours (the installed app)

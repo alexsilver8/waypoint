@@ -26,10 +26,10 @@ describe('SettingsStore', () => {
     const changes: Array<[string, string]> = [];
     store.on('change', (next, previous) => changes.push([previous.theme, next.theme]));
 
-    store.update({ theme: 'light', clipboardHistory: { enabled: false, maxItems: 50 } });
+    store.update({ theme: 'light', clipboardHistory: { enabled: false, maxItems: 50, images: true } });
     expect(JSON.parse(readFileSync(path, 'utf8'))).toMatchObject({
       theme: 'light',
-      clipboardHistory: { enabled: false, maxItems: 50 },
+      clipboardHistory: { enabled: false, maxItems: 50, images: true },
     });
     expect(changes).toEqual([['system', 'light']]);
 

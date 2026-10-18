@@ -124,12 +124,20 @@ function Clipboard({ state, update, setState }: SectionProps) {
     <Group>
       <Row
         label="Save clipboard history"
-        description="Keep text you copy so you can find it again. Anything a password manager marks as private is skipped."
+        description="Keep text and images you copy so you can find them again. Anything a password manager marks as private is skipped."
       >
         <Toggle
           label="Save clipboard history"
           checked={clipboardHistory.enabled}
           onChange={(enabled) => update({ clipboardHistory: { ...clipboardHistory, enabled } })}
+        />
+      </Row>
+      <Row label="Save images" description="Screenshots and pictures you copy, kept as files on this computer.">
+        <Toggle
+          label="Save images"
+          checked={clipboardHistory.images}
+          disabled={!clipboardHistory.enabled}
+          onChange={(images) => update({ clipboardHistory: { ...clipboardHistory, images } })}
         />
       </Row>
       <Row label="Keep" description="Older entries are removed once the history is full.">

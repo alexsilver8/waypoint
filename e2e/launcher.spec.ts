@@ -643,5 +643,5 @@ test('changes settings in the Settings window', async () => {
   await settings.getByRole('button', { name: 'Clipboard' }).click();
   await settings.getByRole('switch', { name: 'Save clipboard history' }).click();
   await settings.getByLabel('Entries to keep').selectOption('500');
-  await expect.poll(() => settingsFile().clipboardHistory).toEqual({ enabled: true, maxItems: 500 });
+  await expect.poll(() => settingsFile().clipboardHistory).toEqual({ enabled: true, maxItems: 500, images: true });
 });
