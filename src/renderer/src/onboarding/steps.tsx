@@ -307,8 +307,8 @@ export function PreferencesStep({
           <span className="setting__text">
             <span className="setting__label">Save clipboard history</span>
             <span className="setting__description">
-              Find text you copied earlier. Anything a password manager marks as private is skipped, and it stays on
-              this computer.
+              Find text and images you copied earlier. Anything a password manager marks as private is skipped, and it
+              stays on this computer.
             </span>
           </span>
           <Toggle

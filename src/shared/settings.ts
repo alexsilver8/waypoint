@@ -14,6 +14,8 @@ export interface Settings {
     enabled: boolean;
     /** How many entries to keep. */
     maxItems: number;
+    /** Keep copied images too, as files in the app's data folder. */
+    images: boolean;
   };
   /** Extra folders to load extensions from: an extension folder, or a folder of them. */
   extensionDirectories: string[];
@@ -36,7 +38,7 @@ export const DEFAULT_SETTINGS: Settings = {
   hideOnBlur: true,
   launchAtLogin: false,
   theme: 'system',
-  clipboardHistory: { enabled: true, maxItems: 200 },
+  clipboardHistory: { enabled: true, maxItems: 200, images: true },
   extensionDirectories: [],
   notesDirectory: '',
   pasteIntoApps: true,
@@ -109,6 +111,9 @@ export function normalizeSettings(raw: unknown): NormalizedSettings {
         settings.clipboardHistory.maxItems = maxItems;
       },
     );
+    take('clipboardHistory.images', v.images, isBoolean, (images) => {
+      settings.clipboardHistory.images = images;
+    });
   });
   take(
     'extensionDirectories',
