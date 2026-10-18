@@ -6,6 +6,10 @@ export const IpcChannel = {
   runAction: 'palette:run-action',
   searchView: 'palette:search-view',
   hide: 'palette:hide',
+  /** renderer → main: the pointer was pressed on the window's glass and moved; follow it. */
+  startDrag: 'palette:start-drag',
+  /** renderer → main: the pointer was let go; stop following it. */
+  endDrag: 'palette:end-drag',
   /** main → renderer: the window was just shown. */
   shown: 'palette:shown',
   /** main → renderer: apps or extensions changed; fetch root items again. */
@@ -32,6 +36,9 @@ export interface PaletteApi {
   /** Re-renders a view whose command filters by itself (`filtering: false`). */
   searchView(ref: CommandRef, query: string): Promise<View>;
   hide(): void;
+  /** The window follows the pointer, snapping to guides, until `endDrag`. */
+  startDrag(): void;
+  endDrag(): void;
   onShown(listener: (info: ShownInfo) => void): () => void;
   onRootItemsChanged(listener: () => void): () => void;
   onToast(listener: (toast: ToastMessage) => void): () => void;

@@ -63,4 +63,12 @@ export function registerIpc(
   ipcMain.on(IpcChannel.hide, (event) => {
     if (fromLauncher(event)) launcher.hide();
   });
+
+  ipcMain.on(IpcChannel.startDrag, (event) => {
+    if (fromLauncher(event)) launcher.startDrag();
+  });
+
+  ipcMain.on(IpcChannel.endDrag, (event) => {
+    if (fromLauncher(event)) launcher.endDrag();
+  });
 }
