@@ -287,7 +287,7 @@ test('lists each extension with its commands in the Extensions tab', async () =>
   await page.keyboard.press('Tab');
   await expect(tab('Extensions')).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByRole('combobox')).toHaveAttribute('placeholder', 'Search extensions and their commands…');
-  await expect(page.locator('.results__heading').first()).toHaveText('Colors');
+  await expect(page.locator('.results__heading').first()).toHaveText('Browser Bookmarks');
 
   // An extension's name finds all of its commands; built-in commands aren't listed here.
   await page.keyboard.type('docker');

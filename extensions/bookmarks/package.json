@@ -1,0 +1,33 @@
+{
+  "name": "bookmarks",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Search the bookmarks in Chrome, Brave, Edge, Vivaldi and Chromium, in every profile.",
+  "type": "module",
+  "main": "index.js",
+  "license": "MIT",
+  "waypoint": {
+    "title": "Browser Bookmarks",
+    "icon": "🔖",
+    "commands": [
+      {
+        "name": "search",
+        "title": "Search Bookmarks",
+        "mode": "view",
+        "icon": "🔖",
+        "keywords": [
+          "bookmark",
+          "browser",
+          "chrome",
+          "brave",
+          "edge",
+          "vivaldi",
+          "chromium",
+          "favorites",
+          "links"
+        ],
+        "fallback": true
+      }
+    ]
+  }
+}
