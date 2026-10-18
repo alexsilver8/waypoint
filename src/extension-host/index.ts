@@ -5,10 +5,23 @@
  */
 import { mkdirSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
-import type { Extension, ExtensionContext } from '../shared/extension-api';
-import type { CommandCall, HostExtension, HostRequest, HostResponse, LoadReport } from '../shared/extension-protocol';
+import type { Extension, ExtensionContext, ExtensionPower } from '../shared/extension-api';
+import type {
+  CommandCall,
+  HostExtension,
+  HostRequest,
+  HostResponse,
+  LoadReport,
+  MainMethod,
+  MainMethods,
+  MainRequest,
+  MainResponse,
+} from '../shared/extension-protocol';
 import type { CommandImplementation } from '../shared/types';
 import { createStorage } from './storage';
+
+/** How long the main process may take to answer; it does nothing slow. */
+const MAIN_TIMEOUT_MS = 5000;
 
 interface LoadedExtension {
   info: HostExtension;
@@ -16,6 +29,53 @@ interface LoadedExtension {
 }
 
 const extensions = new Map<string, LoadedExtension>();
+
+interface MainCall {
+  resolve(value: unknown): void;
+  reject(error: Error): void;
+  timer: NodeJS.Timeout;
+}
+
+/** Requests to the main process waiting for an answer, by ID. */
+const mainCalls = new Map<number, MainCall>();
+let nextMainCall = 1;
+
+/** Asks the main process to do something for an extension. */
+function callMain<M extends MainMethod>(
+  method: M,
+  params: MainMethods[M]['params'],
+): Promise<MainMethods[M]['result']> {
+  const id = nextMainCall++;
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      mainCalls.delete(id);
+      reject(new Error('Waypoint took too long to answer.'));
+    }, MAIN_TIMEOUT_MS);
+    mainCalls.set(id, { resolve: resolve as (value: unknown) => void, reject, timer });
+    const request: MainRequest<M> = { type: 'main-request', id, method, params };
+    process.parentPort.postMessage(request);
+  });
+}
+
+function answered(response: MainResponse): void {
+  const call = mainCalls.get(response.id);
+  if (!call) return;
+  mainCalls.delete(response.id);
+  clearTimeout(call.timer);
+  if (response.ok) call.resolve(response.result);
+  else call.reject(new Error(response.error));
+}
+
+/** `ctx.power` for one extension. */
+function power(extension: string): ExtensionPower {
+  return {
+    keepAwake: (options = {}) => callMain('keepAwake', { extension, until: options.until ?? null }),
+    allowSleep: async () => {
+      await callMain('allowSleep', { extension });
+    },
+    wakeLock: async () => (await callMain('wakeLock', { extension })) ?? undefined,
+  };
+}
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -55,6 +115,7 @@ function resolve(call: CommandCall): { command: CommandImplementation<ExtensionC
     supportPath: info.supportPath,
     storage: createStorage(info.supportPath),
     extension: { name: info.name, path: info.dir },
+    power: power(info.name),
   };
   return { command, ctx };
 }
@@ -85,7 +146,12 @@ async function handle(request: HostRequest): Promise<unknown> {
 }
 
 process.parentPort.on('message', async (event) => {
-  const request = event.data as HostRequest;
+  const message = event.data as HostRequest | MainResponse;
+  if ('type' in message && message.type === 'main-response') {
+    answered(message);
+    return;
+  }
+  const request = message as HostRequest;
   let response: HostResponse;
   try {
     const result = await handle(request);

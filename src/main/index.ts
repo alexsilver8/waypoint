@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { app, nativeTheme, shell } from 'electron';
+import { app, nativeTheme, powerSaveBlocker, shell } from 'electron';
 import { NotesChannel, noteIdFromDeeplink, RECENTLY_DELETED_DAYS } from '../shared/notes';
 import type { OnboardingOutcome } from '../shared/onboarding';
 import type { Platform } from '../shared/types';
@@ -15,6 +15,7 @@ import { system } from './commands/system';
 import { webSearch } from './commands/web-search';
 import { windowManagementExtension } from './commands/window-management';
 import { ExtensionHostClient } from './extensions/host-client';
+import { hostServices } from './extensions/services';
 import { HotkeyManager } from './hotkey';
 import { handleIconProtocol, registerIconScheme } from './icon-protocol';
 import { registerIpc } from './ipc';
@@ -25,6 +26,7 @@ import { NotesWindow } from './notes/window';
 import { registerOnboardingIpc } from './onboarding/ipc';
 import { OnboardingStore } from './onboarding/store';
 import { OnboardingWindow } from './onboarding/window';
+import { WakeLocks } from './power';
 import { CommandRegistry } from './registry';
 import { type Settings, SettingsStore } from './settings';
 import { registerSettingsIpc } from './settings-ipc';
@@ -72,7 +74,11 @@ async function main(): Promise<void> {
     electronClipboard,
     settings.get().clipboardHistory.maxItems,
   );
-  const host = new ExtensionHostClient(join(import.meta.dirname, 'extension-host.js'));
+  // Wake locks are held here, so they last when the extension host restarts.
+  const host = new ExtensionHostClient(
+    join(import.meta.dirname, 'extension-host.js'),
+    hostServices(new WakeLocks(powerSaveBlocker)),
+  );
 
   const notesDirectoryFor = (current: Settings) => {
     const dir = current.notesDirectory;

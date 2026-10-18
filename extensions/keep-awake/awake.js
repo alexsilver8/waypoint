@@ -4,7 +4,7 @@
 /**
  * @typedef {object} Session A program keeping the computer awake, as saved between runs.
  * @property {number} pid The program's process ID.
- * @property {string} program Its name, as `ps` or Get-Process shows it.
+ * @property {string} program Its name, as `ps` shows it.
  * @property {number} startedAt When it started, in ms.
  * @property {number | null} until When it stops by itself, in ms; `null` keeps going until stopped.
  */
@@ -191,33 +191,14 @@ export function toSession(value) {
 }
 
 /**
- * Keeps Windows and the display awake for as long as the PowerShell running it lives, through
- * SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED).
- * @param {number | undefined} seconds Nothing to keep going until stopped.
- */
-export function windowsScript(seconds) {
-  return [
-    // A failure (Add-Type isn't allowed in Constrained Language Mode, say) ends the script, and
-    // it only says it's ready once Windows has agreed.
-    "$ErrorActionPreference = 'Stop'",
-    'Add-Type -Namespace Waypoint -Name Power -MemberDefinition \'[DllImport("kernel32.dll")] public static extern uint SetThreadExecutionState(uint esFlags);\'',
-    // 0x80000003, written in decimal: Windows PowerShell reads 0x80000003 as a negative Int32.
-    'if ([Waypoint.Power]::SetThreadExecutionState([uint32]2147483651) -eq 0) { exit 1 }',
-    "[Console]::Out.WriteLine('ready')",
-    seconds ? `Start-Sleep -Seconds ${Math.round(seconds)}` : 'while ($true) { Start-Sleep -Seconds 3600 }',
-  ].join('\n');
-}
-
-/**
- * The program that keeps the computer awake, and for how long. It runs on its own until the
- * time is up, or until it's stopped.
+ * The program that keeps the computer awake, and for how long, on macOS and Linux. It runs on
+ * its own until the time is up, or until it's stopped. (Waypoint itself keeps Windows awake.)
  * @param {string} platform
  * @param {number | undefined} seconds Nothing to keep going until stopped.
  * @param {{ gnome?: string }} [options] Where gnome-session-inhibit is, on a GNOME desktop: GNOME
  *   blanks and locks the screen whatever systemd is told, and only listens to its own.
- * @returns {{ file: string, args: string[], name: string, ready?: boolean } | undefined} `name`
- *   is how the process shows up in `ps` or Get-Process, to check a saved process ID is still
- *   ours; `ready` means it says `ready` once it's working.
+ * @returns {{ file: string, args: string[], name: string } | undefined} `name` is how the
+ *   process shows up in `ps`, to check a saved process ID is still ours.
  */
 export function awakeCommand(platform, seconds, { gnome } = {}) {
   const time = seconds ? String(Math.round(seconds)) : undefined;
@@ -239,30 +220,12 @@ export function awakeCommand(platform, seconds, { gnome } = {}) {
       name: 'systemd-inhibit',
     };
   }
-  if (platform === 'win32') {
-    const encoded = Buffer.from(windowsScript(seconds), 'utf16le').toString('base64');
-    return {
-      file: 'powershell.exe',
-      args: [
-        '-NoProfile',
-        '-NonInteractive',
-        '-WindowStyle',
-        'Hidden',
-        '-ExecutionPolicy',
-        'Bypass',
-        '-EncodedCommand',
-        encoded,
-      ],
-      name: 'powershell',
-      ready: true,
-    };
-  }
   return undefined;
 }
 
 /**
  * Whether a program's name, as `ps` shows it (a path on macOS, a name cut to 15 characters on
- * Linux) or Get-Process does, is this one.
+ * Linux), is this one.
  * @param {string} shown
  * @param {string} name
  */
@@ -284,8 +247,7 @@ export function parseElapsed(text) {
 }
 
 /**
- * A process as `ps -o etime=,comm=` prints it, or as the Windows script below does: how long
- * it has been running, then its name.
+ * A process as `ps -o etime=,comm=` prints it: how long it has been running, then its name.
  * @param {string} output
  * @returns {{ elapsed: number, program: string } | undefined} Nothing for no such process.
  */
@@ -295,18 +257,6 @@ export function parseProcess(output) {
   if (!match) return undefined;
   const elapsed = /^\d+$/.test(match[1] ?? '') ? Number(match[1]) : parseElapsed(match[1] ?? '');
   return elapsed === undefined ? undefined : { elapsed, program: (match[2] ?? '').trim() };
-}
-
-/**
- * Prints how many seconds a process has been running and its name, or nothing if there's no
- * such process.
- * @param {number} pid
- */
-export function windowsProcessScript(pid) {
-  return [
-    `$p = Get-Process -Id ${Math.trunc(pid)} -ErrorAction SilentlyContinue`,
-    "if ($p) { '{0} {1}' -f [int]((Get-Date) - $p.StartTime).TotalSeconds, $p.ProcessName }",
-  ].join('\n');
 }
 
 /**

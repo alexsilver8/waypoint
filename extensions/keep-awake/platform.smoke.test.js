@@ -1,5 +1,6 @@
 // Keeps this system awake for real, then lets it sleep. Off by default; the platform workflow
-// runs it on macOS, Windows and Linux with WAYPOINT_SMOKE=1.
+// runs it on macOS and Linux with WAYPOINT_SMOKE=1. On Windows, Waypoint holds the wake lock
+// itself (see index.test.js, and e2e/extensions.spec.ts).
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -26,7 +27,7 @@ function context() {
   });
 }
 
-describe.runIf(enabled)(`Keep Awake on ${platform}`, () => {
+describe.runIf(enabled && platform !== 'win32')(`Keep Awake on ${platform}`, () => {
   it('keeps the computer awake, and lets it sleep again', { timeout: 30_000 }, async () => {
     const ctx = context();
     const command = extension.commands['keep-awake'];

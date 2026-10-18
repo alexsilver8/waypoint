@@ -12,8 +12,6 @@ import {
   parseProcess,
   parseRequest,
   toSession,
-  windowsProcessScript,
-  windowsScript,
 } from './awake.js';
 
 describe('parseDuration', () => {
@@ -144,40 +142,17 @@ describe('awakeCommand', () => {
     expect(awakeCommand('linux', undefined)?.args).toContain('--what=idle:sleep');
   });
 
-  it('runs a hidden PowerShell on Windows', () => {
-    const command = awakeCommand('win32', 600);
-    expect(command?.file).toBe('powershell.exe');
-    expect(command?.name).toBe('powershell');
-    expect(command?.ready).toBe(true);
-    const encoded = command?.args.at(-1) ?? '';
-    expect(Buffer.from(encoded, 'base64').toString('utf16le')).toBe(windowsScript(600));
-  });
-
-  it('has nothing for other systems', () => {
+  it('has no program for Windows, which Waypoint keeps awake itself, or other systems', () => {
+    expect(awakeCommand('win32', 60)).toBeUndefined();
     expect(awakeCommand('freebsd', 60)).toBeUndefined();
   });
 });
 
-describe('windowsScript', () => {
-  it('sleeps for the time given, or forever', () => {
-    expect(windowsScript(600)).toContain('Start-Sleep -Seconds 600');
-    expect(windowsScript(undefined)).toContain('while ($true)');
-    expect(windowsScript(undefined)).toContain('[uint32]2147483651');
-  });
-
-  it('stops on any error, and says when Windows has agreed', () => {
-    const script = windowsScript(60);
-    expect(script.startsWith("$ErrorActionPreference = 'Stop'")).toBe(true);
-    expect(script.indexOf("WriteLine('ready')")).toBeGreaterThan(script.indexOf('SetThreadExecutionState([uint32]'));
-  });
-});
-
 describe('isProgram', () => {
-  it('recognises the program as ps and Get-Process name it', () => {
+  it('recognises the program as ps names it', () => {
     expect(isProgram('/usr/bin/caffeinate', 'caffeinate')).toBe(true);
     expect(isProgram('systemd-inhibit', 'systemd-inhibit')).toBe(true);
     expect(isProgram('gnome-session-i', 'gnome-session-inhibit')).toBe(true);
-    expect(isProgram('PowerShell', 'powershell')).toBe(true);
   });
 
   it("doesn't mistake another program for it", () => {
@@ -194,20 +169,19 @@ describe('checking a saved process', () => {
     expect(parseElapsed('soon')).toBeUndefined();
   });
 
-  it('reads a process from ps, or from the Windows script', () => {
+  it('reads a process from ps', () => {
     expect(parseProcess('      01:23 /usr/bin/caffeinate\n')).toEqual({ elapsed: 83, program: '/usr/bin/caffeinate' });
-    expect(parseProcess('3600 powershell\r\n')).toEqual({ elapsed: 3600, program: 'powershell' });
+    expect(parseProcess('2-01:02:03 systemd-inhibit')).toEqual({ elapsed: 176_523, program: 'systemd-inhibit' });
     expect(parseProcess('')).toBeUndefined();
-    expect(windowsProcessScript(4242)).toContain('Get-Process -Id 4242');
   });
 
   it('only counts the same program, started when the session was', () => {
     const now = 1_000_000_000_000;
-    const session = { pid: 42, program: 'powershell', startedAt: now - 600_000, until: null };
-    expect(isSessionProcess({ elapsed: 600, program: 'powershell' }, session, now)).toBe(true);
-    expect(isSessionProcess({ elapsed: 603, program: 'powershell' }, session, now)).toBe(true);
-    // The process ID went to another PowerShell, started later.
-    expect(isSessionProcess({ elapsed: 30, program: 'powershell' }, session, now)).toBe(false);
+    const session = { pid: 42, program: 'caffeinate', startedAt: now - 600_000, until: null };
+    expect(isSessionProcess({ elapsed: 600, program: '/usr/bin/caffeinate' }, session, now)).toBe(true);
+    expect(isSessionProcess({ elapsed: 603, program: '/usr/bin/caffeinate' }, session, now)).toBe(true);
+    // The process ID went to another caffeinate, started later.
+    expect(isSessionProcess({ elapsed: 30, program: '/usr/bin/caffeinate' }, session, now)).toBe(false);
     expect(isSessionProcess({ elapsed: 600, program: 'node' }, session, now)).toBe(false);
   });
 });

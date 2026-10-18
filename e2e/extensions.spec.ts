@@ -1,5 +1,5 @@
 import { type ChildProcess, spawn } from 'node:child_process';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { type ElectronApplication, _electron as electron, expect, type Page, test } from '@playwright/test';
@@ -11,10 +11,44 @@ const mod = process.platform === 'darwin' ? 'Meta' : 'Control';
 let app: ElectronApplication;
 let page: Page;
 
+/** An extension of the test's own, which asks Waypoint for a wake lock through `ctx.power`. */
+function addWakeLockExtension(userData: string) {
+  const dir = join(userData, 'extensions', 'wake-lock-check');
+  mkdirSync(dir, { recursive: true });
+  const command = (name: string, title: string) => ({ name, title, mode: 'no-view' });
+  writeFileSync(
+    join(dir, 'package.json'),
+    JSON.stringify({
+      name: 'wake-lock-check',
+      type: 'module',
+      main: 'index.js',
+      waypoint: {
+        title: 'Wake Lock Check',
+        commands: [
+          command('hold', 'Hold a Wake Lock'),
+          command('check', 'Check the Wake Lock'),
+          command('release', 'Let Go of the Wake Lock'),
+        ],
+      },
+    }),
+  );
+  writeFileSync(
+    join(dir, 'index.js'),
+    `export default {
+      commands: {
+        hold: { async run(ctx) { await ctx.power.keepAwake({ until: Date.now() + 60_000 }); return { toast: 'Holding', clearSearch: true }; } },
+        check: { async run(ctx) { const lock = await ctx.power.wakeLock(); return { toast: lock ? 'Held until ' + lock.until : 'Not held', clearSearch: true }; } },
+        release: { async run(ctx) { await ctx.power.allowSleep(); return { toast: 'Let go', clearSearch: true }; } },
+      },
+    };`,
+  );
+}
+
 test.beforeEach(async () => {
   const userData = mkdtempSync(join(tmpdir(), 'waypoint-ext-'));
   // Copy rather than paste, so the tests never type into whatever app is in front.
   writeFileSync(join(userData, 'settings.json'), JSON.stringify({ hideOnBlur: false, pasteIntoApps: false }));
+  addWakeLockExtension(userData);
   app = await electron.launch({
     args: [join(import.meta.dirname, '..'), '--show', ...(process.platform === 'linux' ? ['--no-sandbox'] : [])],
     env: { ...process.env, WAYPOINT_USER_DATA: userData },
@@ -33,6 +67,14 @@ async function open(command: string) {
   await expect(page.getByRole('option').first()).toContainText(command, { ignoreCase: true });
   await page.keyboard.press('Enter');
   await expect(page.locator('.search__crumb')).toBeVisible();
+}
+
+/** Runs a command that doesn't open a view, from an empty search field. */
+async function run(command: string) {
+  await page.getByRole('combobox').fill('');
+  await page.keyboard.type(command);
+  await expect(page.getByRole('option').first()).toContainText(command);
+  await page.keyboard.press('Enter');
 }
 
 const clipboardText = () => app.evaluate(({ clipboard }) => clipboard.readText());
@@ -148,4 +190,26 @@ test('shows this computer’s details in System Info and copies one', async () =
   await page.keyboard.type('memory');
   await page.keyboard.press('Enter');
   await expect.poll(clipboardText).toMatch(/B of .*B used/);
+});
+
+test('holds an extension’s wake lock in Waypoint itself, so it lasts when the extensions reload', async () => {
+  // Electron numbers its blockers from 0, and nothing else in Waypoint starts one.
+  const blocking = () =>
+    app.evaluate(({ powerSaveBlocker }) => [...Array(50).keys()].some((id) => powerSaveBlocker.isStarted(id)));
+  expect(await blocking()).toBe(false);
+
+  await run('Hold a Wake Lock');
+  await expect(page.locator('.toast')).toHaveText('Holding');
+  expect(await blocking()).toBe(true);
+
+  // Restarts the extension host.
+  await run('Reload Extensions');
+  await expect(page.locator('.toast')).toHaveText(/^Loaded \d+ extensions$/);
+  await run('Check the Wake Lock');
+  await expect(page.locator('.toast')).toHaveText(/^Held until \d+$/);
+  expect(await blocking()).toBe(true);
+
+  await run('Let Go of the Wake Lock');
+  await expect(page.locator('.toast')).toHaveText('Let go');
+  expect(await blocking()).toBe(false);
 });

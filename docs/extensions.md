@@ -88,6 +88,19 @@ Calls time out after 10 seconds.
 | `storage` | `get(key)`, `set(key, value)`, `remove(key)` — JSON values, kept between runs. |
 | `supportPath` | A folder you may write to. |
 | `extension` | `{ name, path }`. |
+| `power` | `keepAwake({ until? })`, `wakeLock()`, `allowSleep()` — see [Keeping the computer awake](#keeping-the-computer-awake). |
+
+### Keeping the computer awake
+
+`ctx.power` asks Waypoint to keep the computer and its display awake, with Electron's [`powerSaveBlocker`](https://www.electronjs.org/docs/latest/api/power-save-blocker). Waypoint holds the lock, not your extension's process, so it lasts through **Reload Extensions** and an extension timing out, until its time is up, you let go of it, or Waypoint quits. Each extension has one at a time; asking again replaces it.
+
+```js
+const lock = await ctx.power.keepAwake({ until: Date.now() + 60 * 60 * 1000 }); // { since, until }
+await ctx.power.wakeLock(); // the same while it holds, undefined once it's over
+await ctx.power.allowSleep();
+```
+
+Leave out `until` to hold it until you let go. [Keep Awake](../extensions/keep-awake) uses it on Windows.
 
 ## Lists
 

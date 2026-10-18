@@ -227,6 +227,14 @@ export interface ExtensionManifest {
   commands: CommandManifest[];
 }
 
+/** A request, held by Waypoint itself, to keep the computer and its display awake. */
+export interface WakeLock {
+  /** When it started, in ms since the epoch. */
+  since: number;
+  /** When it ends by itself, in ms since the epoch; `null` holds until it's let go, or Waypoint quits. */
+  until: number | null;
+}
+
 /** Passed to every command call. */
 export interface CommandContext {
   /** Current text of the search field inside the command's view ("" when it opens). */
