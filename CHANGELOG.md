@@ -2,6 +2,17 @@
 
 Every release of Waypoint. `pnpm release` writes it from the commits, and each GitHub release shows its section.
 
+## 0.3.0 (2026-10-18)
+
+4 features.
+
+### Features
+
+- give any command an alias to type ([#55](https://github.com/alexsilver8/waypoint/pull/55), [b6e93e7](https://github.com/alexsilver8/waypoint/commit/b6e93e768b9e80d5de19c986de98b11f1013aef6))
+- **clipboard:** keep copied images in the history ([#57](https://github.com/alexsilver8/waypoint/pull/57), [60908a2](https://github.com/alexsilver8/waypoint/commit/60908a21c602127da2501ce7f7667d6ef6ba1c99))
+- **calculator:** convert units and currencies ([#56](https://github.com/alexsilver8/waypoint/pull/56), [e979f3e](https://github.com/alexsilver8/waypoint/commit/e979f3e69e0e3313144a04f89242874e13470943))
+- install extensions from npm and git ([#58](https://github.com/alexsilver8/waypoint/pull/58), [3d672e4](https://github.com/alexsilver8/waypoint/commit/3d672e4b3eac0afc446064d90341d65ef578bf6f))
+
 ## 0.2.1 (2026-10-18)
 
 ### Other changes
