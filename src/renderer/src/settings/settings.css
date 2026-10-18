@@ -1,6 +1,7 @@
 /*
- * Settings window, in the launcher's liquid glass: a floating sidebar of brighter glass,
- * and each group of settings on its own rounded card.
+ * Settings window, in the launcher's Halo look: a sidebar pane and a content sheet floating
+ * side by side (on macOS with nothing around them), rows like the launcher's, and each group
+ * of settings on a rounded card inside the sheet.
  */
 
 @import "../base.css";
@@ -33,10 +34,18 @@ select {
 
 .settings {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   height: 100%;
-  padding: 8px;
+  padding: 12px;
   background: var(--glass);
+}
+
+/* On macOS the window is clear: the panes float in a margin that holds their shadows, and the
+   margin and gaps move the window. */
+[data-platform="darwin"] .settings {
+  padding: 20px;
+  background: transparent;
+  -webkit-app-region: drag;
 }
 
 /* ── Sidebar ────────────────────────────────────────────── */
@@ -45,13 +54,15 @@ select {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  width: 208px;
+  width: 220px;
   flex: none;
   padding: 8px;
-  border: 1px solid var(--glass-raised-border);
-  border-radius: 18px;
-  background: var(--glass-raised);
-  box-shadow: inset 0 1px 0 var(--glass-sheen);
+  border: 1px solid var(--pane-border);
+  border-radius: var(--radius-pane);
+  background: var(--pane);
+  box-shadow:
+    inset 0 1px 0 var(--pane-sheen),
+    var(--pane-shadow);
   overflow-y: auto;
 }
 
@@ -62,36 +73,37 @@ select {
 
 /* The window buttons sit inside the sidebar on macOS, and the space around them drags the window. */
 [data-platform="darwin"] .settings__nav-top {
-  height: 34px;
+  height: 38px;
   -webkit-app-region: drag;
 }
 
 .settings__nav-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  height: 34px;
+  gap: 12px;
+  height: 44px;
   flex: none;
-  padding: 0 8px;
+  padding: 0 10px;
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: 14px;
   background: none;
   text-align: left;
+  font-size: 14.5px;
   font-weight: 500;
 }
 
 .settings__nav-item .icon {
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
 }
 
 .settings__nav-item .icon--tile {
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
 .settings__nav-item .icon--tile svg {
-  width: 13px;
-  height: 13px;
+  width: 16px;
+  height: 16px;
 }
 
 .settings__nav-item:hover {
@@ -122,8 +134,25 @@ select {
   min-width: 0;
   min-height: 0;
   overflow-y: auto;
-  padding: 10px 18px 28px;
+  padding: 18px 26px 28px;
+  border: 1px solid var(--pane-border);
+  border-radius: var(--radius-pane);
+  background: var(--pane);
+  box-shadow:
+    inset 0 1px 0 var(--pane-sheen),
+    var(--pane-shadow);
   outline: none;
+}
+
+/* The scrollbar stays clear of the sheet's rounded corners. */
+.settings__content::-webkit-scrollbar-track {
+  margin-block: 16px;
+}
+
+/* What you click and scroll stays clear of the window's drag area (see .settings). */
+[data-platform="darwin"] .settings__nav-item,
+[data-platform="darwin"] .settings__content {
+  -webkit-app-region: no-drag;
 }
 
 .settings__content > * {
@@ -131,19 +160,18 @@ select {
 }
 
 .settings__header {
-  padding: 4px 4px 14px;
+  padding: 4px 4px 16px;
 }
 
 [data-platform="darwin"] .settings__header {
-  padding-top: 10px;
   -webkit-app-region: drag;
 }
 
 .settings__heading {
   margin: 0;
-  font-size: 22px;
-  font-weight: 650;
-  letter-spacing: -0.01em;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
 }
 
 .section__intro {
@@ -165,10 +193,9 @@ select {
 }
 
 .group__card {
-  border: 1px solid var(--glass-raised-border);
-  border-radius: 14px;
-  background: var(--glass-raised);
-  box-shadow: inset 0 1px 0 var(--glass-sheen);
+  border: 1px solid var(--hairline);
+  border-radius: 18px;
+  background: var(--hover);
   overflow: hidden;
 }
 
@@ -185,7 +212,7 @@ select {
   content: "";
   position: absolute;
   top: 0;
-  left: 16px;
+  left: 18px;
   right: 0;
   height: 1px;
   background: var(--hairline);
@@ -204,8 +231,8 @@ select {
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  min-height: 58px;
-  padding: 12px 16px;
+  min-height: 60px;
+  padding: 12px 18px;
 }
 
 .row-setting__text {
@@ -242,19 +269,20 @@ select {
 /* ── Controls ───────────────────────────────────────────── */
 
 .button {
-  height: 30px;
-  padding: 0 13px;
-  border: 1px solid var(--control-border);
-  border-radius: 9px;
-  background: var(--control);
-  box-shadow: inset 0 1px 0 var(--glass-sheen);
+  height: 32px;
+  padding: 0 15px;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background: var(--keycap);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   white-space: nowrap;
 }
 
 .button:hover:not(:disabled) {
-  background: var(--control-strong);
+  border-color: var(--selected-border);
+  background: var(--selected-pane);
+  box-shadow: var(--selected-shadow);
 }
 
 .button:disabled {
@@ -323,11 +351,11 @@ select {
 }
 
 .select {
-  height: 30px;
-  padding: 0 8px;
+  height: 32px;
+  padding: 0 10px;
   border: 1px solid var(--control-border);
-  border-radius: 9px;
-  background: var(--control);
+  border-radius: 16px;
+  background: var(--keycap);
   font-size: 13px;
 }
 
@@ -342,20 +370,21 @@ select {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 4px;
   min-width: 120px;
-  height: 34px;
-  padding: 0 6px;
+  height: 38px;
+  padding: 0 8px;
   border: 1px solid var(--control-border);
-  border-radius: 11px;
-  background: var(--control);
-  box-shadow: inset 0 1px 0 var(--glass-sheen);
+  border-radius: 19px;
+  background: var(--keycap);
 }
 
 .hotkey__field .keycap {
   min-width: 26px;
-  height: 24px;
-  border-radius: 7px;
+  height: 26px;
+  border-radius: 13px;
   font-size: 13px;
+  font-weight: 600;
 }
 
 .hotkey__field[data-recording] {
@@ -414,17 +443,16 @@ select {
 
 /* Each choice is a little launcher window in that appearance. */
 .theme__preview {
-  --preview-bg: #f4f4f6;
-  --preview-bar: #ffffff;
+  --preview-desk: #dfe4ee;
+  --preview-pane: #fafafc;
   --preview-line: #c6cad3;
   display: flex;
-  flex-direction: column;
   gap: 6px;
   width: 100%;
   aspect-ratio: 16 / 10;
   padding: 10px;
-  border-radius: 12px;
-  background: var(--preview-bg);
+  border-radius: 16px;
+  background: var(--preview-desk);
   box-shadow:
     0 0 0 1px rgb(0 0 0 / 0.1),
     0 4px 12px rgb(0 0 0 / 0.08);
@@ -432,15 +460,15 @@ select {
 }
 
 .theme__preview[data-theme="dark"] {
-  --preview-bg: #26262c;
-  --preview-bar: #3a3a43;
+  --preview-desk: #121216;
+  --preview-pane: #2b2b32;
   --preview-line: #565a66;
 }
 
 .theme__preview[data-theme="system"] {
-  --preview-bar: rgb(140 140 152 / 0.45);
+  --preview-pane: rgb(140 140 152 / 0.45);
   --preview-line: #8a8f99;
-  background: linear-gradient(135deg, #f4f4f6 0 50%, #26262c 50% 100%);
+  background: linear-gradient(135deg, #dfe4ee 0 50%, #121216 50% 100%);
 }
 
 .theme[data-checked] .theme__preview {
@@ -454,27 +482,52 @@ select {
   outline-offset: 4px;
 }
 
-.theme__search {
-  height: 12px;
+.theme__dock {
+  width: 13%;
   flex: none;
-  border-radius: 6px;
-  background: var(--preview-bar);
+  border-radius: 8px;
+  background: var(--preview-pane);
+}
+
+.theme__main {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+  min-width: 0;
+}
+
+.theme__search {
+  height: 13px;
+  flex: none;
+  border-radius: 7px;
+  background: var(--preview-pane);
+}
+
+.theme__sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+  padding: 7px;
+  border-radius: 8px;
+  background: var(--preview-pane);
 }
 
 .theme__line {
-  height: 6px;
+  height: 5px;
   flex: none;
-  width: 78%;
+  width: 80%;
   border-radius: 3px;
   background: var(--preview-line);
 }
 
-.theme__line:nth-child(3) {
+.theme__line:nth-child(2) {
   width: 58%;
   opacity: 0.75;
 }
 
-.theme__line:nth-child(4) {
+.theme__line:nth-child(3) {
   width: 68%;
   opacity: 0.55;
 }
@@ -491,7 +544,7 @@ select {
 .extension,
 .folder {
   display: flex;
-  padding: 10px 16px;
+  padding: 11px 18px;
 }
 
 .extension {

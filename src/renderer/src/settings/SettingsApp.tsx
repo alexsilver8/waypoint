@@ -78,7 +78,7 @@ const THEMES: Array<{ value: Settings['theme']; label: string }> = [
   { value: 'dark', label: 'Dark' },
 ];
 
-/** System, Light and Dark as little launcher windows, picked like radio buttons. */
+/** System, Light and Dark as little launchers (dock, search capsule and sheet), picked like radio buttons. */
 function ThemePicker({ value, onChange }: { value: Settings['theme']; onChange(value: Settings['theme']): void }) {
   return (
     <fieldset className="themes">
@@ -93,10 +93,15 @@ function ThemePicker({ value, onChange }: { value: Settings['theme']; onChange(v
             onChange={() => onChange(theme.value)}
           />
           <span className="theme__preview" data-theme={theme.value} aria-hidden="true">
-            <span className="theme__search" />
-            <span className="theme__line" />
-            <span className="theme__line" />
-            <span className="theme__line" />
+            <span className="theme__dock" />
+            <span className="theme__main">
+              <span className="theme__search" />
+              <span className="theme__sheet">
+                <span className="theme__line" />
+                <span className="theme__line" />
+                <span className="theme__line" />
+              </span>
+            </span>
           </span>
           <span className="theme__label">{theme.label}</span>
         </label>
