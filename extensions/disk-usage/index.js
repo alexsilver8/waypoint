@@ -294,10 +294,17 @@ function insideOf(folder, scan) {
   }
   if (folder.skipped === 'disk') return "It's on another disk, so it isn't counted with this one. Open it to count it.";
   const listed = [
-    ...[...folder.children.values()].map((child) => ({ name: `${child.name}/`, bytes: child.bytes })),
-    ...folder.big.map((file) => ({ name: file.name, bytes: file.bytes })),
+    ...[...folder.children.values()].map((child) => ({
+      name: `${child.name}/`,
+      bytes: child.bytes,
+      // Cloud storage and other disks aren't 0 B, just not looked through yet.
+      counted: child.skipped !== 'cloud' && child.skipped !== 'disk',
+    })),
+    ...folder.big.map((file) => ({ name: file.name, bytes: file.bytes, counted: true })),
   ].sort(bySize);
-  const lines = listed.slice(0, INSIDE).map((entry) => `- ${entry.name} — ${formatBytes(entry.bytes)}`);
+  const lines = listed
+    .slice(0, INSIDE)
+    .map((entry) => `- ${entry.name} — ${entry.counted ? formatBytes(entry.bytes) : 'not counted'}`);
   if (listed.length > INSIDE) lines.push(`- …and ${formatCount(listed.length - INSIDE)} more`);
   if (folder.smallCount > 0) {
     lines.push(`- ${plural(folder.smallCount, 'smaller item')} — ${formatBytes(folder.smallBytes)}`);

@@ -61,13 +61,19 @@ const titles = (view) => view.sections[0]?.items.map((item) => item.title);
 
 describe('Disk Usage', () => {
   it('lists your home folder biggest first, adding up the small things', async () => {
+    // macOS leaves cloud storage alone until it's opened (see below), so Library holds the cache only.
+    const mac = process.platform === 'darwin';
     const view = await settled('usage', '');
     expect(view.sections.map((section) => section.title?.replace(/\d.*/, ''))).toEqual(['Home · ', 'Scan']);
     expect(titles(view)).toEqual(['Library', 'Downloads', 'Projects', '1 smaller item']);
     const [library] = view.sections[0]?.items ?? [];
     expect(library?.accessory).toMatch(/^\d+(\.\d)? MB$/);
-    expect(library?.subtitle).toMatch(/^\d+% · 2 files$/);
-    expect(library?.detail?.body).toMatch(/^- Caches\/ — 7\.\d MB\n- CloudStorage\/ — 2\.\d MB/);
+    expect(library?.subtitle).toMatch(mac ? /^\d+% · 1 file$/ : /^\d+% · 2 files$/);
+    expect(library?.detail?.body).toMatch(
+      mac
+        ? /^- Caches\/ — 7\.\d MB\n- CloudStorage\/ — not counted$/
+        : /^- Caches\/ — 7\.\d MB\n- CloudStorage\/ — 2\.\d MB$/,
+    );
     expect(library?.actions.map((action) => action.title)).toEqual([
       'Show Contents',
       expect.stringMatching(/^Open in /),
@@ -83,7 +89,7 @@ describe('Disk Usage', () => {
     });
     const [scan] = view.sections[1]?.items ?? [];
     expect(scan?.title).toBe('Scanned just now');
-    expect(scan?.subtitle).toMatch(/^7 files in \d+ folders · took /);
+    expect(scan?.subtitle).toMatch(mac ? /^6 files in \d+ folders · took / : /^7 files in \d+ folders · took /);
   });
 
   it('opens a folder, and filters it by what comes after the slash', async () => {
@@ -103,6 +109,8 @@ describe('Disk Usage', () => {
     const library = await settled('usage', '~/Library/', mac);
     const cloud = library.sections[0]?.items.find((item) => item.title === 'CloudStorage');
     expect(cloud).toMatchObject({ subtitle: 'Cloud storage, not counted', accessory: '—', icon: { emoji: '☁️' } });
+    const [inHome] = (await settled('usage', '', mac)).sections[0]?.items ?? [];
+    expect(inHome?.detail?.body).toMatch(/^- Caches\/ — 7\.\d MB\n- CloudStorage\/ — not counted$/);
     expect(titles(await settled('usage', '~/Library/CloudStorage/', mac))).toEqual(['GoogleDrive']);
   });
 
