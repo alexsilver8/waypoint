@@ -105,4 +105,17 @@ describe('SnippetStore', () => {
     expect(() => store.update(added.id, { keyword: '! sig' })).toThrow('The keyword can’t have spaces in it.');
     expect(onDisk(path)).toEqual([added]);
   });
+
+  it('refuses a keyword another snippet has, but not the snippet’s own', () => {
+    const path = tempPath('snippets.json');
+    const store = new SnippetStore(path);
+    store.add({ name: 'Signature', text: 'Thanks', keyword: '!sig' });
+    const other = store.add({ name: 'Other', text: 'Other text' });
+    expect(() => store.add({ name: 'Copy', text: 'x', keyword: '!sig' })).toThrow(
+      new EntryError('“Signature” already has the keyword !sig.'),
+    );
+    expect(() => store.update(other.id, { keyword: '!SIG' })).toThrow(EntryError);
+    expect(store.update('signature', { name: 'Sig', keyword: '!sig' })).toMatchObject({ keyword: '!sig' });
+    expect(onDisk(path)).toHaveLength(2);
+  });
 });

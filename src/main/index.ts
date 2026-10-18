@@ -118,8 +118,7 @@ async function main(): Promise<void> {
   };
   // Closing it mid-recording mustn't leave the shortcuts paused.
   const settingsWindow = new SettingsWindow({ onClosed: () => hotkeys.resume() });
-  // Quicklinks and snippets: made and changed in Settings for now, where the launcher's Create and
-  // Edit commands take you.
+  // Quicklinks and snippets: made and changed in forms in the launcher, or in Settings.
   const quicklinks = new QuicklinkStore(join(dataDir, 'quicklinks.json'));
   const snippets = new SnippetStore(join(dataDir, 'snippets.json'));
   const readClipboard = () => clipboard.readText();
@@ -155,14 +154,13 @@ async function main(): Promise<void> {
         readClipboard,
         open: (link, openWith) =>
           openLink(link, openWith, { platform, home: homedir(), apps: () => apps.list(), shell }),
-        edit: (id) =>
-          settingsWindow.open(id ? { section: 'quicklinks', edit: id } : { section: 'quicklinks', create: true }),
+        apps: () => apps.byName(),
+        editInSettings: (id) => settingsWindow.open({ section: 'quicklinks', edit: id }),
       }),
       snippetsExtension({
         store: snippets,
         readClipboard,
-        edit: (id) =>
-          settingsWindow.open(id ? { section: 'snippets', edit: id } : { section: 'snippets', create: true }),
+        editInSettings: (id) => settingsWindow.open({ section: 'snippets', edit: id }),
       }),
       webSearch,
       system,

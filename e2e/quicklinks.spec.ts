@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { type ElectronApplication, _electron as electron, expect, type Page, test } from '@playwright/test';
 
-// Quicklinks and snippets: from their files and from Settings, through the root search.
+// Quicklinks and snippets: from their files, forms in the launcher and Settings, through the root search.
 
 const mod = process.platform === 'darwin' ? 'Meta' : 'Control';
 
@@ -29,10 +29,31 @@ function today(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 }
 
-/** Opens the launcher again after an action closed it, with an empty search. */
+/** What the launcher's page is given, as far as these tests use it. */
+type LauncherPage = typeof globalThis & {
+  palette: { onShown(listener: () => void): () => void };
+  requestAnimationFrame(callback: () => void): number;
+  shownHandled?: Promise<void>;
+};
+
+/**
+ * Opens the launcher again after an action closed it, with an empty search. It waits until the
+ * page has dealt with being shown, which selects the search text: letters typed before that would
+ * be selected, and replaced by the next one.
+ */
 async function showLauncher() {
   await expect.poll(launcherVisible).toBe(false);
+  await page.evaluate(() => {
+    const launcher = globalThis as LauncherPage;
+    launcher.shownHandled = new Promise((resolve) => {
+      const off = launcher.palette.onShown(() => {
+        off();
+        launcher.requestAnimationFrame(() => resolve());
+      });
+    });
+  });
   await app.evaluate(({ app: electronApp }) => electronApp.emit('second-instance'));
+  await page.evaluate(() => (globalThis as LauncherPage).shownHandled);
   await expect.poll(launcherVisible).toBe(true);
   await expect(page.getByRole('combobox')).toHaveValue('');
 }
@@ -130,12 +151,148 @@ test('finds quicklinks and snippets written before launch, and opens and pastes 
   await expect.poll(opened).toContain('https://github.com/search?q=cats%20%26%20dogs');
 });
 
-test('makes, changes and deletes quicklinks and snippets in Settings', async () => {
-  // Create Quicklink opens Settings with a new quicklink started.
+/** A field of the form that's open, by its label. */
+const field = (name: string) => page.getByRole('textbox', { name, exact: true });
+
+test('makes and changes quicklinks and snippets in forms in the launcher', async () => {
+  // Create Quicklink opens a form, with the keyboard in its first field.
   await page.keyboard.type('create quicklink');
   await expect(page.getByRole('option').first()).toContainText('Create Quicklink');
-  const [settings] = await Promise.all([app.waitForEvent('window'), page.keyboard.press('Enter')]);
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.search__crumb')).toHaveText('Create Quicklink');
+  await expect(field('Name')).toBeFocused();
+  await expect(page.getByText(/Put \{argument\} where what you type after its name goes/)).toBeVisible();
+  await expect(page.getByRole('combobox', { name: /Open With/ })).toHaveText(/Default/);
+  await page.keyboard.type('Docs');
+
+  // The store's own checks: a link that can't open says why, and the form keeps what was typed.
+  await field('Link').fill('docs for everything');
+  await page.keyboard.press(`${mod}+Enter`);
+  await expect(page.locator('.toast')).toHaveText(/^Use a web address like https:\/\/example.com/);
+  await expect(page.locator('.search__crumb')).toHaveText('Create Quicklink');
+  await expect(field('Name')).toHaveValue('Docs');
+  await field('Link').fill('https://example.com/docs/{argument}');
+  await field('Icon').fill('📘');
+  await page.keyboard.press(`${mod}+Enter`);
+
+  // Saved, and back to an empty root search, where it's ready to use.
+  await expect(page.locator('.toast')).toHaveText('Quicklink created');
+  await expect(page.locator('.search__crumb')).toHaveCount(0);
+  await expect(page.getByRole('combobox')).toHaveValue('');
+  expect(saved('quicklinks.json')).toEqual([
+    { id: 'docs', name: 'Docs', link: 'https://example.com/docs/{argument}', icon: '📘' },
+  ]);
+  await page.keyboard.type('docs intro');
+  await expect(page.getByRole('option').first()).toContainText('“intro”');
+  await page.keyboard.press('Enter');
+  await expect.poll(opened).toEqual(['https://example.com/docs/intro']);
+  await showLauncher();
+
+  // ⌘E in Search Quicklinks edits it in the same form, then goes back to the list with the change.
+  await page.keyboard.type('search quicklinks');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.search__crumb')).toHaveText('Quicklinks');
+  await expect(page.getByRole('option', { name: /Docs/ })).toBeVisible();
+  await page.keyboard.press(`${mod}+e`);
+  await expect(page.locator('.search__crumb')).toHaveText('Edit Quicklink');
+  await expect(field('Name')).toHaveValue('Docs');
+  await expect(field('Link')).toHaveValue('https://example.com/docs/{argument}');
+  await field('Name').fill('Docs Search');
+  await field('Name').press('Enter');
+  await expect(page.locator('.toast')).toHaveText('Quicklink saved');
+  await expect(page.locator('.search__crumb')).toHaveText('Quicklinks');
+  await expect(page.getByRole('option', { name: /Docs Search/ })).toBeVisible();
+  expect(saved('quicklinks.json')).toEqual([
+    { id: 'docs', name: 'Docs Search', link: 'https://example.com/docs/{argument}', icon: '📘' },
+  ]);
+
+  // ⌘E on it in the root search too, back to the search as it was.
+  await page.keyboard.press('Escape');
+  await page.keyboard.type('docs search');
+  await expect(page.getByRole('option').first()).toContainText('Docs Search');
+  await page.keyboard.press(`${mod}+e`);
+  await expect(page.locator('.search__crumb')).toHaveText('Edit Quicklink');
+  await field('Icon').fill('');
+  await page.keyboard.press(`${mod}+Enter`);
+  await expect(page.locator('.toast')).toHaveText('Quicklink saved');
+  await expect(page.getByRole('combobox')).toHaveValue('docs search');
+  await expect.poll(() => saved('quicklinks.json')[0]).not.toHaveProperty('icon');
+  await page.keyboard.press('Escape');
+
+  // A link typed in the search can be made into a quicklink from ⌘K, starting from the link.
+  await page.keyboard.type('example.com/wiki');
+  await expect(page.getByRole('option').first()).toContainText('Open example.com/wiki');
+  await page.keyboard.press(`${mod}+k`);
+  await page
+    .getByRole('dialog')
+    .getByRole('option', { name: /Create Quicklink/ })
+    .click();
+  await expect(page.locator('.search__crumb')).toHaveText('Create Quicklink');
+  await expect(field('Link')).toHaveValue('https://example.com/wiki');
+  await page.keyboard.type('Wiki');
+  await page.keyboard.press(`${mod}+Enter`);
+  await expect(page.locator('.toast')).toHaveText('Quicklink created');
+  expect(saved('quicklinks.json')[1]).toEqual({ id: 'wiki', name: 'Wiki', link: 'https://example.com/wiki' });
+
+  // Create Snippet: ↵ in the text starts a new line, and ⌘↵ saves.
+  await page.keyboard.type('create snippet');
+  await expect(page.getByRole('option').first()).toContainText('Create Snippet');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.search__crumb')).toHaveText('Create Snippet');
+  await page.keyboard.type('Address');
+  await page.keyboard.press('Tab');
+  await expect(field('Text')).toBeFocused();
+  await page.keyboard.type('Bahnhofstrasse 1');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('Copied: {clipboard}');
+  await field('Keyword').fill('!addr');
+  await page.keyboard.press(`${mod}+Enter`);
+  await expect(page.locator('.toast')).toHaveText('Snippet created');
+  expect(saved('snippets.json')).toEqual([
+    { id: 'address', name: 'Address', text: 'Bahnhofstrasse 1\nCopied: {clipboard}', keyword: '!addr' },
+  ]);
+
+  // A keyword another snippet has is refused, and the form stays open with what was typed.
+  await page.keyboard.type('create snippet');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.search__crumb')).toHaveText('Create Snippet');
+  await page.keyboard.type('Home');
+  await field('Text').fill('Home sweet home');
+  await field('Keyword').fill('!ADDR');
+  await page.keyboard.press(`${mod}+Enter`);
+  await expect(page.locator('.toast')).toHaveText('“Address” already has the keyword !addr.');
+  await expect(page.locator('.search__crumb')).toHaveText('Create Snippet');
+  await expect(field('Text')).toHaveValue('Home sweet home');
+  await field('Keyword').fill('!home');
+  await page.keyboard.press(`${mod}+Enter`);
+  await expect(page.locator('.toast')).toHaveText('Snippet created');
+  expect(saved('snippets.json')).toHaveLength(2);
+
+  // ⌘E in Search Snippets, then ⌘↵ copies the changed one.
+  await page.keyboard.type('search snippets');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.search__crumb')).toHaveText('Snippets');
+  await page.getByRole('combobox').fill('address');
+  await expect(page.getByRole('option').first()).toContainText('Address');
+  await page.keyboard.press(`${mod}+e`);
+  await expect(page.locator('.search__crumb')).toHaveText('Edit Snippet');
+  await expect(field('Keyword')).toHaveValue('!addr');
+  await field('Text').fill('Bahnhofstrasse 2\nCopied: {clipboard}');
+  await page.keyboard.press(`${mod}+Enter`);
+  await expect(page.locator('.toast')).toHaveText('Snippet saved');
+  await expect(page.locator('.search__crumb')).toHaveText('Snippets');
+  await expect(page.getByRole('combobox')).toHaveValue('address');
+  await app.evaluate(({ clipboard }) => clipboard.writeText('the plan'));
+  await page.keyboard.press(`${mod}+Enter`);
+  await expect.poll(clipboardText).toBe('Bahnhofstrasse 2\nCopied: the plan');
+});
+
+test('makes, changes and deletes quicklinks and snippets in Settings', async () => {
+  // Settings has its own editors too.
+  const [settings] = await Promise.all([app.waitForEvent('window'), page.keyboard.press(`${mod}+,`)]);
+  await settings.getByRole('button', { name: 'Quicklinks', exact: true }).click();
   await expect(settings.getByRole('heading', { name: 'Quicklinks', exact: true })).toBeVisible();
+  await settings.getByRole('button', { name: 'New Quicklink' }).click();
   const quicklinkForm = settings.getByRole('form', { name: 'New Quicklink' });
   await expect(quicklinkForm.getByLabel('Name')).toBeFocused();
   await settings.keyboard.type('Docs');
@@ -161,7 +318,7 @@ test('makes, changes and deletes quicklinks and snippets in Settings', async () 
   await expect.poll(opened).toEqual(['https://example.com/docs/intro']);
   await showLauncher();
 
-  // Search Quicklinks shows it with a preview; ⌘E edits it in Settings.
+  // Search Quicklinks shows it with a preview; Edit in Settings (⌘K) takes it to Settings.
   await page.keyboard.type('search quicklinks');
   await page.keyboard.press('Enter');
   await expect(page.locator('.search__crumb')).toHaveText('Quicklinks');
@@ -169,7 +326,11 @@ test('makes, changes and deletes quicklinks and snippets in Settings', async () 
   await expect(page.getByRole('complementary', { name: 'Preview of Docs' })).toContainText(
     'https://example.com/docs/{argument}',
   );
-  await page.keyboard.press(`${mod}+e`);
+  await page.keyboard.press(`${mod}+k`);
+  await page
+    .getByRole('dialog')
+    .getByRole('option', { name: /Edit in Settings/ })
+    .click();
   const editForm = settings.getByRole('form', { name: 'Edit Quicklink' });
   await expect(editForm.getByLabel('Name')).toHaveValue('Docs');
   await editForm.getByLabel('Name').fill('Docs Search');
@@ -207,6 +368,16 @@ test('makes, changes and deletes quicklinks and snippets in Settings', async () 
         keyword: '!addr',
       },
     ]);
+
+  // The store's checks apply here too: a keyword in use is refused.
+  await settings.getByRole('button', { name: 'New Snippet' }).click();
+  const another = settings.getByRole('form', { name: 'New Snippet' });
+  await another.getByLabel('Name').fill('Office');
+  await another.getByLabel('Keyword').fill('!addr');
+  await another.getByLabel('Text').fill('Somewhere else');
+  await another.getByRole('button', { name: 'Save' }).click();
+  await expect(another.getByRole('alert')).toContainText('“Address” already has the keyword !addr.');
+  await another.getByRole('button', { name: 'Cancel' }).click();
 
   await page.keyboard.press('Escape');
   await app.evaluate(({ clipboard }) => clipboard.writeText('the plan'));

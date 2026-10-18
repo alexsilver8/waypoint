@@ -113,9 +113,11 @@ Notes are saved as you type, one `.md` file per note, and what you see is what's
 
 ## Quicklinks and snippets
 
-**Quicklinks** open a website, a file or folder, or a place in an app with a few keys. **Snippets** are text you paste often, like an address or a reply. Make them in **Settings → Quicklinks** and **Settings → Snippets**, where **Create Quicklink** and **Create Snippet** take you. Both show up in the launcher's search as you type: a quicklink by its name, a snippet by its name or its keyword, like `!sig`. Snippets only show once you've typed something, so they don't crowd the list of commands.
+**Quicklinks** open a website, a file or folder, or a place in an app with a few keys. **Snippets** are text you paste often, like an address or a reply. Make them with **Create Quicklink** and **Create Snippet**, which open a form in the launcher: fill it in and press <kbd>⌘</kbd> <kbd>↵</kbd> (<kbd>Ctrl</kbd> <kbd>Enter</kbd> on Windows and Linux), and you're back at the search, ready to try it. A web address typed in the search can become one too: **Create Quicklink** in its <kbd>⌘</kbd> <kbd>K</kbd> starts the form with the link filled in. If something can't be saved, like a link Waypoint can't open or a keyword another snippet has, the form says why and keeps what you typed. **Settings → Quicklinks** and **Settings → Snippets** make and change them too.
 
-A quicklink's link is a web address (`https://github.com`, or just `github.com`), a path (`~/Downloads`, `C:\Projects`), or an app's own link (`spotify:`, `obsidian://open?vault=Notes`). Pick an app under **Open with** to open it there rather than in the usual one: Waypoint uses `open -a` on macOS, `Start-Process` on Windows, and `gio launch` (or the app's own command) on Linux.
+Both show up in the launcher's search as you type: a quicklink by its name, a snippet by its name or its keyword, like `!sig`. Snippets only show once you've typed something, so they don't crowd the list of commands. <kbd>⌘</kbd> <kbd>E</kbd> on one in the search edits it in the same form.
+
+A quicklink's link is a web address (`https://github.com`, or just `github.com`), a path (`~/Downloads`, `C:\Projects`), or an app's own link (`spotify:`, `obsidian://open?vault=Notes`). Pick an app under **Open With** to open it there rather than in the usual one: Waypoint uses `open -a` on macOS, `Start-Process` on Windows, and `gio launch` (or the app's own command) on Linux.
 
 Put `{argument}` in a link to fill it in as you go. Type the quicklink's name, or its first letters or initials, then the text: with a quicklink called GitHub Search that links to `https://github.com/search?q={argument}`, `gh waypoint` ↵ opens the search for “waypoint”. Picking one with nothing typed after its name types the name for you, so you only add the rest. Quicklinks with `{argument}` are also offered under **Use “…” with** for anything you type.
 
@@ -125,10 +127,10 @@ Put `{argument}` in a link to fill it in as you go. Type the quicklink's name, o
 | --- | --- | --- |
 | <kbd>↵</kbd> | Open it | Paste it into the app you were in |
 | <kbd>⌘</kbd> <kbd>↵</kbd> | Copy the link | Copy it |
-| <kbd>⌘</kbd> <kbd>E</kbd> | Edit it in Settings | Edit it in Settings |
+| <kbd>⌘</kbd> <kbd>E</kbd> | Edit it | Edit it |
 | <kbd>⌘</kbd> <kbd>⌫</kbd> | Delete it | Delete it |
 
-A snippet picked in the launcher's search pastes too. Pasting works as it does for emoji, so with **Paste into the app you were in** turned off, <kbd>↵</kbd> copies instead.
+Saving an edit goes back to the list with the change in it. **Edit in Settings** in <kbd>⌘</kbd> <kbd>K</kbd> opens it in Settings instead. A snippet picked in the launcher's search pastes too. Pasting works as it does for emoji, so with **Paste into the app you were in** turned off, <kbd>↵</kbd> copies instead.
 
 | Placeholder | |
 | --- | --- |

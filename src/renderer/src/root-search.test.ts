@@ -82,6 +82,13 @@ describe('buildRootSections', () => {
     const [first] = buildRootSections(items, 'github.com/alexsilver8');
     expect(first?.title).toBe('Link');
     expect(first?.items[0]?.actions[0]).toMatchObject({ type: 'open-url', url: 'https://github.com/alexsilver8' });
+    // ⌘K can make a quicklink of it, starting from the link.
+    expect(first?.items[0]?.actions[2]).toEqual({
+      type: 'open-command',
+      ref: { extension: 'quicklinks', command: 'create' },
+      argument: 'https://github.com/alexsilver8',
+      title: 'Create Quicklink',
+    });
   });
 
   it('remembers which root item a row came from', () => {

@@ -3,7 +3,7 @@ import { type FSWatcher, watch } from 'node:fs';
 import { basename, dirname } from 'node:path';
 import { type EntryCheck, idFor, type NormalizedEntries } from '../shared/entries';
 import { checkQuicklink, normalizeQuicklinks, type Quicklink } from '../shared/quicklinks';
-import { checkSnippet, normalizeSnippets, type Snippet } from '../shared/snippets';
+import { checkSnippet, keywordProblem, normalizeSnippets, type Snippet } from '../shared/snippets';
 import { debounce, readJsonFile, writeJsonFile } from './json-file';
 
 /** Thrown when an entry to add or change isn't valid; the message says what to fix. */
@@ -19,6 +19,8 @@ export interface EntryFormat<T extends Entry> {
   noun: string;
   normalize(raw: unknown): NormalizedEntries<T>;
   check(value: unknown): EntryCheck<Omit<T, 'id'>>;
+  /** Why an entry added or changed clashes with the `others` already there, like a keyword in use. */
+  conflict?(entry: Omit<T, 'id'>, others: readonly T[]): string | undefined;
 }
 
 interface EntryStoreEvents<T> {
@@ -57,7 +59,7 @@ export class EntryStore<T extends Entry> extends EventEmitter<EntryStoreEvents<T
   /** Adds an entry with an id made from its name, and saves. Throws an `EntryError` if it isn't valid. */
   add(entry: Omit<T, 'id'>): T {
     const current = this.fresh();
-    const checked = this.valid(entry);
+    const checked = this.valid(entry, current);
     const added = { id: idFor(checked.name, new Set(current.map((e) => e.id)), this.format.noun), ...checked } as T;
     this.save([...current, added]);
     return added;
@@ -70,7 +72,8 @@ export class EntryStore<T extends Entry> extends EventEmitter<EntryStoreEvents<T
     const existing = current[index];
     if (!existing) throw new EntryError(`That ${this.format.noun} doesn’t exist any more.`);
     const { id: _id, ...fields } = existing;
-    const updated = { id, ...this.valid({ ...fields, ...patch }) } as T;
+    const others = current.filter((entry) => entry.id !== id);
+    const updated = { id, ...this.valid({ ...fields, ...patch }, others) } as T;
     this.save(current.map((entry, i) => (i === index ? updated : entry)));
     return updated;
   }
@@ -101,9 +104,12 @@ export class EntryStore<T extends Entry> extends EventEmitter<EntryStoreEvents<T
     this.watcher = undefined;
   }
 
-  private valid(value: unknown): Omit<T, 'id'> {
+  /** The entry as it's saved, checked on its own and against the `others`. */
+  private valid(value: unknown, others: readonly T[]): Omit<T, 'id'> {
     const result = this.format.check(value);
     if (result.problem !== undefined) throw new EntryError(capitalized(result.problem));
+    const conflict = this.format.conflict?.(result.entry, others);
+    if (conflict !== undefined) throw new EntryError(capitalized(conflict));
     return result.entry;
   }
 
@@ -150,9 +156,9 @@ export class QuicklinkStore extends EntryStore<Quicklink> {
   }
 }
 
-/** Your snippets, in `snippets.json`. */
+/** Your snippets, in `snippets.json`. Two can't have the same keyword. */
 export class SnippetStore extends EntryStore<Snippet> {
   constructor(path: string) {
-    super(path, { noun: 'snippet', normalize: normalizeSnippets, check: checkSnippet });
+    super(path, { noun: 'snippet', normalize: normalizeSnippets, check: checkSnippet, conflict: keywordProblem });
   }
 }

@@ -18,6 +18,11 @@ export class AppIndex extends EventEmitter<{ change: [] }> {
     return this.apps;
   }
 
+  /** The apps in order of their names, as Open With lists them for a quicklink. */
+  byName(): AppEntry[] {
+    return [...this.apps].sort((a, b) => a.name.localeCompare(b.name));
+  }
+
   refresh(): Promise<void> {
     this.scanning ??= scanApplications(this.platform)
       .then((apps) => {

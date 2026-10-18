@@ -34,6 +34,9 @@ const URL_WITH_SCHEME = /^https?:\/\/\S+$/i;
 const BARE_DOMAIN =
   /^(www\.)?[\w-]+(\.[\w-]+)*\.(com|org|net|io|dev|app|ai|co|so|gg|me|sh|xyz|edu|gov|ch|de|uk|ie|fr|es|it|nl|br|jp|ca|au)(:\d+)?(\/\S*)?$/i;
 
+/** Create Quicklink, offered for a link typed in the search, which it starts from. */
+const CREATE_QUICKLINK = { extension: 'quicklinks', command: 'create' };
+
 /** Returns a URL to open if the query looks like one. */
 export function asUrl(query: string): string | null {
   if (URL_WITH_SCHEME.test(query)) return query;
@@ -159,6 +162,7 @@ export function buildRootSections(
           actions: [
             { type: 'open-url', url, title: 'Open in Browser' },
             { type: 'copy', text: url, title: 'Copy Link' },
+            { type: 'open-command', ref: CREATE_QUICKLINK, argument: url, title: 'Create Quicklink' },
           ],
         },
       ],

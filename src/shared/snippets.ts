@@ -3,7 +3,14 @@
  * placeholders like `{clipboard}` and `{date}`, filled in when it's pasted, and a keyword like
  * `!email` finds it in the launcher.
  */
-import { type EntryCheck, isRecord, type NormalizedEntries, normalizeEntries, optionalText } from './entries';
+import {
+  type EntryCheck,
+  isRecord,
+  type NormalizedEntries,
+  normalizeEntries,
+  optionalText,
+  textField,
+} from './entries';
 import { expandPlaceholders, type PlaceholderName, type PlaceholderValues } from './placeholders';
 
 export interface Snippet {
@@ -43,6 +50,25 @@ export function checkSnippet(value: unknown): EntryCheck<Omit<Snippet, 'id'>> {
   const entry: Omit<Snippet, 'id'> = { name, text: value.text };
   if (keyword.value) entry.keyword = keyword.value;
   return { entry };
+}
+
+/**
+ * A snippet's fields as a form or the Settings window sends them, to check and save. Every field
+ * is there, so a keyword left empty is cleared. The text is kept exactly as typed.
+ */
+export function snippetFields(raw: unknown): Omit<Snippet, 'id'> {
+  return { name: textField(raw, 'name'), text: textField(raw, 'text'), keyword: textField(raw, 'keyword') };
+}
+
+/**
+ * Why a snippet added or changed can't have its keyword: another snippet has it already, in any
+ * letter case, so typing it would find two. `others` are the snippets besides this one.
+ */
+export function keywordProblem(entry: Omit<Snippet, 'id'>, others: readonly Snippet[]): string | undefined {
+  const keyword = entry.keyword?.toLowerCase();
+  if (!keyword) return undefined;
+  const holder = others.find((other) => other.keyword?.toLowerCase() === keyword);
+  return holder ? `“${holder.name}” already has the keyword ${holder.keyword}.` : undefined;
 }
 
 /** The snippets in `snippets.json`, leaving out (and describing) any that can't be used. */

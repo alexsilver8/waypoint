@@ -57,6 +57,14 @@ export function findPlaceholders(text: string): Placeholder[] {
   }));
 }
 
+/** The placeholders written out for a hint, like "{clipboard}, {date} and {uuid}". */
+export function placeholderList(names: readonly PlaceholderName[]): string {
+  const written = names.map((name) => `{${name}}`);
+  const last = written.pop();
+  if (last === undefined) return '';
+  return written.length > 0 ? `${written.join(', ')} and ${last}` : last;
+}
+
 /** Whether the text has a placeholder with this name, e.g. to read the clipboard only when it's needed. */
 export function hasPlaceholder(text: string, name: PlaceholderName): boolean {
   return findPlaceholders(text).some((placeholder) => placeholder.name === name);

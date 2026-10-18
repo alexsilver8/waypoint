@@ -1,23 +1,72 @@
-import { type PlaceholderValues, valuesWithClipboard } from '../../shared/placeholders';
-import { expandSnippet, type Snippet, snippetPreview } from '../../shared/snippets';
+import { type PlaceholderValues, placeholderList, valuesWithClipboard } from '../../shared/placeholders';
+import {
+  expandSnippet,
+  SNIPPET_PLACEHOLDERS,
+  type Snippet,
+  snippetFields,
+  snippetPreview,
+} from '../../shared/snippets';
 import type {
   ActionResult,
   CommandRef,
+  FormView,
   Icon,
   ItemDetail,
+  Json,
   ListItem,
   RootItem,
   Shortcut,
   View,
 } from '../../shared/types';
-import type { SnippetStore } from '../entry-store';
+import { EntryError, type SnippetStore } from '../entry-store';
+import { isSaveId, saveFromForm, saveId } from './entry-forms';
 import type { BuiltinExtension } from './types';
 
 export interface SnippetsOptions {
   store: SnippetStore;
   readClipboard(): Promise<string>;
-  /** Opens Settings at Snippets, editing the one with this id, or a new one. */
-  edit(id?: string): void;
+  /** Opens Settings at Snippets, editing the one with this id. */
+  editInSettings(id: string): void;
+}
+
+/**
+ * The form that makes a snippet, or changes one: the same fields as in Settings. It submits with
+ * `save`, or `save:<id>` for the one it changes.
+ */
+export function snippetForm(snippet?: Snippet): FormView {
+  return {
+    type: 'form',
+    title: snippet ? 'Edit Snippet' : 'Create Snippet',
+    submit: { id: saveId(snippet?.id), title: snippet ? 'Save Snippet' : 'Create Snippet' },
+    fields: [
+      {
+        type: 'text',
+        id: 'name',
+        title: 'Name',
+        placeholder: 'Email signature',
+        defaultValue: snippet?.name ?? '',
+        required: true,
+        info: 'What you type in the launcher to find it.',
+      },
+      {
+        type: 'textarea',
+        id: 'text',
+        title: 'Text',
+        placeholder: 'Thanks,\nAlex',
+        defaultValue: snippet?.text ?? '',
+        required: true,
+        info: `Pasted just as it is, with ${placeholderList(SNIPPET_PLACEHOLDERS)} filled in.`,
+      },
+      {
+        type: 'text',
+        id: 'keyword',
+        title: 'Keyword',
+        placeholder: '!sig',
+        defaultValue: snippet?.keyword ?? '',
+        info: 'Optional. Type it in the launcher to paste the snippet.',
+      },
+    ],
+  };
 }
 
 /** Paste, copy or edit one snippet; the argument is its id. Not listed: the snippets' own rows run them. */
@@ -77,7 +126,7 @@ export async function snippetRootItems(
 }
 
 /** Search Snippets, Create Snippet, and the unlisted commands the snippets' rows run. */
-export function snippetsExtension({ store, readClipboard, edit }: SnippetsOptions): BuiltinExtension {
+export function snippetsExtension({ store, readClipboard, editInSettings }: SnippetsOptions): BuiltinExtension {
   const view = async (): Promise<View> => {
     const snippets = store.list();
     const values = await valuesWithClipboard(
@@ -97,6 +146,7 @@ export function snippetsExtension({ store, readClipboard, edit }: SnippetsOption
         { type: 'callback', id: 'paste', payload: snippet.id, title: 'Paste Snippet' },
         { type: 'callback', id: 'copy', payload: snippet.id, title: 'Copy Snippet' },
         { type: 'callback', id: 'edit', payload: snippet.id, title: 'Edit Snippet', shortcut: EDIT_SHORTCUT },
+        { type: 'callback', id: 'settings', payload: snippet.id, title: 'Edit in Settings' },
         {
           type: 'callback',
           id: 'delete',
@@ -122,6 +172,18 @@ export function snippetsExtension({ store, readClipboard, edit }: SnippetsOption
   const expanded = async (snippet: Snippet) =>
     expandSnippet(snippet.text, await valuesWithClipboard([snippet.text], readClipboard));
   const byArgument = (argument: string | undefined) => (argument ? store.get(argument) : undefined);
+  const toastFor = (created: boolean) => (created ? 'Snippet created' : 'Snippet saved');
+
+  /**
+   * A form opened from the root search (Create Snippet, or ⌘E on a snippet there) goes back to it
+   * once saved. A new one empties the search, ready to try its keyword.
+   */
+  const saveFromRoot = (id: string, values: Json | undefined): ActionResult | undefined => {
+    if (!isSaveId(id)) return undefined;
+    const saved = saveFromForm(store, id, snippetFields(values));
+    if (saved.failure) return saved.failure;
+    return { pop: true, ...(saved.created ? { clearSearch: true } : {}), toast: toastFor(saved.created) };
+  };
 
   return {
     manifest: {
@@ -136,10 +198,10 @@ export function snippetsExtension({ store, readClipboard, edit }: SnippetsOption
           icon: { builtin: 'search', tint: 'teal' },
           keywords: ['text', 'paste', 'templates', 'expand'],
         },
-        { name: 'create', title: 'Create Snippet', mode: 'no-view', keywords: ['new snippet', 'add snippet'] },
+        { name: 'create', title: 'Create Snippet', mode: 'view', keywords: ['new snippet', 'add snippet'] },
         { name: 'paste', title: 'Paste Snippet', mode: 'no-view' },
         { name: 'copy', title: 'Copy Snippet', mode: 'no-view' },
-        { name: 'edit', title: 'Edit Snippet', mode: 'no-view' },
+        { name: 'edit', title: 'Edit Snippet', mode: 'view' },
       ],
     },
     unlisted: ['paste', 'copy', 'edit'],
@@ -147,16 +209,20 @@ export function snippetsExtension({ store, readClipboard, edit }: SnippetsOption
       search: {
         view,
         async onAction(id, payload) {
-          if (id === 'create') {
-            edit();
-            return { hide: true };
+          if (id === 'create') return { push: snippetForm() };
+          if (isSaveId(id)) {
+            // Back to the list, with the change in it.
+            const saved = saveFromForm(store, id, snippetFields(payload));
+            if (saved.failure) return saved.failure;
+            return { pop: true, replace: await view(), toast: toastFor(saved.created) };
           }
           const snippet = typeof payload === 'string' ? store.get(payload) : undefined;
           if (!snippet) return { ...gone, replace: await view() };
           if (id === 'paste') return { paste: await expanded(snippet) };
           if (id === 'copy') return { copy: await expanded(snippet) };
-          if (id === 'edit') {
-            edit(snippet.id);
+          if (id === 'edit') return { push: snippetForm(snippet) };
+          if (id === 'settings') {
+            editInSettings(snippet.id);
             return { hide: true };
           }
           if (id === 'delete') {
@@ -167,10 +233,8 @@ export function snippetsExtension({ store, readClipboard, edit }: SnippetsOption
         },
       },
       create: {
-        run() {
-          edit();
-          return { hide: true };
-        },
+        view: () => snippetForm(),
+        onAction: saveFromRoot,
       },
       paste: {
         async run(ctx) {
@@ -185,10 +249,13 @@ export function snippetsExtension({ store, readClipboard, edit }: SnippetsOption
         },
       },
       edit: {
-        run(ctx) {
-          edit(ctx.argument || undefined);
-          return { hide: true };
+        view(ctx) {
+          if (!ctx.argument) return snippetForm();
+          const snippet = store.get(ctx.argument);
+          if (!snippet) throw new EntryError('That snippet doesn’t exist any more.');
+          return snippetForm(snippet);
         },
+        onAction: saveFromRoot,
       },
     },
   };

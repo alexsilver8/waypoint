@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { expandPlaceholders, findPlaceholders, formatDate, offsetDate, valuesWithClipboard } from './placeholders';
+import {
+  expandPlaceholders,
+  findPlaceholders,
+  formatDate,
+  offsetDate,
+  placeholderList,
+  valuesWithClipboard,
+} from './placeholders';
 
 // Sunday 18 October 2026, 14:05:09 local time.
 const now = new Date(2026, 9, 18, 14, 5, 9);
@@ -11,6 +18,14 @@ describe('findPlaceholders', () => {
       { name: 'date', options: {} },
     ]);
     expect(findPlaceholders('{selection} {Argument} {argument')).toEqual([]);
+  });
+});
+
+describe('placeholderList', () => {
+  it('writes the placeholders out as a hint says them', () => {
+    expect(placeholderList(['clipboard', 'date', 'uuid'])).toBe('{clipboard}, {date} and {uuid}');
+    expect(placeholderList(['date'])).toBe('{date}');
+    expect(placeholderList([])).toBe('');
   });
 });
 

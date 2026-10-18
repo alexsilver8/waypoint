@@ -10,6 +10,7 @@ import {
   type NormalizedEntries,
   normalizeEntries,
   optionalText,
+  textField,
 } from './entries';
 import { expandPlaceholders, findPlaceholders, type PlaceholderValues } from './placeholders';
 
@@ -88,6 +89,19 @@ export function checkQuicklink(value: unknown): EntryCheck<Omit<Quicklink, 'id'>
   if (openWith.value) entry.openWith = openWith.value;
   if (icon.value) entry.icon = icon.value;
   return { entry };
+}
+
+/**
+ * A quicklink's fields as a form or the Settings window sends them, to check and save. Every field
+ * is there, so one left empty clears it rather than keeping what it had.
+ */
+export function quicklinkFields(raw: unknown): Omit<Quicklink, 'id'> {
+  return {
+    name: textField(raw, 'name'),
+    link: textField(raw, 'link'),
+    openWith: textField(raw, 'openWith'),
+    icon: textField(raw, 'icon'),
+  };
 }
 
 /** The quicklinks in `quicklinks.json`, leaving out (and describing) any that can't be used. */

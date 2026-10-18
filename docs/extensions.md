@@ -244,7 +244,7 @@ onAction(id, values, ctx) {
 }
 ```
 
-What `onAction` returns is applied as for any action: `pop: true` goes back to where the form was opened from, and a failure toast leaves the form as it was, with what was typed, to try again. When one command has several forms, put what each is about in its submit id, like `save:<id>`.
+What `onAction` returns is applied as for any action: `pop: true` goes back to where the form was opened from, and a failure toast leaves the form as it was, with what was typed, to try again. When one command has several forms, put what each is about in its submit id, like `save:<id>`. A list with `filtering: false` is asked for its rows again when the form goes back to it; for one the launcher filters, return its new rows with `replace` alongside `pop: true`, as Waypoint's own Search Quicklinks does after you edit one.
 
 ## Actions
 

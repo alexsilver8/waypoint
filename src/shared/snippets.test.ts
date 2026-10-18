@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkSnippet, expandSnippet, normalizeSnippets, snippetPreview } from './snippets';
+import { checkSnippet, expandSnippet, keywordProblem, normalizeSnippets, snippetPreview } from './snippets';
 
 describe('normalizeSnippets', () => {
   it('keeps valid snippets with their text exactly as written', () => {
@@ -39,6 +39,24 @@ describe('normalizeSnippets', () => {
 describe('checkSnippet', () => {
   it('wants the keyword as text', () => {
     expect(checkSnippet({ name: 'A', text: 'a', keyword: 5 }).problem).toBe('the keyword must be text.');
+  });
+});
+
+describe('keywordProblem', () => {
+  const others = [
+    { id: 'sig', name: 'Signature', text: 'Thanks', keyword: '!sig' },
+    { id: 'plain', name: 'Plain', text: 'Just text' },
+  ];
+
+  it('refuses a keyword another snippet has, in any letter case', () => {
+    expect(keywordProblem({ name: 'New', text: 'x', keyword: '!SIG' }, others)).toBe(
+      '“Signature” already has the keyword !sig.',
+    );
+  });
+
+  it('is fine with a keyword of its own, or none', () => {
+    expect(keywordProblem({ name: 'New', text: 'x', keyword: '!new' }, others)).toBeUndefined();
+    expect(keywordProblem({ name: 'New', text: 'x' }, others)).toBeUndefined();
   });
 });
 

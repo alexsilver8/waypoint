@@ -49,6 +49,12 @@ export function isShortIcon(value: string): boolean {
   return value.length <= 3 || [...graphemes.segment(value)].length <= 3;
 }
 
+/** A field as a form or the Settings window sends it: its text, or "" when it's missing or isn't text. */
+export function textField(raw: unknown, key: string): string {
+  const value = isRecord(raw) ? raw[key] : undefined;
+  return typeof value === 'string' ? value : '';
+}
+
 /** A string option: trimmed, and left out when empty. Anything but a string is a problem. */
 export function optionalText(value: unknown): { value?: string; ok: boolean } {
   if (value === undefined || value === null) return { ok: true };
