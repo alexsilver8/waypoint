@@ -25,7 +25,7 @@ beforeAll(async () => {
   writeFileSync(join(downloads, 'invoice.pdf'), '%PDF-1.7');
   await pause(30);
   writeFileSync(join(downloads, 'readme.txt'), 'Downloaded second\n# not a heading');
-  // An old file, by the time on it, that only just arrived: it's listed as the newest.
+  // An old file, by the time on it, that only just arrived: it's listed as the newest (but see below).
   await pause(30);
   writeFileSync(join(downloads, 'old-photo.jpg'), 'jpg');
   utimesSync(join(downloads, 'old-photo.jpg'), new Date('2020-01-01'), new Date('2020-01-01'));
@@ -44,11 +44,13 @@ describe('Search Downloads', () => {
     const result = await view('downloads', '');
     expect(result?.sections.map((section) => section.title)).toEqual(['Still downloading', 'Downloaded', 'Folder']);
     expect(result?.sections[0]?.items.map((item) => item.title)).toEqual(['movie.mp4']);
-    expect(result?.sections[1]?.items.map((item) => item.title)).toEqual([
-      'old-photo.jpg',
-      'readme.txt',
-      'invoice.pdf',
-    ]);
+    // The old photo arrived last, so it's listed first by when it was made. Except on macOS, which
+    // moves that back too when the time on a file is set earlier, so there it's listed by its date.
+    expect(result?.sections[1]?.items.map((item) => item.title)).toEqual(
+      process.platform === 'darwin'
+        ? ['readme.txt', 'invoice.pdf', 'old-photo.jpg']
+        : ['old-photo.jpg', 'readme.txt', 'invoice.pdf'],
+    );
   });
 
   it('previews text, and searches by name', async () => {
