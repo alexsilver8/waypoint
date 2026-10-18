@@ -377,7 +377,7 @@ export function ReadyStep({ state, platform }: { state: OnboardingState; platfor
           <li className="card">
             <Keycaps keys={[esc]} />
             <span className="card__title">Back</span>
-            <span className="card__text">Steps back, then closes.</span>
+            <span className="card__text">All the way back, then closes.</span>
           </li>
         </ul>
       </section>

@@ -371,17 +371,23 @@ export function App() {
     focusInput();
   }, [focusInput, refreshView]);
 
+  /** Leaves every view a command opened, however deep, for the root search as `root` has it. */
+  const showRoot = (root: Frame) => {
+    searchRequest.current++;
+    setLoading(false);
+    setPanelOpen(false);
+    setStack([root]);
+    focusInput();
+  };
+
   /** Picks what the root search shows; from a command's view, goes back to the search first. */
   const pickScope = (next: RootFilter) => {
     if (isRoot) {
       updateTop({ filter: next, selectedId: undefined });
+      focusInput();
     } else {
-      searchRequest.current++;
-      setLoading(false);
-      setPanelOpen(false);
-      setStack([{ ...ROOT, filter: next }]);
+      showRoot({ ...ROOT, filter: next });
     }
-    focusInput();
   };
 
   const move = (delta: number) => {
@@ -446,9 +452,10 @@ export function App() {
       openSettings();
     } else if (key === 'Escape' && plain) {
       event.preventDefault();
-      if (!isRoot) pop();
-      else if (frame.query) updateTop({ query: '', selectedId: undefined });
-      else if (filter !== 'all') updateTop({ filter: 'all', selectedId: undefined });
+      // Home first, from wherever you are: the root search as it opens, nothing typed and All
+      // showing. Esc there closes the launcher. ⌫ and the back button go back one step instead.
+      if (!isRoot) showRoot(ROOT);
+      else if (frame.query || filter !== 'all') updateTop({ query: '', filter: 'all', selectedId: undefined });
       else palette.hide();
     } else if (key === 'Backspace' && plain && !isRoot && frame.query === '') {
       event.preventDefault();

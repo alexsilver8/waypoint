@@ -106,9 +106,38 @@ test('opens a command and goes back', async () => {
   await page.keyboard.press('Enter');
   await expect(page.locator('.search__crumb')).toHaveText('Clipboard History');
   await expect(page.getByText('Clipboard history is turned off in settings.')).toBeVisible();
-  await page.keyboard.press('Escape');
+  // ⌫ in an empty search field goes back one step, to the search that opened it.
+  await page.keyboard.press('Backspace');
   await expect(page.locator('.search__crumb')).toHaveCount(0);
   await expect(page.getByRole('combobox')).toHaveValue('clipboard hist');
+});
+
+test('goes home with Esc from a command, and closes with Esc from home', async () => {
+  const visible = () => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.isVisible());
+  const all = page.getByRole('tab', { name: 'All', exact: true });
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Tab');
+  await page.keyboard.type('clipboard hist');
+  await expect(page.getByRole('option').first()).toContainText('Clipboard History');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.search__crumb')).toHaveText('Clipboard History');
+  // Not back to the search that opened it, but home: nothing typed, and All.
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.search__crumb')).toHaveCount(0);
+  await expect(page.getByRole('combobox')).toHaveValue('');
+  await expect(all).toHaveAttribute('aria-selected', 'true');
+  expect(await visible()).toBe(true);
+  await page.keyboard.press('Escape');
+  await expect.poll(visible).toBe(false);
+});
+
+test('goes home with one Esc from what was typed in a scope', async () => {
+  await page.keyboard.press('Tab');
+  await page.keyboard.type('quit');
+  await expect(page.getByRole('tab', { name: /^Apps\b/ })).toHaveAttribute('aria-selected', 'true');
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('combobox')).toHaveValue('');
+  await expect(page.getByRole('tab', { name: 'All', exact: true })).toHaveAttribute('aria-selected', 'true');
 });
 
 test('runs an extension command in the extension host', async () => {

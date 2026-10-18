@@ -242,7 +242,15 @@ test('shows what takes up space in a folder, and opens the folders in it', async
   writeFileSync(join(root, 'Videos', 'more.mov'), randomBytes(4_000_000));
   await page.keyboard.press(`${mod}+r`);
   await expect(rows.first()).toContainText('more.mov');
-  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Back' }).click();
   await expect(page.getByRole('combobox')).toHaveValue(`${root}/`);
   await expect(rows.first()).toContainText(/Videos.*7\.\d MB/);
+
+  // Esc goes all the way home from a folder inside, not up to the folder it's in.
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('combobox')).toHaveValue(`${root}/Videos/`);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.search__crumb')).toHaveCount(0);
+  await expect(page.getByRole('combobox')).toHaveValue('');
+  expect(await launcherVisible()).toBe(true);
 });
