@@ -5,6 +5,7 @@
  */
 import { Lexer, type Token, type Tokens } from 'marked';
 import { type MouseEvent, type ReactNode, useMemo } from 'react';
+import { isNetworkPath } from '../../shared/paths';
 
 /** Links that would run something in the page, or reach into it, never open. */
 const BLOCKED_SCHEMES = new Set(['javascript:', 'data:', 'vbscript:', 'file:', 'blob:']);
@@ -75,12 +76,17 @@ export function linkTarget(href: string): string | undefined {
 }
 
 function isAbsolutePath(path: string): boolean {
-  return path.startsWith('/') || /^[a-zA-Z]:[\\/]/.test(path) || path.startsWith('\\\\');
+  return path.startsWith('/') || /^[a-zA-Z]:[\\/]/.test(path);
 }
 
-/** Where an image is loaded from: https URLs as they are, absolute paths of image files through the icon protocol. */
+/**
+ * Where an image is loaded from: https URLs as they are, absolute paths of image files through the
+ * icon protocol. Nothing from another computer without `https:`: `//host/x.png` would be a file
+ * share on Windows, which it signs in to with your account just to show the picture.
+ */
 export function imageSource(href: string): string | undefined {
   const source = decodeEntities(href);
+  if (isNetworkPath(source)) return undefined;
   if (isAbsolutePath(source)) {
     return IMAGE_PATTERN.test(source) ? `palette-icon://icon?path=${encodeURIComponent(source)}` : undefined;
   }

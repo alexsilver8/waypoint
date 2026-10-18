@@ -220,7 +220,7 @@ A page of Markdown that fills the launcher: a README, an article, the result of 
 
 The search field has nothing to search, so it steps aside: <kbd>↑</kbd> <kbd>↓</kbd>, <kbd>Page Up</kbd> <kbd>Page Down</kbd>, <kbd>Space</kbd>, <kbd>Home</kbd> and <kbd>End</kbd> scroll the text, and the action keys work as in a list. <kbd>⌫</kbd> goes back.
 
-Raw HTML is shown as the text it is, never as HTML. Links open in the browser (or the app for their kind of link, like `mailto:`), the way an `open-url` action does; relative links and `javascript:` ones don't open. Images can come from `https://` URLs or from absolute paths to image files on your computer, like `![Chart](/Users/me/chart.png)` or a file in `ctx.supportPath`.
+Raw HTML is shown as the text it is, never as HTML. Links open in the browser (or the app for their kind of link, like `mailto:`), the way an `open-url` action does; relative links and `javascript:` ones don't open. Images can come from `https://` URLs or from absolute paths to image files on your computer, like `![Chart](/Users/me/chart.png)` or a file in `ctx.supportPath`, but never from a file share (`//server/…` or `\\server\…`), which Windows would sign in to just to show the picture.
 
 ## Forms
 

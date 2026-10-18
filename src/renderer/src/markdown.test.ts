@@ -125,6 +125,22 @@ describe('imageSource', () => {
     expect(imageSource('/etc/passwd')).toBeUndefined();
   });
 
+  it('never loads from a file share, which Windows would sign in to', () => {
+    for (const href of [
+      '//upload.wikimedia.org/x.png',
+      '\\\\server\\share\\x.png',
+      '/\\server\\share\\x.png',
+      '\\\\?\\UNC\\server\\share\\x.png',
+      '&#47;/server/share/x.png',
+    ]) {
+      expect(imageSource(href), href).toBeUndefined();
+    }
+    // Markdown's escaped backslashes and angle brackets make the same paths.
+    expect(html('![Share](\\\\\\\\server\\\\share\\\\x.png) ![Host](<//host/x.png>)')).toBe(
+      '<div class="markdown"><p><span class="markdown__alt">Share</span> <span class="markdown__alt">Host</span></p></div>',
+    );
+  });
+
   it('loads https images only', () => {
     expect(imageSource('https://example.com/a.png')).toBe('https://example.com/a.png');
     expect(imageSource('http://example.com/a.png')).toBeUndefined();

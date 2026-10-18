@@ -2,7 +2,7 @@ import { realpath } from 'node:fs/promises';
 import { extname } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { app, type NativeImage, nativeImage, net, protocol } from 'electron';
-import { fileIconSize, IconCache, loadFileIcon } from './icon-cache';
+import { fileIconSize, IconCache, iconRequestPath, loadFileIcon } from './icon-cache';
 
 /** `palette-icon://icon?path=/Applications/Safari.app` serves the icon for that file. */
 export const ICON_SCHEME = 'palette-icon';
@@ -32,7 +32,8 @@ export function registerIconScheme(): void {
 /** Image files are served as they are; for anything else the OS file icon is used. */
 export function handleIconProtocol(): void {
   protocol.handle(ICON_SCHEME, async (request) => {
-    const path = new URL(request.url).searchParams.get('path');
+    // Never a file share: neither the image nor its OS icon is worth Windows signing in to one.
+    const path = iconRequestPath(request.url);
     if (!path) return new Response(null, { status: 400 });
     try {
       if (IMAGE_EXTENSIONS.has(extname(path).toLowerCase())) {

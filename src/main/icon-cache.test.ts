@@ -1,7 +1,33 @@
 import { describe, expect, it } from 'vitest';
-import { fileIconSize, IconCache, type IconSources, loadFileIcon } from './icon-cache';
+import { fileIconSize, IconCache, type IconSources, iconRequestPath, loadFileIcon } from './icon-cache';
 
 const bytes = (n: number) => new Uint8Array([n]);
+
+describe('iconRequestPath', () => {
+  const request = (path: string) => `palette-icon://icon?path=${encodeURIComponent(path)}`;
+
+  it('serves files on this computer', () => {
+    expect(iconRequestPath(request('/Users/me/shot.png'))).toBe('/Users/me/shot.png');
+    expect(iconRequestPath(request('C:\\Pictures\\cat.jpg'))).toBe('C:\\Pictures\\cat.jpg');
+  });
+
+  it('refuses file shares, which Windows would sign in to', () => {
+    for (const path of [
+      '//upload.wikimedia.org/x.png',
+      '\\\\server\\share\\x.png',
+      '\\\\?\\UNC\\server\\share\\x.png',
+      '/\\server\\share\\x.png',
+    ]) {
+      expect(iconRequestPath(request(path)), path).toBeUndefined();
+    }
+  });
+
+  it('refuses a request without a path', () => {
+    expect(iconRequestPath('palette-icon://icon')).toBeUndefined();
+    expect(iconRequestPath('palette-icon://icon?path=')).toBeUndefined();
+    expect(iconRequestPath('not a url')).toBeUndefined();
+  });
+});
 
 describe('IconCache', () => {
   it('loads each icon once', async () => {

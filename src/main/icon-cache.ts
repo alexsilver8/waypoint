@@ -1,3 +1,20 @@
+import { isNetworkPath } from '../shared/paths';
+
+/**
+ * The file a `palette-icon://icon?path=…` request asks for, or `undefined` when it names none or
+ * names one on the network: the path can come from an extension's Markdown, which shows what
+ * anyone wrote (an issue, a README), and Windows would connect to that share to read it.
+ */
+export function iconRequestPath(url: string): string | undefined {
+  let path: string | null;
+  try {
+    path = new URL(url).searchParams.get('path');
+  } catch {
+    return undefined;
+  }
+  return path && !isNetworkPath(path) ? path : undefined;
+}
+
 /**
  * Remembers rendered icons and limits how many are rendered at once, so scrolling through
  * hundreds of apps doesn't ask the OS for hundreds of icons in the same instant.
