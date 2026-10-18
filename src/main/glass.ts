@@ -38,7 +38,11 @@ export function glassWindowOptions(glass: Glass, frameless: boolean): Electron.B
 }
 
 /** Loads one of the renderer pages, telling it which glass it sits on. */
-export function loadPage(window: BrowserWindow, page: 'index' | 'notes' | 'settings', glass: Glass): void {
+export function loadPage(
+  window: BrowserWindow,
+  page: 'index' | 'notes' | 'settings' | 'onboarding',
+  glass: Glass,
+): void {
   const query = { glass };
   if (!app.isPackaged && process.env.ELECTRON_RENDERER_URL) {
     void window.loadURL(`${process.env.ELECTRON_RENDERER_URL}/${page}.html?${new URLSearchParams(query)}`);

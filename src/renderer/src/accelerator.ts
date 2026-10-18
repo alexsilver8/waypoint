@@ -1,5 +1,5 @@
 /** Turning key presses into Electron accelerators ("Alt+Space") and back into keycaps. */
-import type { Platform } from '../../../shared/types';
+import type { Platform } from '../../shared/types';
 
 interface KeyPress {
   code: string;
@@ -138,4 +138,14 @@ export function acceleratorKeys(accelerator: string, platform: Platform): string
     .split('+')
     .filter(Boolean)
     .map((part) => (part === 'Plus' ? '+' : (labels[part.toLowerCase()] ?? part)));
+}
+
+/** Whether two accelerators press the same keys, however they spell and order them. */
+export function sameShortcut(a: string, b: string, platform: Platform): boolean {
+  const keys = (accelerator: string) =>
+    acceleratorKeys(accelerator, platform)
+      .map((key) => key.toLowerCase())
+      .sort()
+      .join('+');
+  return keys(a) === keys(b);
 }

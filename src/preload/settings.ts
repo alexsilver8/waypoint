@@ -13,6 +13,7 @@ const api: SettingsApi = {
   openLink: (link) => ipcRenderer.send(SettingsChannel.openLink, link),
   reloadExtensions: () => ipcRenderer.invoke(SettingsChannel.reloadExtensions),
   clearClipboard: () => ipcRenderer.invoke(SettingsChannel.clearClipboard),
+  openOnboarding: () => ipcRenderer.send(SettingsChannel.openOnboarding),
   onChanged: (listener) => {
     const handler = () => listener();
     ipcRenderer.on(SettingsChannel.changed, handler);

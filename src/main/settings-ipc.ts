@@ -9,7 +9,7 @@ import {
 } from '../shared/settings-ipc';
 import type { Platform } from '../shared/types';
 import type { ClipboardHistory } from './clipboard/history';
-import type { HotkeyManager } from './hotkey';
+import { changeHotkey, type HotkeyManager } from './hotkey';
 import type { CommandRegistry } from './registry';
 import type { SettingsStore } from './settings';
 import type { SettingsWindow } from './settings-window';
@@ -22,6 +22,8 @@ export interface SettingsIpcOptions {
   clipboardHistory: ClipboardHistory;
   platform: Platform;
   paths: { settingsFile: string; dataDirectory: string; extensionsDirectory: string; notesDirectory: () => string };
+  /** Opens first-launch setup again. */
+  openOnboarding(): void;
 }
 
 const PATCHABLE: Array<keyof Settings> = [
@@ -35,7 +37,7 @@ const PATCHABLE: Array<keyof Settings> = [
 
 /** Wires the Settings window's `window.settings` API. */
 export function registerSettingsIpc(options: SettingsIpcOptions): { notifyChanged(): void } {
-  const { store, window, hotkeys, registry, clipboardHistory, platform, paths } = options;
+  const { store, window, hotkeys, registry, clipboardHistory, platform, paths, openOnboarding } = options;
 
   const check = (event: Electron.IpcMainInvokeEvent | Electron.IpcMainEvent) => {
     if (!window.webContents || event.sender !== window.webContents) throw new Error('Unexpected sender');
@@ -89,18 +91,8 @@ export function registerSettingsIpc(options: SettingsIpcOptions): { notifyChange
 
   ipcMain.handle(SettingsChannel.setHotkey, (event, accelerator: unknown) => {
     check(event);
-    if (typeof accelerator !== 'string' || !accelerator.trim()) {
-      hotkeys.resume();
-      return { state: state(), error: 'That isn’t a shortcut.' };
-    }
-    if (!hotkeys.set(accelerator)) {
-      return {
-        state: state(),
-        error: `Couldn’t use ${accelerator}. Another app may already use it; try a different one.`,
-      };
-    }
-    store.update({ hotkey: accelerator });
-    return { state: state() };
+    const error = changeHotkey(hotkeys, store, accelerator);
+    return error ? { state: state(), error } : { state: state() };
   });
 
   ipcMain.on(SettingsChannel.pauseHotkey, (event, paused: unknown) => {
@@ -140,6 +132,11 @@ export function registerSettingsIpc(options: SettingsIpcOptions): { notifyChange
     check(event);
     await registry.loadUserExtensions();
     return state();
+  });
+
+  ipcMain.on(SettingsChannel.openOnboarding, (event) => {
+    check(event);
+    openOnboarding();
   });
 
   ipcMain.handle(SettingsChannel.clearClipboard, (event) => {

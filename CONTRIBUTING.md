@@ -32,7 +32,7 @@ Thanks for taking the time to contribute! 🎉
 | `src/main` | Electron main process: window, hotkey, tray, settings, app index, clipboard history, notes, the command registry |
 | `src/main/commands` | Built-in commands. They implement the same interface as extensions. |
 | `src/extension-host` | Runs third-party extensions in a utility process |
-| `src/renderer` | The launcher and Notes windows (React) |
+| `src/renderer` | The launcher, Notes, Settings and first-launch setup windows (React) |
 | `src/shared` | Types and logic used everywhere: fuzzy search, calculator, the extension API |
 | `examples/extensions` | Example extensions, loaded automatically by `pnpm dev` |
 | `e2e` | Playwright tests that drive the built app |

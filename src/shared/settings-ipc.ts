@@ -49,6 +49,7 @@ export const SettingsChannel = {
   openLink: 'settings:open-link',
   reloadExtensions: 'settings:reload-extensions',
   clearClipboard: 'settings:clear-clipboard',
+  openOnboarding: 'settings:open-onboarding',
   /** main → window: something changed; fetch the state again. */
   changed: 'settings:changed',
 } as const;
@@ -76,5 +77,7 @@ export interface SettingsApi {
   openLink(link: SettingsLink): void;
   reloadExtensions(): Promise<SettingsState>;
   clearClipboard(): Promise<SettingsState>;
+  /** Opens first-launch setup again. */
+  openOnboarding(): void;
   onChanged(listener: () => void): () => void;
 }

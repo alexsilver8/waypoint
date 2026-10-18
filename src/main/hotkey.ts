@@ -54,3 +54,23 @@ export class HotkeyManager {
     globalShortcut.unregisterAll();
   }
 }
+
+/**
+ * Switches to a shortcut someone picked and saves it. Returns why it couldn't be used, in which
+ * case the old one keeps working.
+ */
+export function changeHotkey(
+  hotkeys: HotkeyManager,
+  settings: { update(patch: { hotkey: string }): unknown },
+  accelerator: unknown,
+): string | undefined {
+  if (typeof accelerator !== 'string' || !accelerator.trim()) {
+    hotkeys.resume();
+    return 'That isn’t a shortcut.';
+  }
+  if (!hotkeys.set(accelerator)) {
+    return `Couldn’t use ${accelerator}. Another app may already use it; try a different one.`;
+  }
+  settings.update({ hotkey: accelerator });
+  return undefined;
+}

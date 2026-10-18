@@ -17,13 +17,14 @@ export default defineConfig({
   preload: {
     build: {
       rollupOptions: {
-        // Sandboxed preloads can't load other files, so the two entries must not share any
+        // Sandboxed preloads can't load other files, so the entries must not share any
         // runtime module (type-only imports are fine). Check out/preload has no chunks.
 
         input: {
           index: resolve('src/preload/index.ts'),
           notes: resolve('src/preload/notes.ts'),
           settings: resolve('src/preload/settings.ts'),
+          onboarding: resolve('src/preload/onboarding.ts'),
         },
         // Sandboxed preload scripts must be CommonJS.
         output: { format: 'cjs', entryFileNames: '[name].cjs' },
@@ -39,6 +40,7 @@ export default defineConfig({
           index: resolve('src/renderer/index.html'),
           notes: resolve('src/renderer/notes.html'),
           settings: resolve('src/renderer/settings.html'),
+          onboarding: resolve('src/renderer/onboarding.html'),
         },
       },
     },

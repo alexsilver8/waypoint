@@ -2,13 +2,18 @@ import { type KeyboardEvent, type ReactNode, useCallback, useEffect, useRef, use
 import type { Settings } from '../../../shared/settings';
 import type { SettingsState } from '../../../shared/settings-ipc';
 import type { BuiltinIconName, Tint } from '../../../shared/types';
+import { HotkeyRecorder, type ShortcutRecorder } from '../components/HotkeyRecorder';
 import { ItemIcon } from '../components/ItemIcon';
-import { Keycaps } from '../components/Keycaps';
 import { PaletteMark } from '../components/PaletteMark';
-import { acceleratorFromKeyPress, acceleratorKeys, heldModifiers } from './accelerator';
+import { ThemePicker } from '../components/ThemePicker';
+import { Toggle } from '../components/Toggle';
 
 const api = window.settings;
 const { platform } = api;
+const recorder: ShortcutRecorder = {
+  pause: (paused) => api.pauseHotkey(paused),
+  record: async (accelerator) => (await api.setHotkey(accelerator)).error,
+};
 const REVEAL = platform === 'darwin' ? 'Show in Finder' : platform === 'win32' ? 'Show in Explorer' : 'Show Folder';
 const HISTORY_SIZES = [50, 100, 200, 500, 1000, 5000];
 
@@ -43,70 +48,6 @@ function Group({ title, children }: { title?: string; children: ReactNode }) {
       {title && <h2 className="group__title">{title}</h2>}
       <div className="group__card">{children}</div>
     </section>
-  );
-}
-
-function Toggle({
-  label,
-  checked,
-  disabled,
-  onChange,
-}: {
-  label: string;
-  checked: boolean;
-  disabled?: boolean;
-  onChange(checked: boolean): void;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label={label}
-      className="toggle"
-      disabled={disabled}
-      onClick={() => onChange(!checked)}
-    >
-      <span className="toggle__thumb" />
-    </button>
-  );
-}
-
-const THEMES: Array<{ value: Settings['theme']; label: string }> = [
-  { value: 'system', label: 'System' },
-  { value: 'light', label: 'Light' },
-  { value: 'dark', label: 'Dark' },
-];
-
-/** System, Light and Dark as little launchers (dock, search capsule and sheet), picked like radio buttons. */
-function ThemePicker({ value, onChange }: { value: Settings['theme']; onChange(value: Settings['theme']): void }) {
-  return (
-    <fieldset className="themes">
-      <legend className="visually-hidden">Appearance</legend>
-      {THEMES.map((theme) => (
-        <label key={theme.value} className="theme" data-checked={theme.value === value || undefined}>
-          <input
-            type="radio"
-            name="theme"
-            value={theme.value}
-            checked={theme.value === value}
-            onChange={() => onChange(theme.value)}
-          />
-          <span className="theme__preview" data-theme={theme.value} aria-hidden="true">
-            <span className="theme__dock" />
-            <span className="theme__main">
-              <span className="theme__search" />
-              <span className="theme__sheet">
-                <span className="theme__line" />
-                <span className="theme__line" />
-                <span className="theme__line" />
-              </span>
-            </span>
-          </span>
-          <span className="theme__label">{theme.label}</span>
-        </label>
-      ))}
-    </fieldset>
   );
 }
 
@@ -162,81 +103,6 @@ function ConfirmButton({
   );
 }
 
-function HotkeyRecorder({ value, active }: { value: string; active?: string }) {
-  const [recording, setRecording] = useState(false);
-  const [held, setHeld] = useState<string[]>([]);
-  const [error, setError] = useState<string>();
-
-  const stop = useCallback(() => {
-    setRecording(false);
-    setHeld([]);
-    api.pauseHotkey(false);
-  }, []);
-
-  const start = () => {
-    setError(undefined);
-    setRecording(true);
-    api.pauseHotkey(true);
-  };
-
-  const onKeyDown = async (event: KeyboardEvent<HTMLButtonElement>) => {
-    if (!recording) return;
-    event.preventDefault();
-    event.stopPropagation();
-    if (event.key === 'Escape' && !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey) {
-      stop();
-      return;
-    }
-    const result = acceleratorFromKeyPress(event, platform);
-    if (result.kind === 'pending') {
-      setHeld(result.modifiers);
-    } else if (result.kind === 'invalid') {
-      setError(result.reason);
-    } else {
-      setRecording(false);
-      setHeld([]);
-      const { error: problem } = await api.setHotkey(result.accelerator);
-      setError(problem);
-    }
-  };
-
-  const notWorking = !recording && active !== value;
-  return (
-    <div className="hotkey">
-      <button
-        type="button"
-        className="hotkey__field"
-        data-recording={recording || undefined}
-        onClick={() => (recording ? stop() : start())}
-        onKeyDown={onKeyDown}
-        onKeyUp={(event) => {
-          if (recording) setHeld(heldModifiers(event, platform));
-        }}
-        onBlur={() => recording && stop()}
-        aria-label={recording ? 'Press the new shortcut, or Escape to cancel' : `Shortcut: ${value}. Click to change`}
-      >
-        {recording ? (
-          held.length > 0 ? (
-            <Keycaps keys={acceleratorKeys(held.join('+'), platform)} />
-          ) : (
-            <span className="hotkey__prompt">Press a shortcut…</span>
-          )
-        ) : (
-          <Keycaps keys={acceleratorKeys(value, platform)} />
-        )}
-      </button>
-      {error && <span className="hotkey__message">{error}</span>}
-      {!error && notWorking && (
-        <span className="hotkey__message">
-          {active
-            ? `Couldn’t register this one, so ${active} is in use.`
-            : 'This shortcut isn’t working. Pick another.'}
-        </span>
-      )}
-    </div>
-  );
-}
-
 function PathRow({ path }: { path: string }) {
   return (
     <span className="path" title={path}>
@@ -259,7 +125,7 @@ function General({ state, update }: SectionProps) {
     <>
       <Group>
         <Row label="Launcher shortcut" description="Press it anywhere to open Waypoint.">
-          <HotkeyRecorder value={settings.hotkey} active={state.activeHotkey} />
+          <HotkeyRecorder value={settings.hotkey} active={state.activeHotkey} platform={platform} recorder={recorder} />
         </Row>
         <Row label="Close when you click elsewhere" description="Hide the launcher as soon as it loses focus.">
           <Toggle
@@ -503,6 +369,7 @@ function About({ state }: SectionProps) {
       <div className="button-row button-row--start">
         <Button onClick={() => api.openLink('repository')}>View on GitHub</Button>
         <Button onClick={() => api.openLink('issues')}>Report an Issue</Button>
+        <Button onClick={() => api.openOnboarding()}>Run Setup Again</Button>
       </div>
       <Group title="Your data">
         <Row label="Data folder" description={<PathRow path={info.dataDirectory} />}>

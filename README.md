@@ -33,6 +33,8 @@ Download the latest build for your system from [Releases](https://github.com/ale
 
 Builds aren't code-signed yet, so your system will warn you the first time you open one. On macOS, allow it under **System Settings → Privacy & Security → Open Anyway**. On Windows, choose **More info → Run anyway**.
 
+The first time it starts, Waypoint opens a short setup in place of the launcher: pick the shortcut that opens it (and try it right there), allow Accessibility on macOS so it can paste into other apps and move their windows, choose light or dark, and decide whether to keep clipboard history and open at login. <kbd>↵</kbd> moves on and <kbd>Esc</kbd> goes back. Pressing your shortcut on the last step opens the launcher. If you quit halfway it opens again next time; once you finish or skip it, it doesn't. Run **Set Up Waypoint**, or **Run Setup Again** under **Settings → About**, to go through it again.
+
 ## Use
 
 | Keys | |
@@ -215,6 +217,8 @@ pnpm dist         # installers for your OS in release/
 
 `pnpm install` also downloads the Electron binary for your platform.
 
+First-launch setup only opens on a fresh install. To see it while working on it, start with an empty data folder (`WAYPOINT_USER_DATA=$(mktemp -d) pnpm dev`), or pass `--onboarding` to the app.
+
 ### How it fits together
 
 ```
@@ -228,7 +232,7 @@ pnpm dist         # installers for your OS in release/
 
 - `src/main` — app lifecycle, the launcher window, built-in commands (`commands/`), app indexing (`apps/`), clipboard history, notes (`notes/`) and the command registry that routes every action.
 - `src/extension-host` — loads extensions and runs their commands in a separate process.
-- `src/renderer` — the launcher and Notes windows. Root search and the calculator run here, so typing never waits on IPC.
+- `src/renderer` — the launcher, Notes, Settings and setup windows. Root search and the calculator run here, so typing never waits on IPC.
 - `src/shared` — types, fuzzy matching and the calculator, shared by all three.
 - `extensions` — the extensions that come with Waypoint, in plain JavaScript checked through JSDoc. `pnpm extensions:data` refreshes the gitmoji and emoji lists from their packages.
 - `website` — the landing page: plain HTML, CSS and JavaScript with no build step. Serve the folder to preview it (`npx serve website`); pushes to `main` publish it to GitHub Pages.

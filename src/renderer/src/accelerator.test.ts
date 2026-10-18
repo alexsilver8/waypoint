@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { acceleratorFromKeyPress, acceleratorKeys } from './accelerator';
+import { acceleratorFromKeyPress, acceleratorKeys, sameShortcut } from './accelerator';
 
 const press = (
   code: string,
@@ -65,5 +65,18 @@ describe('acceleratorKeys', () => {
   it('draws words elsewhere', () => {
     expect(acceleratorKeys('CommandOrControl+Shift+K', 'win32')).toEqual(['Ctrl', 'Shift', 'K']);
     expect(acceleratorKeys('Control+Plus', 'linux')).toEqual(['Ctrl', '+']);
+  });
+});
+
+describe('sameShortcut', () => {
+  it('ignores the order and spelling of the modifiers', () => {
+    expect(sameShortcut('Shift+Command+Space', 'Command+Shift+Space', 'darwin')).toBe(true);
+    expect(sameShortcut('CommandOrControl+Space', 'Command+Space', 'darwin')).toBe(true);
+    expect(sameShortcut('CommandOrControl+Space', 'Control+Space', 'win32')).toBe(true);
+  });
+
+  it('tells different keys apart', () => {
+    expect(sameShortcut('Alt+Space', 'Control+Space', 'darwin')).toBe(false);
+    expect(sameShortcut('Command+Space', 'Command+Shift+Space', 'darwin')).toBe(false);
   });
 });

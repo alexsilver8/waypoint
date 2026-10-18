@@ -9,6 +9,11 @@ export interface PasteKeystroke {
   missing?: string;
 }
 
+/** Whether this is a Wayland session rather than X11. */
+export function isWayland(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.XDG_SESSION_TYPE === 'wayland' || (!!env.WAYLAND_DISPLAY && !env.DISPLAY);
+}
+
 /**
  * How to press paste in the frontmost app on each system, in the order to try them.
  * macOS asks System Events (which needs Accessibility permission), Windows uses SendKeys,
@@ -38,8 +43,7 @@ export function pasteKeystrokes(platform: NodeJS.Platform, env: NodeJS.ProcessEn
         args: ['-M', 'ctrl', 'v', '-m', 'ctrl'],
         missing: 'Install wtype to paste straight into apps.',
       };
-      const wayland = env.XDG_SESSION_TYPE === 'wayland' || (!!env.WAYLAND_DISPLAY && !env.DISPLAY);
-      return wayland ? [wtype, xdotool] : [xdotool, wtype];
+      return isWayland(env) ? [wtype, xdotool] : [xdotool, wtype];
     }
   }
 }

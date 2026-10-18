@@ -6,12 +6,19 @@ import type { BuiltinExtension } from './types';
 
 interface PaletteCommandOptions {
   openSettings: () => void;
+  /** Opens first-launch setup again. */
+  openOnboarding: () => void;
   extensionsDir: string;
   registry: () => CommandRegistry;
 }
 
 /** Commands for managing Waypoint itself. */
-export function paletteExtension({ openSettings, extensionsDir, registry }: PaletteCommandOptions): BuiltinExtension {
+export function paletteExtension({
+  openSettings,
+  openOnboarding,
+  extensionsDir,
+  registry,
+}: PaletteCommandOptions): BuiltinExtension {
   const openExtensionsFolder = async () => {
     mkdirSync(extensionsDir, { recursive: true });
     const error = await shell.openPath(extensionsDir);
@@ -72,6 +79,13 @@ export function paletteExtension({ openSettings, extensionsDir, registry }: Pale
           keywords: ['preferences', 'hotkey', 'config'],
         },
         {
+          name: 'onboarding',
+          title: 'Set Up Waypoint',
+          mode: 'no-view',
+          icon: { builtin: 'sparkles', tint: 'blue' },
+          keywords: ['onboarding', 'welcome', 'setup', 'tour', 'tutorial', 'getting started', 'walkthrough'],
+        },
+        {
           name: 'extensions',
           title: 'Manage Extensions',
           mode: 'view',
@@ -102,6 +116,12 @@ export function paletteExtension({ openSettings, extensionsDir, registry }: Pale
       settings: {
         run() {
           openSettings();
+          return { hide: true };
+        },
+      },
+      onboarding: {
+        run() {
+          openOnboarding();
           return { hide: true };
         },
       },

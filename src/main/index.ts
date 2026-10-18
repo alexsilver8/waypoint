@@ -3,6 +3,7 @@ import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { app, nativeTheme, shell } from 'electron';
 import { NotesChannel, noteIdFromDeeplink, RECENTLY_DELETED_DAYS } from '../shared/notes';
+import type { OnboardingOutcome } from '../shared/onboarding';
 import type { Platform } from '../shared/types';
 import { AppIndex } from './apps/app-index';
 import { electronClipboard } from './clipboard/electron-source';
@@ -21,6 +22,9 @@ import { captureDeeplinks, deeplinkIn, handleDeeplinks, registerDeeplinkScheme }
 import { registerNotesIpc } from './notes/ipc';
 import { NotesStore } from './notes/store';
 import { NotesWindow } from './notes/window';
+import { registerOnboardingIpc } from './onboarding/ipc';
+import { OnboardingStore } from './onboarding/store';
+import { OnboardingWindow } from './onboarding/window';
 import { CommandRegistry } from './registry';
 import { type Settings, SettingsStore } from './settings';
 import { registerSettingsIpc } from './settings-ipc';
@@ -60,6 +64,7 @@ async function main(): Promise<void> {
   const settingsPath = join(dataDir, 'settings.json');
   const firstRun = !existsSync(settingsPath);
   const settings = new SettingsStore(settingsPath);
+  const onboarding = new OnboardingStore(join(dataDir, 'onboarding.json'), firstRun);
   const usage = new UsageTracker(join(dataDir, 'usage.json'));
   const apps = new AppIndex(platform);
   const clipboardHistory = new ClipboardHistory(
@@ -116,7 +121,13 @@ async function main(): Promise<void> {
       system,
       // The launcher is created below; window commands only reach for it when they run.
       windowManagementExtension({ platform, launcher: () => launcher }),
-      paletteExtension({ openSettings: () => settingsWindow.open(), extensionsDir, registry: () => registry }),
+      paletteExtension({
+        openSettings: () => settingsWindow.open(),
+        // Setup's window is made below too; the command only reaches for it when it runs.
+        openOnboarding: () => onboardingWindow.open(),
+        extensionsDir,
+        registry: () => registry,
+      }),
     ],
   });
 
@@ -131,7 +142,30 @@ async function main(): Promise<void> {
   });
 
   const launcher = new LauncherWindow({ hideOnBlur: () => settings.get().hideOnBlur });
-  const hotkeys = new HotkeyManager(() => launcher.toggle());
+
+  let quitting = false;
+  app.on('before-quit', () => {
+    quitting = true;
+  });
+  /** Ends setup for good: remembers how, closes its window and opens the launcher. */
+  const finishOnboarding = (outcome: OnboardingOutcome) => {
+    onboarding.complete(outcome);
+    onboardingWindow.close();
+    launcher.show();
+  };
+  const onboardingWindow = new OnboardingWindow(() => {
+    // Closing it mid-recording mustn't leave the shortcut paused.
+    hotkeys.resume();
+    // Closed some other way than its buttons (⌘W, Alt+F4), it counts as skipped. Quitting
+    // halfway doesn't, so setup opens again next time.
+    if (!quitting && onboarding.pending) finishOnboarding('skipped');
+  });
+
+  // While setup is open the shortcut answers there instead, so you can try it.
+  const hotkeys = new HotkeyManager(() => {
+    if (onboardingWindow.isOpen) onboardingWindow.hotkeyPressed();
+    else launcher.toggle();
+  });
   registerIpc(registry, launcher, { pasteIntoApps: () => settings.get().pasteIntoApps });
   const settingsIpc = registerSettingsIpc({
     store: settings,
@@ -146,15 +180,25 @@ async function main(): Promise<void> {
       extensionsDirectory: extensionsDir,
       notesDirectory: () => notesDirectoryFor(settings.get()),
     },
+    openOnboarding: () => onboardingWindow.open(),
+  });
+  const onboardingIpc = registerOnboardingIpc({
+    store: settings,
+    window: onboardingWindow,
+    hotkeys,
+    platform,
+    canLaunchAtLogin: platform !== 'linux' && app.isPackaged,
+    onFinish: finishOnboarding,
   });
   registry.on('change', () => {
     launcher.rootItemsChanged();
     settingsIpc.notifyChanged();
   });
   notesStore.on('change', () => launcher.rootItemsChanged());
-  app.on('second-instance', (_event, argv) => {
+  app.on('second-instance', (_event, argv: readonly string[] | undefined) => {
     const link = deeplinkIn(argv);
     if (link) openDeeplink(link);
+    else if (onboardingWindow.isOpen || argv?.includes('--onboarding')) onboardingWindow.open();
     else launcher.show();
   });
   handleDeeplinks(openDeeplink);
@@ -207,12 +251,15 @@ async function main(): Promise<void> {
   settings.on('change', (current, previous) => {
     apply(current, previous);
     settingsIpc.notifyChanged();
+    onboardingIpc.notifyChanged();
   });
   settings.watch();
 
-  // Show the launcher right away in development, on first run, or when asked to. Apps and
-  // extensions fill in as they load.
-  if (!app.isPackaged || firstRun || process.argv.includes('--show')) launcher.show();
+  // On first run, setup opens in place of the launcher (and again until it's finished or skipped).
+  // Otherwise show the launcher right away in development, or when asked to. Apps and extensions
+  // fill in as they load.
+  if (onboarding.pending || process.argv.includes('--onboarding')) onboardingWindow.open();
+  else if (!app.isPackaged || process.argv.includes('--show')) launcher.show();
 
   await Promise.all([apps.refresh(), registry.loadUserExtensions()]);
   apps.startAutoRefresh();
