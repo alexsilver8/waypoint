@@ -59,10 +59,14 @@ describe.runIf(enabled)(`Disk Usage on ${platform}`, () => {
     log('archives', await settled('archives', ''));
   });
 
-  it('looks in a folder typed into the search', { timeout: 120_000 }, async () => {
-    const typed = platform === 'win32' ? 'C:\\Windows\\Fonts\\' : '/usr/';
+  it('scans a folder typed into the search, once asked', { timeout: 120_000 }, async () => {
+    const folder = platform === 'win32' ? 'C:\\Windows\\Fonts' : '/usr';
+    const typed = `${folder}${platform === 'win32' ? '\\' : '/'}`;
+    const asked = await extension.commands.usage?.view?.({ ...ctx, query: typed });
+    expect(asked?.sections[0]?.items.map((item) => item.id)).toEqual(['scan-here']);
+    await extension.commands.usage?.onAction?.('scan', folder, { ...ctx, query: typed });
     const view = await settled('usage', typed);
     log(typed, view);
-    expect(view?.sections[0]?.items.length).toBeGreaterThan(0);
+    expect(view?.sections[0]?.items.length).toBeGreaterThan(1);
   });
 });
