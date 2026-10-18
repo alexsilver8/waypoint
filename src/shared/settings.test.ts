@@ -30,6 +30,14 @@ describe('normalizeSettings', () => {
     expect(problems).toHaveLength(3);
   });
 
+  it('checks for updates unless turned off', () => {
+    expect(DEFAULT_SETTINGS.checkForUpdates).toBe(true);
+    expect(normalizeSettings({ checkForUpdates: false }).settings.checkForUpdates).toBe(false);
+    expect(normalizeSettings({ checkForUpdates: 'never' }).problems).toEqual([
+      'Ignoring invalid value for "checkForUpdates".',
+    ]);
+  });
+
   it('pastes into apps unless turned off', () => {
     expect(DEFAULT_SETTINGS.pasteIntoApps).toBe(true);
     expect(normalizeSettings({ pasteIntoApps: false }).settings.pasteIntoApps).toBe(false);

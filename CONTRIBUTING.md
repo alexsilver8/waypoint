@@ -66,7 +66,11 @@ pnpm release minor       # forces patch, minor, major or an exact version
 
 The version comes from the commit subjects since the last release: `feat:` makes a minor release, `fix:` and `perf:` a patch, and `feat!:` or a `BREAKING CHANGE:` line a major one. `chore:`, `docs:`, `refactor:`, `test:`, `ci:`, `build:` and `style:` don't release on their own. The command checks that `main` is clean and up to date (pulling it first), runs lint, the type checks, the unit tests and the build, bumps `package.json` and the website's version badge, writes `CHANGELOG.md`, commits, tags `vX.Y.Z` and pushes `main` and the tag together.
 
-The tag starts `.github/workflows/release.yml`, which runs the checks again, makes the GitHub release with that version's notes from the changelog, builds the installers on macOS, Windows and Linux, attaches them, and then publishes the release. Pushing the release commit straight to `main` needs a repository admin, whom `main`'s ruleset lets through.
+The tag starts `.github/workflows/release.yml`, which runs the checks again, makes the GitHub release with that version's notes from the changelog, builds the installers on macOS, Windows and Linux, attaches them, and then publishes the release. It also attaches the `latest*.yml` files and `.blockmap`s that installed copies check for updates (see `publish` in `electron-builder.yml` and `src/main/updater.ts`), so a release reaches everyone without anything else to do.
+
+The Windows installer is signed when the repository has a code-signing certificate in the `WIN_CSC_LINK` secret (the `.pfx`, base64-encoded) and its password in `WIN_CSC_KEY_PASSWORD`; without them it's built unsigned. The Mac build isn't signed until there's an Apple Developer ID, so on macOS Waypoint only says when a new version is out.
+
+Pushing the release commit straight to `main` needs a repository admin, whom `main`'s ruleset lets through.
 
 ## Reporting issues
 

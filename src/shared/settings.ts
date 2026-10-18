@@ -22,6 +22,8 @@ export interface Settings {
   pasteIntoApps: boolean;
   /** A global shortcut for any command, as an Electron accelerator, by `"<extension>/<command>"`. */
   commandHotkeys: Record<string, string>;
+  /** Look for new versions every few hours (the installed app). */
+  checkForUpdates: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -34,6 +36,7 @@ export const DEFAULT_SETTINGS: Settings = {
   notesDirectory: '',
   pasteIntoApps: true,
   commandHotkeys: {},
+  checkForUpdates: true,
 };
 
 export interface NormalizedSettings {
@@ -72,6 +75,9 @@ export function normalizeSettings(raw: unknown): NormalizedSettings {
   });
   take('pasteIntoApps', raw.pasteIntoApps, isBoolean, (v) => {
     settings.pasteIntoApps = v;
+  });
+  take('checkForUpdates', raw.checkForUpdates, isBoolean, (v) => {
+    settings.checkForUpdates = v;
   });
   take(
     'theme',

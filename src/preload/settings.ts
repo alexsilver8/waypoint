@@ -14,6 +14,7 @@ const api: SettingsApi = {
   reloadExtensions: () => ipcRenderer.invoke(SettingsChannel.reloadExtensions),
   clearClipboard: () => ipcRenderer.invoke(SettingsChannel.clearClipboard),
   openOnboarding: () => ipcRenderer.send(SettingsChannel.openOnboarding),
+  updateAction: () => ipcRenderer.send(SettingsChannel.updateAction),
   setCommandHotkey: (key, accelerator) => ipcRenderer.invoke(SettingsChannel.setCommandHotkey, key, accelerator),
   saveQuicklink: (draft) => ipcRenderer.invoke(SettingsChannel.saveQuicklink, draft),
   deleteQuicklink: (id) => ipcRenderer.invoke(SettingsChannel.deleteQuicklink, id),
