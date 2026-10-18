@@ -1,3 +1,4 @@
+import { mapEntries } from '../../shared/entries';
 import { type PlaceholderValues, placeholderList, valuesWithClipboard } from '../../shared/placeholders';
 import {
   expandSnippet,
@@ -103,7 +104,7 @@ export async function snippetRootItems(
     snippets.map((snippet) => snippet.text),
     readClipboard,
   );
-  return snippets.map((snippet) => {
+  return mapEntries(snippets, 'snippet', (snippet) => {
     const id = `snippet:${snippet.id}`;
     return {
       id,
@@ -133,7 +134,7 @@ export function snippetsExtension({ store, readClipboard, editInSettings }: Snip
       snippets.map((snippet) => snippet.text),
       readClipboard,
     );
-    const items: ListItem[] = snippets.map((snippet) => ({
+    const items: ListItem[] = mapEntries(snippets, 'snippet', (snippet) => ({
       id: snippet.id,
       title: snippet.name,
       subtitle: snippetPreview(snippet.text),

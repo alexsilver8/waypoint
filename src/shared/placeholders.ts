@@ -90,7 +90,8 @@ const OFFSET_PART = /([+-]?)(\d+)([yMwdhm])/g;
 
 /**
  * Moves a date by an offset like `+1d`, `-2w` or `+1M -3h`: `y` years, `M` months, `w` weeks,
- * `d` days, `h` hours and `m` minutes. Returns `null` for an offset it can't read.
+ * `d` days, `h` hours and `m` minutes. Returns `null` for an offset it can't read, or one that
+ * goes past the dates a `Date` can hold (about 275,000 years either way).
  */
 export function offsetDate(date: Date, offset: string): Date | null {
   const compact = offset.replace(/\s+/g, '');
@@ -105,7 +106,7 @@ export function offsetDate(date: Date, offset: string): Date | null {
     else if (unit === 'h') result.setHours(result.getHours() + amount);
     else result.setMinutes(result.getMinutes() + amount);
   }
-  return result;
+  return Number.isNaN(result.getTime()) ? null : result;
 }
 
 const FORMAT_TOKEN = /yyyy|yy|MMMM|MMM|MM|M|dd|d|EEEE|EEE|HH|H|hh|h|mm|ss|a|'(?:[^']|'')*'/g;
@@ -176,27 +177,42 @@ const DEFAULT_STYLES: Record<'date' | 'time' | 'datetime', Intl.DateTimeFormatOp
   datetime: { dateStyle: 'medium', timeStyle: 'short' },
 };
 
-function moment(name: 'date' | 'time' | 'datetime', options: Record<string, string>, values: PlaceholderValues) {
+/** The date or time to put in; `undefined` when its offset can't be used. */
+function moment(
+  name: 'date' | 'time' | 'datetime',
+  options: Record<string, string>,
+  values: PlaceholderValues,
+): string | undefined {
   const now = values.now ?? new Date();
-  const date = (options.offset !== undefined && offsetDate(now, options.offset)) || now;
+  const date = options.offset === undefined ? now : offsetDate(now, options.offset);
+  if (!date) return undefined;
   if (options.format) return formatDate(date, options.format, values.locale);
   return dateFormat(values.locale, DEFAULT_STYLES[name]).format(date);
 }
 
 // ── Filling in ──────────────────────────────────────────────
 
-/** Fills in the placeholders in `text`. */
+/**
+ * Fills in the placeholders in `text`. One that can't be filled in, like a date with an offset
+ * that can't be used, or text that can't be percent-encoded, stays as it was written, so the
+ * mistake shows and the rest of the text still comes out.
+ */
 export function expandPlaceholders(text: string, values: PlaceholderValues = {}, options: ExpandOptions = {}): string {
   const names: readonly string[] = options.names ?? PLACEHOLDER_NAMES;
   let clipboard: string | undefined;
   return text.replace(PLACEHOLDER, (source: string, name: PlaceholderName, rawOptions: string) => {
     const placeholderOptions = parseOptions(rawOptions);
     if (!names.includes(name)) return options.unfilled?.({ name, options: placeholderOptions }) ?? source;
-    let value: string;
-    if (name === 'argument') value = values.argument || placeholderOptions.default || '';
-    else if (name === 'clipboard') value = clipboard ??= values.clipboard?.() ?? '';
-    else if (name === 'uuid') value = values.uuid ? values.uuid() : crypto.randomUUID();
-    else value = moment(name, placeholderOptions, values);
-    return options.encode ? options.encode(value) : value;
+    try {
+      let value: string | undefined;
+      if (name === 'argument') value = values.argument || placeholderOptions.default || '';
+      else if (name === 'clipboard') value = clipboard ??= values.clipboard?.() ?? '';
+      else if (name === 'uuid') value = values.uuid ? values.uuid() : crypto.randomUUID();
+      else value = moment(name, placeholderOptions, values);
+      if (value === undefined) return source;
+      return options.encode ? options.encode(value) : value;
+    } catch {
+      return source;
+    }
   });
 }

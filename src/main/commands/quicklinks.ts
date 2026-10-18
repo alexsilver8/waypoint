@@ -1,4 +1,5 @@
 import { basename, extname } from 'node:path';
+import { mapEntries } from '../../shared/entries';
 import {
   PLACEHOLDER_NAMES,
   type PlaceholderValues,
@@ -165,7 +166,7 @@ export function quicklinkForm({ quicklink, text = '', apps }: QuicklinkFormOptio
 
 /** Your quicklinks, for the root search. Those with `{argument}` take what's typed after their name. */
 export function quicklinkRootItems(store: QuicklinkStore, score: (id: string) => number): RootItem[] {
-  return store.list().map((quicklink) => {
+  return mapEntries(store.list(), 'quicklink', (quicklink) => {
     const id = `quicklink:${quicklink.id}`;
     const item: RootItem = {
       id,
@@ -205,7 +206,7 @@ export function quicklinksExtension(options: QuicklinksOptions): BuiltinExtensio
   const view = async (): Promise<View> => {
     const quicklinks = store.list();
     const values = await valuesFor(quicklinks.map((quicklink) => quicklink.link));
-    const items: ListItem[] = quicklinks.map((quicklink) => ({
+    const items: ListItem[] = mapEntries(quicklinks, 'quicklink', (quicklink) => ({
       id: quicklink.id,
       title: quicklink.name,
       subtitle: shortLink(quicklink.link),

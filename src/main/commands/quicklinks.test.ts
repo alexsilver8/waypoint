@@ -115,6 +115,15 @@ describe('quicklinksExtension', () => {
     expect(open).toHaveBeenCalledWith('example.com/page', '/usr/share/applications/firefox.desktop');
   });
 
+  it('lists every quicklink when one has a date it can’t write', async () => {
+    const { store, commands } = setUp();
+    store.add({ name: 'Archive', link: 'https://archive.dev/{date format="yyyy" offset="+300000y"}' });
+    const view = (await commands.search?.view?.(ctx())) as ListView;
+    expect(view.sections[0]?.title).toBe('3 quicklinks');
+    expect(view.sections[0]?.items[2]?.detail?.body).toBe('https://archive.dev/{date format="yyyy" offset="+300000y"}');
+    expect(quicklinkRootItems(store, () => 0)).toHaveLength(3);
+  });
+
   it('says so when the quicklink is gone', async () => {
     const { commands } = setUp();
     expect(await commands.open?.run?.(ctx('nope'))).toMatchObject({ toastStyle: 'failure' });

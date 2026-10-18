@@ -51,6 +51,16 @@ describe('snippetRootItems', () => {
     expect(readClipboard).toHaveBeenCalledTimes(1);
   });
 
+  it('lists every snippet when one has a date it can’t write', async () => {
+    const { store, readClipboard, commands } = setUp();
+    store.add({ name: 'Far future', text: 'See you {date offset="+300000y"}' });
+    const items = await snippetRootItems(store, () => 0, readClipboard);
+    expect(items.map((item) => item.title)).toEqual(['Signature', 'Plain', 'Far future']);
+    expect(items[2]?.detail?.body).toBe('See you {date offset="+300000y"}');
+    const view = (await commands.search?.view?.(ctx())) as ListView;
+    expect(view.sections[0]?.title).toBe('3 snippets');
+  });
+
   it('doesn’t read the clipboard when no snippet uses it', async () => {
     const { store, readClipboard } = setUp();
     store.remove('signature');

@@ -53,8 +53,16 @@ describe('expandPlaceholders', () => {
     expect(expandPlaceholders('{datetime format="d MMM HH:mm" offset="-1w +2h"}', { now, locale: 'en-GB' })).toBe(
       '11 Oct 16:05',
     );
-    // An offset it can't read is ignored.
-    expect(expandPlaceholders('{date format="yyyy-MM-dd" offset="tomorrow"}', { now })).toBe('2026-10-18');
+    // An offset it can't read, or one past the dates there are, leaves the placeholder as written.
+    expect(expandPlaceholders('Due {date format="yyyy-MM-dd" offset="tomorrow"}', { now })).toBe(
+      'Due {date format="yyyy-MM-dd" offset="tomorrow"}',
+    );
+    expect(expandPlaceholders('{date offset="+300000y"} and {date format="yyyy" offset="+1y"}', { now })).toBe(
+      '{date offset="+300000y"} and 2027',
+    );
+    expect(expandPlaceholders('{datetime format="MMMM" offset="-99999999999999999999d"}', { now })).toBe(
+      '{datetime format="MMMM" offset="-99999999999999999999d"}',
+    );
   });
 
   it('uses the default of {argument} when nothing was typed', () => {
@@ -88,6 +96,14 @@ describe('expandPlaceholders', () => {
     expect(expandPlaceholders('/search?q={argument}', { argument: 'a&b c' }, { encode: encodeURIComponent })).toBe(
       '/search?q=a%26b%20c',
     );
+    // Text that can't be percent-encoded, like half of an emoji, leaves the placeholder as written.
+    expect(
+      expandPlaceholders(
+        '/q={clipboard}&d={date format="yyyy"}',
+        { clipboard: () => '\ud83d', now },
+        { encode: encodeURIComponent },
+      ),
+    ).toBe('/q={clipboard}&d=2026');
   });
 
   it('can show placeholders it leaves out some other way', () => {
@@ -130,6 +146,9 @@ describe('offsetDate', () => {
     expect(offsetDate(now, '2w 3d')?.getDate()).toBe(4);
     expect(offsetDate(now, '-90m')?.getHours()).toBe(12);
     expect(offsetDate(now, '+1x')).toBeNull();
+    // Past what a Date can hold.
+    expect(offsetDate(now, '+300000y')).toBeNull();
+    expect(offsetDate(now, '-9999999999999999w')).toBeNull();
   });
 });
 

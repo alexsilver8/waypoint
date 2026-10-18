@@ -55,6 +55,25 @@ export function textField(raw: unknown, key: string): string {
   return typeof value === 'string' ? value : '';
 }
 
+/**
+ * Builds something for each entry, like its row in a list. One it fails for is left out, with an
+ * error in the log, so a single broken entry never takes the whole list with it.
+ */
+export function mapEntries<T extends { name: string }, R>(
+  entries: readonly T[],
+  noun: string,
+  build: (entry: T) => R,
+): R[] {
+  return entries.flatMap((entry) => {
+    try {
+      return [build(entry)];
+    } catch (error) {
+      console.error(`[${noun}s] Couldn’t show “${entry.name}”:`, error);
+      return [];
+    }
+  });
+}
+
 /** A string option: trimmed, and left out when empty. Anything but a string is a problem. */
 export function optionalText(value: unknown): { value?: string; ok: boolean } {
   if (value === undefined || value === null) return { ok: true };
