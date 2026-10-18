@@ -2,6 +2,12 @@
 
 Every release of Waypoint. `pnpm release` writes it from the commits, and each GitHub release shows its section.
 
+## 0.2.1 (2026-10-18)
+
+### Other changes
+
+- add pretty-branch-names skill ([#53](https://github.com/alexsilver8/waypoint/pull/53), [25c5739](https://github.com/alexsilver8/waypoint/commit/25c5739d2ae5372575959c13a4240feb842b3e45))
+
 ## 0.2.0 (2026-10-18)
 
 3 features.
