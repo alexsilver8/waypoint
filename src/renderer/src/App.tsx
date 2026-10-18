@@ -14,7 +14,7 @@ import { optionId, QUICK_KEY_COUNT, ResultList } from './components/ResultList';
 import { ScopeDock } from './components/ScopeDock';
 import { useWindowDrag } from './drag';
 import { type FormState, formValues, isSubmitAction, missingFields } from './form';
-import { isModKey, matchesShortcut, shortcutKeys } from './keys';
+import { isBackKey, isModKey, matchesShortcut, shortcutKeys } from './keys';
 import { type DisplayItem, type DisplaySection, filterView, pageItem, pushedView } from './model';
 import { buildRootSections, countRootMatches, ROOT_FILTERS, type RootFilter } from './root-search';
 
@@ -624,7 +624,12 @@ export function App() {
       if (!isRoot) showRoot(ROOT);
       else if (frame.query || filter !== 'all') updateTop({ query: '', filter: 'all', selectedId: undefined });
       else palette.hide();
-    } else if (key === 'Backspace' && plain && !isRoot && frame.query === '') {
+    } else if (
+      !isRoot &&
+      (isBackKey(event, platform) || (key === 'Backspace' && plain && (!frame.query || pageView)))
+    ) {
+      // ⌫ with nothing typed, or on a page, which has nothing to type even when the command was
+      // opened with text (as a fallback is); ⌘[ from anywhere.
       event.preventDefault();
       pop();
     }
@@ -632,8 +637,8 @@ export function App() {
 
   /**
    * Keys pressed in a form's fields, which keep everything that types, moves the caret or deletes:
-   * the launcher only takes ⌘↵ to submit, ⌘K, ⌘, and Esc, and the actions' shortcuts that use ⌘ or
-   * Ctrl.
+   * the launcher only takes ⌘↵ to submit, ⌘K, ⌘, Esc and ⌘[, and the actions' shortcuts that use ⌘
+   * or Ctrl.
    */
   const onFormKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     const mod = isModKey(event, platform);
@@ -658,6 +663,11 @@ export function App() {
     } else if (event.key === 'Escape' && plain) {
       event.preventDefault();
       showRoot(ROOT);
+    } else if (isBackKey(event, platform) || (event.key === 'Backspace' && plain && event.target === input.current)) {
+      // ⌫ is the fields' own; it goes back only from a form without any, which leaves the keyboard
+      // with the search field.
+      event.preventDefault();
+      pop();
     }
   };
 

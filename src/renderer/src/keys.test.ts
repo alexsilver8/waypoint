@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { matchesShortcut, shortcutKeys } from './keys';
+import { isBackKey, matchesShortcut, shortcutKeys } from './keys';
 
 const event = (key: string, mods: Partial<Record<'metaKey' | 'ctrlKey' | 'shiftKey' | 'altKey', boolean>> = {}) => ({
   key,
@@ -34,6 +34,16 @@ describe('matchesShortcut', () => {
         'darwin',
       ),
     ).toBe(true);
+  });
+});
+
+describe('isBackKey', () => {
+  it('is ⌘[ on macOS and Ctrl+[ elsewhere', () => {
+    expect(isBackKey(event('[', { metaKey: true }), 'darwin')).toBe(true);
+    expect(isBackKey(event('[', { ctrlKey: true }), 'darwin')).toBe(false);
+    expect(isBackKey(event('[', { ctrlKey: true }), 'linux')).toBe(true);
+    expect(isBackKey(event('[', { ctrlKey: true, shiftKey: true }), 'win32')).toBe(false);
+    expect(isBackKey(event('['), 'win32')).toBe(false);
   });
 });
 

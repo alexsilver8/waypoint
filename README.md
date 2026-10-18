@@ -49,11 +49,12 @@ The first time it starts, Waypoint opens a short setup in place of the launcher:
 | <kbd>⌘</kbd> <kbd>1</kbd> … <kbd>9</kbd> | Run one of the first nine results in view (hold <kbd>⌘</kbd> to see the numbers; they follow the scroll) |
 | <kbd>⌘</kbd> <kbd>K</kbd> | Show all actions |
 | <kbd>Esc</kbd> | Go home to an empty search in All, from wherever you are; press it again to close |
-| <kbd>⌫</kbd> | Go back one step, when nothing is typed (so does the arrow before the search field) |
+| <kbd>⌫</kbd> | Go back one step, when nothing is typed or on a page of text (so does the arrow before the search field) |
+| <kbd>⌘</kbd> <kbd>[</kbd> | Go back one step from anywhere, even while you type in a form |
 | <kbd>⌘</kbd> <kbd>,</kbd> | Open settings (the gear at the bottom of the dock shows it while you hold <kbd>⌘</kbd> or point at it) |
 | A command's own shortcut | Run that command from anywhere; see [Command shortcuts](#command-shortcuts) |
 
-On a page of text that a command shows, <kbd>↑</kbd> <kbd>↓</kbd>, <kbd>Page Up</kbd> <kbd>Page Down</kbd> and <kbd>Space</kbd> scroll it. In a form, <kbd>⇥</kbd> moves between the fields and <kbd>⌘</kbd> <kbd>↵</kbd> submits it; <kbd>⌫</kbd> and the arrows stay with the field you're typing in.
+On a page of text that a command shows, <kbd>↑</kbd> <kbd>↓</kbd>, <kbd>Page Up</kbd> <kbd>Page Down</kbd> and <kbd>Space</kbd> scroll it. In a form, <kbd>⇥</kbd> moves between the fields and <kbd>⌘</kbd> <kbd>↵</kbd> submits it; <kbd>⌫</kbd> and the arrows stay with the field you're typing in, so <kbd>⌘</kbd> <kbd>[</kbd> goes back.
 
 The Notes window has its own shortcuts, listed in the [Notes](#notes) section.
 

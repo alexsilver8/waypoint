@@ -13,6 +13,11 @@ export function isModKey(event: KeyEventLike, platform: Platform): boolean {
   return platform === 'darwin' ? event.metaKey : event.ctrlKey;
 }
 
+/** ⌘[ (Ctrl+[ on Windows and Linux): back one step from any view, a form's fields too, as in a browser. */
+export function isBackKey(event: KeyEventLike, platform: Platform): boolean {
+  return isModKey(event, platform) && !event.shiftKey && event.key === '[';
+}
+
 export function matchesShortcut(event: KeyEventLike, shortcut: Shortcut, platform: Platform): boolean {
   const modifiers = new Set(shortcut.modifiers ?? []);
   const mac = platform === 'darwin';

@@ -50,6 +50,8 @@ function addViewsExtension(userData: string) {
         commands: [
           { name: 'notes', title: 'Show Release Notes', mode: 'view' },
           { name: 'feedback', title: 'Send Feedback', mode: 'view' },
+          { name: 'lookup', title: 'Look Up', mode: 'view', fallback: true },
+          { name: 'jot', title: 'Jot Down', mode: 'view', fallback: true },
         ],
       },
     }),
@@ -109,6 +111,16 @@ export default {
       onAction: respond,
     },
     feedback: { view: () => feedback, onAction: respond },
+    lookup: { view: (ctx) => ({ type: 'detail', title: 'Look Up', markdown: '# ' + ctx.argument }) },
+    jot: {
+      view: (ctx) => ({
+        type: 'form',
+        title: 'Jot Down',
+        submit: { id: 'save' },
+        fields: [{ type: 'text', id: 'text', title: 'Text', defaultValue: ctx.argument }],
+      }),
+      onAction: () => ({ pop: true }),
+    },
   },
 };
 `,
@@ -192,6 +204,29 @@ test('shows a Markdown page with its actions, and opens its links in the browser
     .toEqual(['https://example.com/docs']);
   expect(page.url()).toBe(url);
   await expect.poll(launcherVisible).toBe(false);
+});
+
+test('goes back from a page or a form opened with text, as a fallback is', async () => {
+  await page.keyboard.type('zebra');
+  await page.getByRole('option', { name: /Look Up/ }).click();
+  await expect(page.locator('.search__crumb')).toHaveText('Look Up');
+  await expect(page.getByRole('article', { name: 'Look Up' }).getByRole('heading')).toHaveText('zebra');
+  // The text it was opened with stays out of sight, and ⌫ goes back all the same.
+  await page.keyboard.press('Backspace');
+  await expect(page.locator('.search__crumb')).toHaveCount(0);
+  await expect(page.getByRole('combobox')).toHaveValue('zebra');
+
+  await page.getByRole('option', { name: /Jot Down/ }).click();
+  const text = page.getByRole('textbox', { name: 'Text' });
+  await expect(text).toBeFocused();
+  await expect(text).toHaveValue('zebra');
+  // In a field, ⌫ is the field's; ⌘[ goes back.
+  await page.keyboard.press('Backspace');
+  await expect(text).toHaveValue('zebr');
+  await page.keyboard.press(`${mod}+BracketLeft`);
+  await expect(page.locator('.search__crumb')).toHaveCount(0);
+  await expect(page.getByRole('combobox')).toHaveValue('zebra');
+  await expect(page.getByRole('combobox')).toBeFocused();
 });
 
 test('keeps a page an action pushed, even one that says it’s loading', async () => {
