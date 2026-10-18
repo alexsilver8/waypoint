@@ -462,6 +462,73 @@ test('numbers the rows in view once the list is scrolled', async () => {
   await expect(notes.locator('.notes__title')).toHaveText(fourth);
 });
 
+test('scrolls only as far as the wheel goes, wherever the pointer rests', async () => {
+  const list = page.locator('.content__list');
+  const box = await list.boundingBox();
+  if (!box) throw new Error('No list');
+  const scrollTop = () => list.evaluate((element) => element.scrollTop);
+  const selected = () => page.locator('[role="option"][aria-selected="true"] .row__title').textContent();
+
+  // The pointer near the foot of the list, drifting a pixel at a time as a hand on a trackpad does.
+  // Each row it passes is picked, but picking one mustn't scroll the list under the pointer: that
+  // slid the next row under it, which was picked and scrolled to in turn, and the list ran away.
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height - 14;
+  await page.mouse.move(x, y);
+  for (let i = 0; i < 10; i++) {
+    await page.mouse.wheel(0, 120);
+    await page.mouse.move(x + (i % 2), y - (i % 3));
+  }
+  await expect.poll(scrollTop).toBe(1200);
+
+  // Rows sliding under a pointer that's still don't pick one, though the browser says it moved.
+  const middle = { x: x + 1, y: box.y + box.height / 2 };
+  await page.evaluate(() => {
+    const globals = globalThis as unknown as PointerGlobals;
+    globals.addEventListener('mousemove', (event) => Object.assign(globals, { lastMove: event }), { capture: true });
+  });
+  await page.mouse.move(middle.x, middle.y);
+  const picked = await selected();
+  await page.mouse.wheel(0, 132);
+  await expect.poll(scrollTop).toBe(1332);
+  const underPointer = await page.evaluate(({ x: px, y: py }) => {
+    const globals = globalThis as unknown as PointerGlobals;
+    const row = globals.document.elementFromPoint(px, py)?.closest('[role="option"]');
+    const { screenX, screenY } = globals.lastMove ?? { screenX: 0, screenY: 0 };
+    row?.dispatchEvent(
+      new globals.MouseEvent('mousemove', { bubbles: true, clientX: px, clientY: py, screenX, screenY }),
+    );
+    return row?.querySelector('.row__title')?.textContent;
+  }, middle);
+  expect(underPointer).not.toBe(picked);
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        const { requestAnimationFrame } = globalThis as unknown as PointerGlobals;
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      }),
+  );
+  expect(await selected()).toBe(picked);
+});
+
+/** What the test above uses of the page's globals; the e2e tests are typed without the DOM's. */
+interface PageElement {
+  closest(selector: string): PageElement | null;
+  querySelector(selector: string): { textContent: string | null } | null;
+  dispatchEvent(event: unknown): boolean;
+}
+interface PointerGlobals {
+  document: { elementFromPoint(x: number, y: number): PageElement | null };
+  addEventListener(
+    type: string,
+    listener: (event: { screenX: number; screenY: number }) => void,
+    options: object,
+  ): void;
+  MouseEvent: new (type: string, init: object) => unknown;
+  requestAnimationFrame(callback: () => void): number;
+  lastMove?: { screenX: number; screenY: number };
+}
+
 test('opens again where it was dragged', async () => {
   const launcher = () =>
     app.evaluate(({ BrowserWindow }) => {

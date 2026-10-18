@@ -183,6 +183,15 @@ export function ResultList({
     };
   }, [virtual]);
 
+  /**
+   * Where the pointer last moved over the list. Browsers also send `mousemove` when rows slide
+   * under a pointer that's still (as the list scrolls, or bounces at its end on macOS), and that
+   * mustn't pick a row: only a pointer that really moved does.
+   */
+  const pointer = useRef<{ x: number; y: number } | undefined>(undefined);
+  /** The row the pointer picked, for as long as it's the selected one. */
+  const pointerPick = useRef<string | undefined>(undefined);
+
   // Keep the selected row in view as it moves. When the same results are drawn again (a list
   // that's still loading), a picked row is followed only if it was in view, and the first row
   // not at all, so a list scrolled by hand stays where it was put.
@@ -190,7 +199,11 @@ export function ResultList({
   useLayoutEffect(() => {
     const before = drawn.current;
     drawn.current = { selectedId, resultsKey, layout };
+    if (before.resultsKey !== resultsKey || pointerPick.current !== selectedId) pointerPick.current = undefined;
     if (!selectedId) return;
+    // A row the pointer picked is under the pointer already. Scrolling it into view would slide
+    // the next row under the pointer, which would pick that one and scroll again, on and on.
+    if (pointerPick.current === selectedId) return;
     const scroller = root.current?.parentElement;
     if (scroller && before.layout && before.resultsKey === resultsKey) {
       if (!picked) return;
@@ -262,8 +275,13 @@ export function ResultList({
         className={item.calculator ? 'row row--calc' : 'row'}
         data-tint={tintOf(item.icon)}
         style={style}
-        onMouseMove={() => {
-          if (!selected) onSelect(item);
+        onMouseMove={(event) => {
+          const last = pointer.current;
+          pointer.current = { x: event.screenX, y: event.screenY };
+          if (last?.x === event.screenX && last.y === event.screenY) return;
+          if (selected) return;
+          pointerPick.current = item.id;
+          onSelect(item);
         }}
         onClick={() => onActivate(item)}
       >

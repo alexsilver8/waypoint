@@ -14,6 +14,22 @@
   box-sizing: border-box;
 }
 
+/*
+ * A list scrolled to its end stops there: it doesn't bounce (macOS) or hand the scroll on to
+ * whatever is around it. A bouncing list slides rows under a pointer that isn't moving. Only the
+ * panes that scroll get it: on a box that merely clips (overflow: hidden), it would stop the
+ * wheel from reaching the list around it.
+ */
+.content__list,
+.detail,
+.action-panel__list,
+.page__scroll,
+.page__meta,
+.form,
+.dropdown__list {
+  overscroll-behavior: none;
+}
+
 html,
 body,
 #root {
