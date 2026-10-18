@@ -25,7 +25,7 @@ Website: [waypoint.alexsilver.dev](https://waypoint.alexsilver.dev/)
 - **Snaps windows** — halves, thirds, quarters, maximize, centre and the next display for the window you were using, and **Restore** to put it back. See [Windows](#windows).
 - **Runs your computer** — lock, sleep, restart, shut down, log out, empty the Trash, eject disks and turn Wi-Fi on or off, with a check before anything you can't undo. See [System](#system).
 - **Comes with extensions** — file search, your downloads and browser bookmarks, what's taking up space on your disk, your own scripts and Shortcuts, Keep Awake, translation and a dictionary, developer tools like Port Manager, Docker and GitHub, plus Media Controls and System Info, described [below](#included-extensions).
-- **Runs extensions** — commands written in JavaScript, each extension in a separate process. They show lists, pages of Markdown and forms. Install other people's from npm or GitHub with **Install Extension** (see [Installing extensions](#installing-extensions)), or write your own (see [Writing extensions](docs/extensions.md)).
+- **Runs extensions** — commands written in JavaScript, each extension in a separate process. They show lists, pages of Markdown and forms. Find other people's with **Browse Extensions**, or install them from npm or GitHub with **Install Extension** (see [Installing extensions](#installing-extensions)), or write your own (see [Writing extensions](docs/extensions.md)).
 - **Everything has actions** — <kbd>⌘</kbd> <kbd>K</kbd> lists what you can do with the selected item.
 - **Gives any command its own shortcut** — press it anywhere to snap a window, search your files or keep your computer awake, without opening the launcher first. See [Command shortcuts](#command-shortcuts).
 - **Looks at home on your desktop** — the launcher is three panes floating on your desktop with nothing around them: the scope dock, the search field, and the results with their preview and action bar. Light or dark. Drag it anywhere that isn't a control to move it: like Raycast, guide lines show the screen's center, its middle and where the launcher opens, and it snaps to them. It opens again where you left it on that display. Settings floats the same way on macOS. The Notes window is liquid glass that blurs what's behind them on macOS and Windows 11; Linux gets the same design on a solid background, since it has no system blur.
@@ -270,7 +270,9 @@ Raycast's `@raycast.` headers are read the same way, so the scripts in [raycast/
 
 ## Installing extensions
 
-Someone shared an extension? Run **Install Extension** and type where it is:
+**Browse Extensions** lists the extensions people published to npm, most installed first, and searches them as you type. The preview shows what each one is, who published it, when, and how often it's downloaded. <kbd>↵</kbd> installs one, after the same check as below, and ones you have are marked **Installed**, with **Check for Update** and **Uninstall Extension…** in <kbd>⌘</kbd> <kbd>K</kbd>. Authors get listed by adding the `waypoint-extension` keyword to their package (see [Sharing your extension](docs/extensions.md#sharing-your-extension)).
+
+Someone shared an extension that isn't listed? Run **Install Extension** and type where it is:
 
 | You type | Installs |
 | --- | --- |

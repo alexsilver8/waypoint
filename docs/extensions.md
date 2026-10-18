@@ -6,7 +6,7 @@ The quickest way to start is to copy [`examples/extensions/developer-utilities`]
 
 > Extensions have full Node.js access, like a package you `npm install`. Only install extensions you trust.
 
-To share yours, publish it to npm or push it to GitHub: people install it with **Install Extension**. See [Sharing your extension](#sharing-your-extension).
+To share yours, publish it to npm or push it to GitHub: people find it in **Browse Extensions** or install it with **Install Extension**. See [Sharing your extension](#sharing-your-extension).
 
 ## Quick start
 
@@ -400,6 +400,7 @@ Waypoint doesn't run npm or install anything for it, so the package must work as
 
 - **`name`** is your extension's name, and the folder it's installed in. On npm, a scoped name like `@you/emoji-picker` works: Waypoint leaves out the scope. What's left must be lowercase letters, digits and dashes.
 - **`version`** is shown when installing, and is how **Check for Update** knows there's a new one.
+- **`keywords`** with `waypoint-extension` among them lists it in **Browse Extensions**, where people search for and install extensions from npm. Its `description` is shown there too.
 - **`waypoint`** has the title and commands, as [above](#packagejson).
 - **`main`** must point at plain JavaScript that's in the package. If you write TypeScript or use a bundler, publish the built file. From git, commit it.
 - **`dependencies`** aren't installed. Bundle them into your module, or list them in `bundleDependencies` so npm packs them with it. `@waypoint-org/api` is the exception: Waypoint gives it to every extension, so keep it in `devDependencies`.
@@ -412,7 +413,7 @@ npm pack --dry-run   # check what goes in: package.json, your module, icons
 npm publish          # --access public for a scoped name
 ```
 
-People then install it by its name, or `name@1.2.0` for one version. Publish a new version, and **Check for Update** finds it.
+People then find it in **Browse Extensions** (with the `waypoint-extension` keyword; npm takes a few minutes to list a new package), or install it by its name, or `name@1.2.0` for one version. Publish a new version, and **Check for Update** finds it.
 
 From GitHub, people install your repository's default branch (`you/emoji-picker`), a tag (`github:you/emoji-picker#v1.2.0`), or a folder of the repository (`https://github.com/you/tools/tree/main/emoji-picker`), for an extension that isn't at the top. Other git hosts work by their https or ssh address, for people with `git` installed.
 

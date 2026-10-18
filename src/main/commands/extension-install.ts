@@ -36,7 +36,7 @@ const NOT_INSTALLED: ActionResult = { toast: 'It wasn’t installed from npm or 
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`;
 
 /** A field of a callback's payload, or a form's values, if it's a string. */
-function payloadField(payload: Json | undefined, key: string): string | undefined {
+export function payloadField(payload: Json | undefined, key: string): string | undefined {
   if (typeof payload !== 'object' || payload === null || Array.isArray(payload)) return undefined;
   const value = payload[key];
   return typeof value === 'string' ? value : undefined;

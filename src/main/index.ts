@@ -32,6 +32,7 @@ import { webSearch } from './commands/web-search';
 import { windowManagementExtension } from './commands/window-management';
 import { QuicklinkStore, SnippetStore } from './entry-store';
 import { ExchangeRateStore } from './exchange-rates';
+import { ExtensionCatalog } from './extensions/catalog';
 import { ExtensionHostClient } from './extensions/host-client';
 import { ExtensionInstaller } from './extensions/installer';
 import { hostServices } from './extensions/services';
@@ -164,6 +165,11 @@ async function main(): Promise<void> {
         .some((info) => info.manifest?.name === name && (!info.dir || resolve(info.dir) !== resolve(dir))),
   });
   installer.cleanUp();
+  // What Browse Extensions lists: packages on npm with the waypoint-extension keyword.
+  const catalog = new ExtensionCatalog({
+    fetch: (url, init) => net.fetch(url, init),
+    ...(process.env.WAYPOINT_NPM_REGISTRY ? { registry: process.env.WAYPOINT_NPM_REGISTRY } : {}),
+  });
 
   const registry: CommandRegistry = new CommandRegistry({
     platform,
@@ -216,6 +222,7 @@ async function main(): Promise<void> {
         extensionsDir,
         registry: () => registry,
         installer,
+        catalog,
       }),
     ],
   });
