@@ -206,6 +206,23 @@ test('shows a Markdown page with its actions, and opens its links in the browser
   await expect.poll(launcherVisible).toBe(false);
 });
 
+test('lets the text of a page be picked out and copied', async () => {
+  await open('Show Release Notes', 'Release Notes');
+  const article = page.getByRole('article', { name: 'Release Notes' });
+  await article.locator('strong').dblclick();
+  const selected = () =>
+    (globalThis as unknown as { getSelection(): { toString(): string } | null }).getSelection()?.toString();
+  await expect.poll(() => page.evaluate(selected)).toBe('pages');
+  await page.keyboard.press(`${mod}+c`);
+  await expect.poll(() => app.evaluate(({ clipboard }) => clipboard.readText())).toBe('pages');
+  // The page has the keyboard now, with the launcher's keys.
+  await page.keyboard.press('PageDown');
+  await expect.poll(() => page.locator('.page__scroll').evaluate((element) => element.scrollTop)).toBeGreaterThan(100);
+  await page.keyboard.press('Backspace');
+  await expect(page.locator('.search__crumb')).toHaveCount(0);
+  await expect(page.getByRole('combobox')).toBeFocused();
+});
+
 test('goes back from a page or a form opened with text, as a fallback is', async () => {
   await page.keyboard.type('zebra');
   await page.getByRole('option', { name: /Look Up/ }).click();

@@ -54,7 +54,7 @@ The first time it starts, Waypoint opens a short setup in place of the launcher:
 | <kbd>⌘</kbd> <kbd>,</kbd> | Open settings (the gear at the bottom of the dock shows it while you hold <kbd>⌘</kbd> or point at it) |
 | A command's own shortcut | Run that command from anywhere; see [Command shortcuts](#command-shortcuts) |
 
-On a page of text that a command shows, <kbd>↑</kbd> <kbd>↓</kbd>, <kbd>Page Up</kbd> <kbd>Page Down</kbd> and <kbd>Space</kbd> scroll it. In a form, <kbd>⇥</kbd> moves between the fields and <kbd>⌘</kbd> <kbd>↵</kbd> submits it; <kbd>⌫</kbd> and the arrows stay with the field you're typing in, so <kbd>⌘</kbd> <kbd>[</kbd> goes back.
+On a page of text that a command shows, <kbd>↑</kbd> <kbd>↓</kbd>, <kbd>Page Up</kbd> <kbd>Page Down</kbd> and <kbd>Space</kbd> scroll it, and you can select its text with the pointer and copy it with <kbd>⌘</kbd> <kbd>C</kbd>. In a form, <kbd>⇥</kbd> moves between the fields and <kbd>⌘</kbd> <kbd>↵</kbd> submits it; <kbd>⌫</kbd> and the arrows stay with the field you're typing in, so <kbd>⌘</kbd> <kbd>[</kbd> goes back.
 
 The Notes window has its own shortcuts, listed in the [Notes](#notes) section.
 

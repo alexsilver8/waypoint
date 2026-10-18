@@ -39,6 +39,17 @@
   min-width: 0;
   overflow-y: auto;
   padding: 22px 28px 28px;
+  outline: none;
+}
+
+/* A page's text can be picked out to copy, unlike the rest of the launcher. */
+.page__article {
+  user-select: text;
+  cursor: text;
+}
+
+.page__article a {
+  cursor: pointer;
 }
 
 .page__scroll::-webkit-scrollbar-track,

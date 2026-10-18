@@ -14,7 +14,7 @@ import { optionId, QUICK_KEY_COUNT, ResultList } from './components/ResultList';
 import { ScopeDock } from './components/ScopeDock';
 import { useWindowDrag } from './drag';
 import { type FormState, formValues, isSubmitAction, missingFields } from './form';
-import { isBackKey, isModKey, matchesShortcut, shortcutKeys } from './keys';
+import { isBackKey, isCopyKey, isModKey, matchesShortcut, shortcutKeys } from './keys';
 import { type DisplayItem, type DisplaySection, filterView, pageItem, pushedView } from './model';
 import { buildRootSections, countRootMatches, ROOT_FILTERS, type RootFilter } from './root-search';
 
@@ -82,6 +82,12 @@ function formActionKeys(action: Action, index: number): string[] | undefined {
 }
 
 let nextFrameId = 1;
+
+/** Whether text inside `element` is picked out. */
+function hasSelectionIn(element: HTMLElement | null): boolean {
+  const selection = window.getSelection();
+  return Boolean(element && selection && !selection.isCollapsed && element.contains(selection.anchorNode));
+}
 
 function cleanError(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
@@ -157,12 +163,14 @@ export function App() {
   }, [toast]);
 
   // Clicks anywhere but a text field leave the keyboard with the search field (or the form's
-  // field), where every shortcut lives. Buttons and rows still get their click.
+  // field), where every shortcut lives. Buttons and rows still get their click. The text of a page
+  // can be picked out to copy: the page takes the keyboard then, and has the same keys.
   useEffect(() => {
     const keepFocus = (event: MouseEvent) => {
-      if (!(event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement)) {
-        event.preventDefault();
-      }
+      const target = event.target;
+      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) return;
+      if (target instanceof Element && target.closest('.page__article')) return;
+      event.preventDefault();
     };
     document.addEventListener('mousedown', keepFocus);
     return () => document.removeEventListener('mousedown', keepFocus);
@@ -553,9 +561,11 @@ export function App() {
     if (next) updateTop({ selectedId: next.id });
   };
 
-  const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+  const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     // Keys that pick or confirm an input-method candidate aren't ours.
     if (event.nativeEvent.isComposing) return;
+    // ⌘C copies what's picked out on a page, before an action's own ⌘C.
+    if (pageView?.type === 'detail' && isCopyKey(event, platform) && hasSelectionIn(page.current)) return;
     // A form without fields leaves the keyboard here; its keys are still a form's.
     if (formView) return onFormKeyDown(event);
     // A held ↵ repeats: that mustn't run the next view's first item too, like Restart Now. Nor
@@ -750,7 +760,9 @@ export function App() {
 
         <section className="sheet">
           <main className="content" data-detail={showDetail || undefined}>
-            {pageView?.type === 'detail' && <DetailView view={pageView} scrollRef={page} onOpenLink={openLink} />}
+            {pageView?.type === 'detail' && (
+              <DetailView view={pageView} scrollRef={page} onOpenLink={openLink} onKeyDown={onKeyDown} />
+            )}
             {formView && values && (
               <FormView
                 ref={formHandle}

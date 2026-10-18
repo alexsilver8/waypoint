@@ -1,4 +1,4 @@
-import type { Ref } from 'react';
+import type { KeyboardEvent, Ref } from 'react';
 import type { DetailView as DetailViewData, Platform } from '../../../shared/types';
 import { isModKey } from '../keys';
 import { Markdown } from '../markdown';
@@ -61,14 +61,17 @@ interface DetailViewProps {
   /** The part that scrolls, for the keys that scroll it. */
   scrollRef: Ref<HTMLDivElement>;
   onOpenLink(url: string): void;
+  /** The launcher's keys, for when the page has the keyboard: after its text is picked out to copy. */
+  onKeyDown(event: KeyboardEvent<HTMLElement>): void;
 }
 
 /** A page of Markdown filling the sheet, with its metadata in a column beside it. */
-export function DetailView({ view, scrollRef, onOpenLink }: DetailViewProps) {
+export function DetailView({ view, scrollRef, onOpenLink, onKeyDown }: DetailViewProps) {
   const metadata = view.metadata ?? [];
   return (
     <div className="page">
-      <div ref={scrollRef} className="page__scroll">
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: takes the keyboard when its text is picked out with the pointer */}
+      <div ref={scrollRef} className="page__scroll" tabIndex={-1} onKeyDown={onKeyDown}>
         <article className="page__article" aria-label={view.title ?? 'Details'} aria-busy={view.loading || undefined}>
           {view.markdown ? (
             <Markdown source={view.markdown} onOpenLink={onOpenLink} />

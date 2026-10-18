@@ -18,6 +18,11 @@ export function isBackKey(event: KeyEventLike, platform: Platform): boolean {
   return isModKey(event, platform) && !event.shiftKey && event.key === '[';
 }
 
+/** ⌘C (Ctrl+C on Windows and Linux). */
+export function isCopyKey(event: KeyEventLike, platform: Platform): boolean {
+  return isModKey(event, platform) && !event.shiftKey && !event.altKey && event.key.toLowerCase() === 'c';
+}
+
 export function matchesShortcut(event: KeyEventLike, shortcut: Shortcut, platform: Platform): boolean {
   const modifiers = new Set(shortcut.modifiers ?? []);
   const mac = platform === 'darwin';
