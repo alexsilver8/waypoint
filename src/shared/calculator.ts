@@ -220,12 +220,21 @@ class Parser {
  * plain numbers and constants on their own, so typing "e" still searches for "Excel".
  */
 export function calculate(input: string): number | null {
+  return run(input, true);
+}
+
+/** Like `calculate`, but a plain number counts too: the amount in "5 km to mi". */
+export function evaluate(input: string): number | null {
+  return run(input, false);
+}
+
+function run(input: string, needsOperation: boolean): number | null {
   const trimmed = input.trim();
   if (!trimmed || !/[\dπ]/.test(trimmed)) return null;
   try {
     const parser = new Parser(tokenize(trimmed));
     const value = parser.parse();
-    if (!parser.hasOperation || !Number.isFinite(value)) return null;
+    if ((needsOperation && !parser.hasOperation) || !Number.isFinite(value)) return null;
     // Round away binary floating point noise (0.1 + 0.2 → 0.3) without touching exact integers.
     return Number.isSafeInteger(value) ? value : Number.parseFloat(value.toPrecision(15));
   } catch (error) {

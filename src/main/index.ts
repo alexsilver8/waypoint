@@ -7,6 +7,7 @@ import {
   clipboard,
   Notification,
   nativeTheme,
+  net,
   powerSaveBlocker,
   shell,
   systemPreferences,
@@ -30,6 +31,7 @@ import { system } from './commands/system';
 import { webSearch } from './commands/web-search';
 import { windowManagementExtension } from './commands/window-management';
 import { QuicklinkStore, SnippetStore } from './entry-store';
+import { ExchangeRateStore } from './exchange-rates';
 import { ExtensionHostClient } from './extensions/host-client';
 import { hostServices } from './extensions/services';
 import { HotkeyManager } from './hotkey';
@@ -270,7 +272,13 @@ async function main(): Promise<void> {
       settingsIpc.notifyChanged();
     },
   });
-  registerIpc(registry, launcher, { pasteIntoApps: () => settings.get().pasteIntoApps });
+  // For converting currencies in the calculator; fetched when the launcher asks and they're a day old.
+  const exchangeRates = new ExchangeRateStore({
+    path: join(dataDir, 'exchange-rates.json'),
+    fetch: (url, init) => net.fetch(url, init),
+  });
+  exchangeRates.on('change', () => launcher.exchangeRatesChanged());
+  registerIpc(registry, launcher, { pasteIntoApps: () => settings.get().pasteIntoApps, exchangeRates });
   const settingsIpc = registerSettingsIpc({
     store: settings,
     window: settingsWindow,

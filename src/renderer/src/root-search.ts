@@ -1,4 +1,6 @@
 import { calculate, formatResult } from '../../shared/calculator';
+import { type Conversion, convert, formatAmount, parseConversion, withUnit } from '../../shared/conversion';
+import { type ExchangeRates, formatRatesDate } from '../../shared/currencies';
 import { rankItems, scoreItem } from '../../shared/search';
 import { matchTitleAndText } from '../../shared/title-and-text';
 import type { RootItem, RootKind } from '../../shared/types';
@@ -99,14 +101,52 @@ function withExtensionTitles(items: readonly RootItem[]): RootItem[] {
   );
 }
 
+/** The calculator's row for a conversion, or a row saying exchange rates haven't come yet. */
+function conversionRow(query: string, conversion: Conversion, rates: ExchangeRates | null): DisplayItem {
+  const { from, to } = conversion;
+  const value = convert(conversion, rates);
+  if (value === null) {
+    const missing = [from, to].find(
+      (measure) => measure.dimension === 'currency' && measure.code !== 'EUR' && !rates?.rates[measure.code],
+    );
+    return {
+      id: 'calculator',
+      title:
+        rates && missing?.dimension === 'currency'
+          ? `No exchange rate for ${missing.code}`
+          : 'Exchange rates unavailable',
+      subtitle: 'Waypoint gets them from the European Central Bank once a day, when online',
+      icon: { builtin: 'calculator' },
+      actions: [],
+    };
+  }
+  const number = formatAmount(value, to);
+  const result = withUnit(number, to);
+  const toLabel =
+    to.dimension === 'currency' && rates ? `${to.name}, ECB rate of ${formatRatesDate(rates.date)}` : to.name;
+  return {
+    id: 'calculator',
+    title: result,
+    subtitle: query,
+    calculator: { expression: query, result, labels: [from.name, toLabel] },
+    actions: [
+      { type: 'copy', text: formatAmount(value, to, false), title: 'Copy Answer' },
+      { type: 'copy', text: withUnit(formatAmount(value, to, false), to), title: 'Copy with Unit' },
+      { type: 'copy', text: `${query} = ${result}`, title: 'Copy Calculation' },
+    ],
+  };
+}
+
 /**
  * Builds the root list. "All" shows suggestions and commands when empty, and ranked results
- * when searching; a kind's tab shows everything of that kind.
+ * when searching; a kind's tab shows everything of that kind. `rates` are for converting
+ * currencies, once they've arrived.
  */
 export function buildRootSections(
   items: readonly RootItem[],
   rawQuery: string,
   filter: RootFilter = 'all',
+  rates: ExchangeRates | null = null,
 ): DisplaySection[] {
   const query = rawQuery.trim();
   if (filter === 'extensions') return buildExtensionsTab(items, query);
@@ -130,8 +170,11 @@ export function buildRootSections(
     return sections;
   }
 
-  const value = calculate(query);
-  if (value !== null) {
+  const conversion = parseConversion(query);
+  const value = conversion ? null : calculate(query);
+  if (conversion) {
+    sections.push({ title: 'Calculator', items: [conversionRow(query, conversion, rates)] });
+  } else if (value !== null) {
     const result = formatResult(value);
     sections.push({
       title: 'Calculator',
