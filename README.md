@@ -360,15 +360,9 @@ First-launch setup only opens on a fresh install. To see it while working on it,
 
 Built-in commands implement the same interface as extensions, so anything a built-in can do, an extension can too.
 
-## Roadmap
-
-- Code-signed releases, so macOS installs updates by itself too
-
-Ideas and bug reports are welcome in [Issues](https://github.com/alexsilver8/waypoint/issues).
-
 ## Contributing
 
-Contributions are welcome! Please read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening a pull request.
+Contributions are welcome! Please read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening a pull request. Ideas and bug reports are welcome in [Issues](https://github.com/alexsilver8/waypoint/issues).
 
 ## License
 
