@@ -5,9 +5,12 @@ import { DEEPLINK_SCHEME } from '../../shared/notes';
 const pending: string[] = [];
 let open: ((url: string) => void) | undefined;
 
-/** The waypoint:// link among a copy of the app's arguments, if there is one. */
-export function deeplinkIn(argv: readonly string[]): string | undefined {
-  return argv.find((arg) => arg.toLowerCase().startsWith(`${DEEPLINK_SCHEME}://`));
+/**
+ * The waypoint:// link among a copy of the app's arguments, if there is one. There may be no
+ * arguments at all when the event didn't come from a second copy.
+ */
+export function deeplinkIn(argv: readonly string[] | undefined): string | undefined {
+  return argv?.find((arg) => arg.toLowerCase().startsWith(`${DEEPLINK_SCHEME}://`));
 }
 
 /**
