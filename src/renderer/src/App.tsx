@@ -7,6 +7,7 @@ import { Footer, type Toast } from './components/Footer';
 import { Keycaps } from './components/Keycaps';
 import { optionId, QUICK_KEY_COUNT, ResultList } from './components/ResultList';
 import { ScopeDock } from './components/ScopeDock';
+import { useWindowDrag } from './drag';
 import { isModKey, matchesShortcut } from './keys';
 import { type DisplayItem, type DisplaySection, filterView } from './model';
 import { buildRootSections, countRootMatches, ROOT_FILTERS, type RootFilter } from './root-search';
@@ -76,11 +77,14 @@ export function App() {
   /** The first row in view: ⌘1 opens it, ⌘2 the one after, and so on. */
   const [firstInView, setFirstInView] = useState(0);
   const input = useRef<HTMLInputElement>(null);
+  const launcher = useRef<HTMLDivElement>(null);
   const searchRequest = useRef(0);
   const busy = useRef(false);
   const inflight = useRef<{ key: string; promise: Promise<View | undefined> } | null>(null);
   const stackRef = useRef(stack);
   stackRef.current = stack;
+
+  useWindowDrag(launcher, palette);
 
   const frame = stack[stack.length - 1] ?? ROOT;
   const isRoot = stack.length === 1;
@@ -407,7 +411,7 @@ export function App() {
       : (frame.view?.emptyText ?? (frame.query ? `Nothing matches “${frame.query}”.` : 'Nothing here yet.'));
 
   return (
-    <div className="launcher">
+    <div ref={launcher} className="launcher">
       <ScopeDock
         value={filter}
         counts={counts}

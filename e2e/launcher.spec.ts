@@ -359,6 +359,29 @@ test('opens again where it was dragged', async () => {
   expect(centered).not.toEqual([60, 80]);
 });
 
+test('shows the snapping guides while it is dragged by its glass', async () => {
+  const visibleWindows = () =>
+    app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().filter((window) => window.isVisible()).length);
+  const icon = await page.locator('.search__icon').boundingBox();
+  if (!icon) throw new Error('No search icon');
+  await page.mouse.move(icon.x + icon.width / 2, icon.y + icon.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(icon.x + 40, icon.y + 30);
+  await expect.poll(visibleWindows).toBe(2);
+  await page.mouse.up();
+  await expect.poll(visibleWindows).toBe(1);
+  await expect(page.getByRole('combobox')).toBeFocused();
+
+  // A press on a control is a click, not a drag.
+  const tab = await page.getByRole('tab', { name: 'Apps', exact: true }).boundingBox();
+  if (!tab) throw new Error('No Apps tab');
+  await page.mouse.move(tab.x + tab.width / 2, tab.y + tab.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(tab.x + 40, tab.y + 30);
+  expect(await visibleWindows()).toBe(1);
+  await page.mouse.up();
+});
+
 test('opens Settings from Waypoint in the footer', async () => {
   const [settings] = await Promise.all([
     app.waitForEvent('window'),

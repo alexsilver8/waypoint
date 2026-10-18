@@ -44,7 +44,7 @@ button {
  *
  * Like Raycast, the launcher moves when you drag it by anything that isn't a control: the margin
  * and gaps around the panes, the search capsule around the text, the dock between its icons and
- * the action bar. Whatever you type in, click or scroll stays clear of it.
+ * the action bar. drag.ts starts the drag; the main process moves the window and snaps it.
  */
 .launcher {
   position: relative;
@@ -54,15 +54,6 @@ button {
   padding: 20px;
   background: transparent;
   overflow: hidden;
-  -webkit-app-region: drag;
-}
-
-.launcher input,
-.launcher button,
-.content,
-.action-panel,
-.action-panel__scrim {
-  -webkit-app-region: no-drag;
 }
 
 .launcher__main {
