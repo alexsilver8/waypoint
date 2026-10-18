@@ -624,6 +624,34 @@ test('shows the Settings shortcut on the gear, and opens Settings with it', asyn
   await expect(settings.getByRole('heading', { name: 'General' })).toBeVisible();
 });
 
+test('colours every window with the colour theme picked in Settings', async () => {
+  const settingsFile = () => JSON.parse(readFileSync(join(userData, 'settings.json'), 'utf8'));
+  const accent = (window: typeof page) =>
+    window
+      .locator('html')
+      .evaluate((el) => el.ownerDocument.defaultView.getComputedStyle(el).getPropertyValue('--accent').trim());
+  // Playwright shows pages light unless told otherwise; Waypoint's own light or dark is wanted here.
+  await page.emulateMedia({ colorScheme: 'light' });
+  const before = await accent(page);
+  await page.keyboard.type('open settings');
+  const [settings] = await Promise.all([app.waitForEvent('window'), page.keyboard.press('Enter')]);
+  await settings.emulateMedia({ colorScheme: 'light' });
+
+  await settings.getByText('Ocean', { exact: true }).click();
+  await expect.poll(() => settingsFile().colorTheme).toBe('ocean');
+  await expect.poll(() => accent(page)).toBe('#0e9de0');
+  await expect.poll(() => accent(settings)).toBe('#0e9de0');
+
+  await settings.getByText('Custom', { exact: true }).click();
+  await settings.getByLabel('Accent colour').fill('#ff6b35');
+  await expect.poll(() => settingsFile().customTheme).toEqual({ accent: '#ff6b35' });
+  await expect.poll(() => accent(page)).toBe('#ff6b35');
+
+  // Back to the default, the windows look as they did.
+  await settings.getByText('Waypoint', { exact: true }).click();
+  await expect.poll(() => accent(page)).toBe(before);
+});
+
 test('changes settings in the Settings window', async () => {
   const settingsFile = () => JSON.parse(readFileSync(join(userData, 'settings.json'), 'utf8'));
   await page.keyboard.type('open settings');

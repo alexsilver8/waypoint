@@ -28,7 +28,7 @@ Website: [waypoint.alexsilver.dev](https://waypoint.alexsilver.dev/)
 - **Runs extensions** — commands written in JavaScript, each extension in a separate process. They show lists, pages of Markdown and forms. Find other people's with **Browse Extensions**, or install them from npm or GitHub with **Install Extension** (see [Installing extensions](#installing-extensions)), or write your own (see [Writing extensions](docs/extensions.md)).
 - **Everything has actions** — <kbd>⌘</kbd> <kbd>K</kbd> lists what you can do with the selected item.
 - **Gives any command its own shortcut** — press it anywhere to snap a window, search your files or keep your computer awake, without opening the launcher first. See [Command shortcuts](#command-shortcuts).
-- **Looks at home on your desktop** — the launcher is three panes floating on your desktop with nothing around them: the scope dock, the search field, and the results with their preview and action bar. Light or dark. Drag it anywhere that isn't a control to move it: like Raycast, guide lines show the screen's center, its middle and where the launcher opens, and it snaps to them. It opens again where you left it on that display. Settings floats the same way on macOS. The Notes window is liquid glass that blurs what's behind them on macOS and Windows 11; Linux gets the same design on a solid background, since it has no system blur.
+- **Looks at home on your desktop** — the launcher is three panes floating on your desktop with nothing around them: the scope dock, the search field, and the results with their preview and action bar. Light or dark, in a [colour theme](#colour-themes) of your choice. Drag it anywhere that isn't a control to move it: like Raycast, guide lines show the screen's center, its middle and where the launcher opens, and it snaps to them. It opens again where you left it on that display. Settings floats the same way on macOS. The Notes window is liquid glass that blurs what's behind them on macOS and Windows 11; Linux gets the same design on a solid background, since it has no system blur.
 
 ## Install
 
@@ -289,7 +289,7 @@ It goes in your extensions folder, and its commands are there straight away. npm
 
 ## Settings
 
-Open **Settings** with <kbd>⌘</kbd> <kbd>,</kbd> in the launcher, the **Open Settings** command, or **Settings…** in the tray menu. There you can record a new shortcut, pick light or dark, choose how much clipboard history to keep and whether it saves images, move your notes folder, make quicklinks and snippets, install and manage extensions and give any command a [shortcut](#command-shortcuts) or an [alias](#command-aliases) of its own.
+Open **Settings** with <kbd>⌘</kbd> <kbd>,</kbd> in the launcher, the **Open Settings** command, or **Settings…** in the tray menu. There you can record a new shortcut, pick light or dark and a [colour theme](#colour-themes), choose how much clipboard history to keep and whether it saves images, move your notes folder, make quicklinks and snippets, install and manage extensions and give any command a [shortcut](#command-shortcuts) or an [alias](#command-aliases) of its own.
 
 **Open at login** starts Waypoint quietly in the tray when you log in. On macOS and Windows it's added to the system's login items. On Linux, Waypoint writes `~/.config/autostart/dev.waypoint.app.desktop` (under `$XDG_CONFIG_HOME` if you set it), which GNOME, KDE, Xfce, Cinnamon and most other desktops follow, and turning it off removes the file. An AppImage is started from where the AppImage file is: if you move it, open it once from its new place and the entry follows. It works in the installed app, not when running from source.
 
@@ -301,6 +301,8 @@ Everything is also saved in `settings.json` (**Settings → About → Edit setti
   "hideOnBlur": true,                 // close when you click elsewhere
   "launchAtLogin": false,             // start in the tray when you log in (the installed app)
   "theme": "system",                  // "light" or "dark"
+  "colorTheme": "waypoint",           // "graphite", "ocean", "forest", "grape", "rose", "amber" or "custom"
+  "customTheme": { "accent": "#5b74ff", "tint": "#5b74ff" }, // for "custom"; leave out "tint" for neutral panes
   "clipboardHistory": { "enabled": true, "maxItems": 200, "images": true },
   "extensionDirectories": [],         // more places to load extensions from
   "notesDirectory": "",               // where notes are saved; empty means the app's data folder
@@ -313,6 +315,10 @@ Everything is also saved in `settings.json` (**Settings → About → Edit setti
   }
 }
 ```
+
+### Colour themes
+
+Under **Settings → General → Appearance**, pick the colours Waypoint uses on top of light or dark: **Waypoint** (the default), **Graphite**, **Ocean**, **Forest**, **Grape**, **Rose** or **Amber**. Each sets the accent (the selected scope's badge, matched letters, switches and links) and washes a little of its colour into the panes. **Custom** takes your own accent, and a tint for the panes that you can turn off. Every window changes as you pick, and the colours are worked out again for dark mode so they stay readable in both.
 
 ## Develop
 

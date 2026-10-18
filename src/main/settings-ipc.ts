@@ -52,6 +52,8 @@ const PATCHABLE: Array<keyof Settings> = [
   'pasteIntoApps',
   'snippetExpansion',
   'theme',
+  'colorTheme',
+  'customTheme',
   'clipboardHistory',
   'extensionDirectories',
   'notesDirectory',

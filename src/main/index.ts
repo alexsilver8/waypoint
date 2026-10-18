@@ -16,6 +16,7 @@ import electronUpdater from 'electron-updater';
 import { commandFromDeeplink, commandInArgv, launchArguments } from '../shared/command-hotkeys';
 import { NotesChannel, noteIdFromDeeplink, RECENTLY_DELETED_DAYS } from '../shared/notes';
 import type { OnboardingOutcome } from '../shared/onboarding';
+import { themeColors } from '../shared/themes';
 import type { Platform } from '../shared/types';
 import { updateMode } from '../shared/updates';
 import { AppIndex } from './apps/app-index';
@@ -59,6 +60,7 @@ import { AppTray } from './tray';
 import { Updater } from './updater';
 import { UsageTracker } from './usage';
 import { LauncherWindow } from './window';
+import { WindowTheme } from './window-theme';
 
 // Lets tests and multiple dev copies use their own data folder. Otherwise, people who
 // installed the app as Open Palette keep their notes and settings in the folder under that name.
@@ -92,6 +94,8 @@ async function main(): Promise<void> {
   const settingsPath = join(dataDir, 'settings.json');
   const firstRun = !existsSync(settingsPath);
   const settings = new SettingsStore(settingsPath);
+  // Before any window opens, so each one gets the colour theme as it loads.
+  const windowTheme = new WindowTheme();
   const onboarding = new OnboardingStore(join(dataDir, 'onboarding.json'), firstRun);
   const usage = new UsageTracker(join(dataDir, 'usage.json'));
   const apps = new AppIndex(platform);
@@ -391,6 +395,7 @@ async function main(): Promise<void> {
     }
     tray.refresh();
     nativeTheme.themeSource = current.theme;
+    windowTheme.set(themeColors(current.colorTheme, current.customTheme));
     syncLoginItem(platform, settings, current, previous);
     clipboardHistory.setMaxItems(current.clipboardHistory.maxItems);
     clipboardHistory.setKeepImages(current.clipboardHistory.images);

@@ -59,6 +59,33 @@ describe('normalizeSettings', () => {
     ]);
   });
 
+  it('keeps a colour theme it knows, and your own colours', () => {
+    expect(normalizeSettings({}).settings).toMatchObject({
+      colorTheme: 'waypoint',
+      customTheme: { accent: '#5b74ff' },
+    });
+    const { settings, problems } = normalizeSettings({
+      colorTheme: 'custom',
+      customTheme: { accent: '#FF6B35', tint: '#223344' },
+    });
+    expect(problems).toEqual([]);
+    expect(settings).toMatchObject({ colorTheme: 'custom', customTheme: { accent: '#ff6b35', tint: '#223344' } });
+    expect(normalizeSettings({ colorTheme: 'ocean' }).settings.colorTheme).toBe('ocean');
+  });
+
+  it('leaves out a tint that is null, and turns down colours that are not #rrggbb', () => {
+    expect(normalizeSettings({ customTheme: { accent: '#112233', tint: null } }).settings.customTheme).toEqual({
+      accent: '#112233',
+    });
+    const { settings, problems } = normalizeSettings({
+      colorTheme: 'neon',
+      customTheme: { accent: 'red', tint: '#12345' },
+    });
+    expect(settings.colorTheme).toBe('waypoint');
+    expect(settings.customTheme).toEqual({ accent: '#5b74ff' });
+    expect(problems).toHaveLength(3);
+  });
+
   it('rejects non-object settings', () => {
     expect(normalizeSettings([1, 2]).problems).toHaveLength(1);
   });
