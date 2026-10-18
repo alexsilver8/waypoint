@@ -1,4 +1,4 @@
-// Emoji: search every emoji by name, keyword or shortcode, and paste it. Recently used ones
+// Emoji: search every emoji by name, keyword or shortcode in a grid, and paste it. Recently used ones
 // come first, and a skin tone you pick applies to every emoji that has one. The names and
 // keywords come from emojibase; `pnpm run extensions:data` refreshes them.
 import { readFileSync } from 'node:fs';
@@ -86,8 +86,12 @@ function toItem(emoji, tone, { prefix = '', recent = false } = {}) {
   };
 }
 
-/** Each category starts with a taste; the whole of one is a keypress away, and search finds all of them. */
-const CATEGORY_PREVIEW = 24;
+/**
+ * Each category starts with a taste, four rows of the grid with the cell that opens the rest; the
+ * whole of one is a keypress away, and search finds all of them.
+ */
+const COLUMNS = 8;
+const CATEGORY_PREVIEW = COLUMNS * 4 - 1;
 
 /**
  * A row that opens a whole category.
@@ -98,7 +102,7 @@ const CATEGORY_PREVIEW = 24;
 function moreItem(group, count) {
   return {
     id: `more:${group}`,
-    title: `All ${count} in ${groups[group]}`,
+    title: `All ${count}`,
     icon: { builtin: 'sparkles', tint: 'yellow' },
     actions: [{ type: 'callback', id: 'category', title: 'Show All', payload: group }],
   };
@@ -114,6 +118,8 @@ function listView(ctx, sections) {
     type: 'list',
     title: 'Emoji',
     searchPlaceholder: 'Search emoji by name, keyword or :shortcode:…',
+    layout: 'grid',
+    columns: COLUMNS,
     // Recently used come first and nearly two thousand emoji need a quick search of their own.
     filtering: false,
     emptyText: `No emoji for “${ctx.query.trim()}”.`,

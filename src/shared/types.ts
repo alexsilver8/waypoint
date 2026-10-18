@@ -182,6 +182,14 @@ export interface ListView {
   /** Shown when there is nothing to list. */
   emptyText?: string;
   /**
+   * `'list'` (default): a row per item. `'grid'`: a grid of large icons with their titles under
+   * them, for things you pick by how they look, like emoji or colours. The arrow keys move through
+   * it in every direction.
+   */
+  layout?: 'list' | 'grid';
+  /** How many cells a row of a grid holds, from 3 to 10; 8 when omitted. Ignored in a list. */
+  columns?: number;
+  /**
    * The list is still filling in, e.g. while a scan runs. The launcher shows that it's busy and,
    * while it's open, calls `view()` again about once a second with the same query, until a list
    * comes back without `loading`. Only for the command's own view: in one an action pushes, it's

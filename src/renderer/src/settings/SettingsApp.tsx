@@ -3,6 +3,7 @@ import type { Settings } from '../../../shared/settings';
 import type { SettingsState, SettingsTarget } from '../../../shared/settings-ipc';
 import type { BuiltinIconName, Tint } from '../../../shared/types';
 import { updateDescription, updateMenuLabel } from '../../../shared/updates';
+import { ColorThemePicker } from '../components/ColorThemePicker';
 import { HotkeyRecorder, type ShortcutRecorder } from '../components/HotkeyRecorder';
 import { ItemIcon } from '../components/ItemIcon';
 import { PaletteMark } from '../components/PaletteMark';
@@ -109,6 +110,12 @@ function General({ state, update }: SectionProps) {
       </Group>
       <Group title="Appearance">
         <ThemePicker value={settings.theme} onChange={(theme) => update({ theme })} />
+        <ColorThemePicker
+          value={settings.colorTheme}
+          custom={settings.customTheme}
+          onChange={(colorTheme) => update({ colorTheme })}
+          onCustomChange={(customTheme) => update({ customTheme })}
+        />
       </Group>
     </>
   );

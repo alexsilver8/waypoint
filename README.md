@@ -25,10 +25,10 @@ Website: [waypoint.alexsilver.dev](https://waypoint.alexsilver.dev/)
 - **Snaps windows** — halves, thirds, quarters, maximize, centre and the next display for the window you were using, and **Restore** to put it back. See [Windows](#windows).
 - **Runs your computer** — lock, sleep, restart, shut down, log out, empty the Trash, eject disks and turn Wi-Fi on or off, with a check before anything you can't undo. See [System](#system).
 - **Comes with extensions** — file search, your downloads and browser bookmarks, what's taking up space on your disk, your own scripts and Shortcuts, Keep Awake, translation and a dictionary, developer tools like Port Manager, Docker and GitHub, plus Media Controls and System Info, described [below](#included-extensions).
-- **Runs extensions** — commands written in JavaScript, each extension in a separate process. They show lists, pages of Markdown and forms. Install other people's from npm or GitHub with **Install Extension** (see [Installing extensions](#installing-extensions)), or write your own (see [Writing extensions](docs/extensions.md)).
+- **Runs extensions** — commands written in JavaScript, each extension in a separate process. They show lists, pages of Markdown and forms. Find other people's with **Browse Extensions**, or install them from npm or GitHub with **Install Extension** (see [Installing extensions](#installing-extensions)), or write your own (see [Writing extensions](docs/extensions.md)).
 - **Everything has actions** — <kbd>⌘</kbd> <kbd>K</kbd> lists what you can do with the selected item.
 - **Gives any command its own shortcut** — press it anywhere to snap a window, search your files or keep your computer awake, without opening the launcher first. See [Command shortcuts](#command-shortcuts).
-- **Looks at home on your desktop** — the launcher is three panes floating on your desktop with nothing around them: the scope dock, the search field, and the results with their preview and action bar. Light or dark. Drag it anywhere that isn't a control to move it: like Raycast, guide lines show the screen's center, its middle and where the launcher opens, and it snaps to them. It opens again where you left it on that display. Settings floats the same way on macOS. The Notes window is liquid glass that blurs what's behind them on macOS and Windows 11; Linux gets the same design on a solid background, since it has no system blur.
+- **Looks at home on your desktop** — the launcher is three panes floating on your desktop with nothing around them: the scope dock, the search field, and the results with their preview and action bar. Light or dark, in a [colour theme](#colour-themes) of your choice. Drag it anywhere that isn't a control to move it: like Raycast, guide lines show the screen's center, its middle and where the launcher opens, and it snaps to them. It opens again where you left it on that display. Settings floats the same way on macOS. The Notes window is liquid glass that blurs what's behind them on macOS and Windows 11; Linux gets the same design on a solid background, since it has no system blur.
 
 ## Install
 
@@ -227,7 +227,7 @@ These come with Waypoint and are written with the same [extension API](docs/exte
 | **Define Word** | English definitions, examples and synonyms from Wiktionary, through the [Free Dictionary API](https://dictionaryapi.dev). Also from **Use “…” with**. |
 | **Open Ports** | Every program listening on a port, with its command line and whether other devices can reach it. <kbd>↵</kbd> stops it, <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>⌫</kbd> forces it, <kbd>⌘</kbd> <kbd>O</kbd> opens it in the browser. |
 | **Search Gitmoji** | The [gitmoji](https://gitmoji.dev) list by name or meaning. <kbd>↵</kbd> pastes the emoji, <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>C</kbd> copies its `:code:`. Recently used come first. |
-| **Search Emoji** | Every emoji by name, keyword or `:shortcode:`, recently used first. <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>T</kbd> picks the skin tone for all of them. |
+| **Search Emoji** | Every emoji in a grid, by name, keyword or `:shortcode:`, recently used first. The arrow keys move in every direction. <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>T</kbd> picks the skin tone for all of them. |
 | **Write Commit Message** | A [Conventional Commits](https://www.conventionalcommits.org) message, checked as you type, with what it does to the version. Pick a type, or just describe the change: it suggests the type, also from the launcher's **Use “…” with**. |
 | **Search Git Repositories** | The repositories in your code folders (`~/Developer`, `~/Projects`, `~/code`…), most recently changed first. <kbd>↵</kbd> opens one in your editor (VS Code, Cursor, Zed, Sublime Text, JetBrains IDEs…), <kbd>⌘</kbd> <kbd>T</kbd> in a terminal. Type a folder like `~/work` to search it too. |
 | **My Pull Requests**, **My Issues**, **Search GitHub Repositories** | Pull requests waiting for your review and your own, your issues, and your repositories. Uses your [GitHub CLI](https://cli.github.com) sign-in, or a token you paste in once, which is kept in Waypoint's data folder (`extension-data/github`). |
@@ -270,7 +270,9 @@ Raycast's `@raycast.` headers are read the same way, so the scripts in [raycast/
 
 ## Installing extensions
 
-Someone shared an extension? Run **Install Extension** and type where it is:
+**Browse Extensions** lists the extensions people published to npm, most installed first, and searches them as you type. The preview shows what each one is, who published it, when, and how often it's downloaded. <kbd>↵</kbd> installs one, after the same check as below, and ones you have are marked **Installed**, with **Check for Update** and **Uninstall Extension…** in <kbd>⌘</kbd> <kbd>K</kbd>. Authors get listed by adding the `waypoint-extension` keyword to their package (see [Sharing your extension](docs/extensions.md#sharing-your-extension)).
+
+Someone shared an extension that isn't listed? Run **Install Extension** and type where it is:
 
 | You type | Installs |
 | --- | --- |
@@ -287,7 +289,7 @@ It goes in your extensions folder, and its commands are there straight away. npm
 
 ## Settings
 
-Open **Settings** with <kbd>⌘</kbd> <kbd>,</kbd> in the launcher, the **Open Settings** command, or **Settings…** in the tray menu. There you can record a new shortcut, pick light or dark, choose how much clipboard history to keep and whether it saves images, move your notes folder, make quicklinks and snippets, install and manage extensions and give any command a [shortcut](#command-shortcuts) or an [alias](#command-aliases) of its own.
+Open **Settings** with <kbd>⌘</kbd> <kbd>,</kbd> in the launcher, the **Open Settings** command, or **Settings…** in the tray menu. There you can record a new shortcut, pick light or dark and a [colour theme](#colour-themes), choose how much clipboard history to keep and whether it saves images, move your notes folder, make quicklinks and snippets, install and manage extensions and give any command a [shortcut](#command-shortcuts) or an [alias](#command-aliases) of its own.
 
 **Open at login** starts Waypoint quietly in the tray when you log in. On macOS and Windows it's added to the system's login items. On Linux, Waypoint writes `~/.config/autostart/dev.waypoint.app.desktop` (under `$XDG_CONFIG_HOME` if you set it), which GNOME, KDE, Xfce, Cinnamon and most other desktops follow, and turning it off removes the file. An AppImage is started from where the AppImage file is: if you move it, open it once from its new place and the entry follows. It works in the installed app, not when running from source.
 
@@ -299,6 +301,8 @@ Everything is also saved in `settings.json` (**Settings → About → Edit setti
   "hideOnBlur": true,                 // close when you click elsewhere
   "launchAtLogin": false,             // start in the tray when you log in (the installed app)
   "theme": "system",                  // "light" or "dark"
+  "colorTheme": "waypoint",           // "graphite", "ocean", "forest", "grape", "rose", "amber" or "custom"
+  "customTheme": { "accent": "#5b74ff", "tint": "#5b74ff" }, // for "custom"; leave out "tint" for neutral panes
   "clipboardHistory": { "enabled": true, "maxItems": 200, "images": true },
   "extensionDirectories": [],         // more places to load extensions from
   "notesDirectory": "",               // where notes are saved; empty means the app's data folder
@@ -311,6 +315,10 @@ Everything is also saved in `settings.json` (**Settings → About → Edit setti
   }
 }
 ```
+
+### Colour themes
+
+Under **Settings → General → Appearance**, pick the colours Waypoint uses on top of light or dark: **Waypoint** (the default), **Graphite**, **Ocean**, **Forest**, **Grape**, **Rose** or **Amber**. Each sets the accent (the selected scope's badge, matched letters, switches and links) and washes a little of its colour into the panes. **Custom** takes your own accent, and a tint for the panes that you can turn off. Every window changes as you pick, and the colours are worked out again for dark mode so they stay readable in both.
 
 ## Develop
 
@@ -352,15 +360,9 @@ First-launch setup only opens on a fresh install. To see it while working on it,
 
 Built-in commands implement the same interface as extensions, so anything a built-in can do, an extension can too.
 
-## Roadmap
-
-- Code-signed releases, so macOS installs updates by itself too
-
-Ideas and bug reports are welcome in [Issues](https://github.com/alexsilver8/waypoint/issues).
-
 ## Contributing
 
-Contributions are welcome! Please read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening a pull request.
+Contributions are welcome! Please read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening a pull request. Ideas and bug reports are welcome in [Issues](https://github.com/alexsilver8/waypoint/issues).
 
 ## License
 

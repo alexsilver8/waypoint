@@ -52,6 +52,18 @@ test.beforeAll(async () => {
           },
         }),
       );
+    } else if (request.url?.startsWith('/-/v1/search?')) {
+      // Browse Extensions: what npm finds with the waypoint-extension keyword.
+      const text = new URL(request.url, 'http://registry').searchParams.get('text') ?? '';
+      const words = text.split(' ').slice(1);
+      response.setHeader('content-type', 'application/json');
+      response.end(
+        JSON.stringify({
+          objects: words.every((word) => 'hello-shared says hello'.includes(word))
+            ? [{ package: { name: 'hello-shared', version: '1.0.0', description: 'Says hello' } }]
+            : [],
+        }),
+      );
     } else if (request.url === '/hello-shared-1.0.0.tgz') {
       response.end(archive);
     } else {
@@ -145,4 +157,26 @@ test('lists an installed extension in Settings, and uninstalls it from there', a
   await row.getByRole('button', { name: 'Click again to uninstall' }).click();
   await expect(row).toHaveCount(0);
   expect(existsSync(folder)).toBe(false);
+});
+
+test('finds an extension in Browse Extensions and installs it', async () => {
+  await open('Browse Extensions');
+  const listed = page.getByRole('option', { name: /hello-shared/ });
+  await expect(listed).toContainText('Says hello');
+  await page.keyboard.type('nothing like it');
+  await expect(page.getByRole('option').first()).toContainText('No extensions on npm match “nothing like it”');
+  await page.getByRole('combobox').fill('hello');
+  await expect(listed).toBeVisible();
+  await page.keyboard.press('Enter');
+
+  // The same check as Install Extension, before anything is installed.
+  await expect(page.getByRole('option').first()).toContainText('Install Hello Shared');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.toast')).toHaveText('Installed Hello Shared 1.0.0');
+  await expect(page.getByRole('option').first()).toContainText('Say Hello Shared');
+
+  // Back in Browse Extensions, it shows as installed.
+  await page.keyboard.press('Escape');
+  await open('Browse Extensions');
+  await expect(listed).toContainText('Installed');
 });

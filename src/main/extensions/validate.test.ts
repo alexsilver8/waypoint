@@ -185,6 +185,17 @@ describe('sanitizeView', () => {
     expect(sanitizeView({ type: 'list', items: [], loading: 'yes' })).not.toHaveProperty('loading');
   });
 
+  it('keeps a grid, with its columns kept to what fits', () => {
+    expect(list({ type: 'list', items: [], layout: 'grid' })).toMatchObject({ layout: 'grid' });
+    expect(list({ type: 'list', items: [], layout: 'grid' })).not.toHaveProperty('columns');
+    expect(list({ type: 'list', items: [], layout: 'grid', columns: 6.4 }).columns).toBe(6);
+    expect(list({ type: 'list', items: [], layout: 'grid', columns: 40 }).columns).toBe(10);
+    expect(list({ type: 'list', items: [], layout: 'grid', columns: 1 }).columns).toBe(3);
+    expect(list({ type: 'list', items: [], layout: 'grid', columns: '6' })).not.toHaveProperty('columns');
+    expect(list({ type: 'list', items: [], layout: 'tiles', columns: 6 })).not.toHaveProperty('layout');
+    expect(list({ type: 'list', items: [], columns: 6 })).not.toHaveProperty('columns');
+  });
+
   it('makes item ids unique', () => {
     const view = list({ type: 'list', items: [{ title: 'A' }, { title: 'A' }, { id: 'A', title: 'B' }] });
     expect(view.sections[0]?.items.map((i) => i.id)).toEqual(['A', 'A#2', 'A#3']);

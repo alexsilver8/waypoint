@@ -3841,48 +3841,6 @@ h2 {
   padding: 200px 24px 0;
 }
 
-.roadmap {
-  padding: 28px 28px 12px;
-  border-radius: 20px;
-  background: rgb(255 255 255 / 0.03);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
-}
-
-.roadmap h3 {
-  margin-bottom: 8px;
-  color: var(--ink-2);
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.roadmap ul {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.roadmap li {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 15px 0;
-  border-bottom: 1px solid rgb(255 255 255 / 0.07);
-  font-size: 16px;
-}
-
-.roadmap li:last-child {
-  border-bottom: 0;
-}
-
-.roadmap li::before {
-  content: "";
-  flex: none;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--c);
-}
-
 /* ── Download ───────────────────────────────────────────── */
 
 .finale {

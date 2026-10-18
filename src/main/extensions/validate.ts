@@ -105,6 +105,9 @@ const MAX_DETAIL = 20_000;
 const MAX_VIEW_ACTIONS = 50;
 const MAX_FIELDS = 50;
 const MAX_OPTIONS = 500;
+/** A grid's cells to a row: fewer is a list, more too small to see. */
+const MIN_GRID_COLUMNS = 3;
+const MAX_GRID_COLUMNS = 10;
 /** A one-line field holds up to a long URL; a text area as much as a page. */
 const MAX_FIELD_TEXT = 10_000;
 const MAX_TEXTAREA = 100_000;
@@ -332,6 +335,12 @@ function sanitizeListView(value: Record<string, unknown>, baseDir: string | unde
   if (emptyText) view.emptyText = emptyText;
   if (value.filtering === false) view.filtering = false;
   if (value.loading === true) view.loading = true;
+  if (value.layout === 'grid') {
+    view.layout = 'grid';
+    if (typeof value.columns === 'number' && Number.isFinite(value.columns)) {
+      view.columns = Math.min(MAX_GRID_COLUMNS, Math.max(MIN_GRID_COLUMNS, Math.round(value.columns)));
+    }
+  }
   return view;
 }
 

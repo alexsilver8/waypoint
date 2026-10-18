@@ -1,5 +1,6 @@
 import { normalizeCommandAliases } from './command-aliases';
 import { normalizeCommandHotkeys } from './command-hotkeys';
+import { COLOR_THEMES, CUSTOM_COLOR_THEME, DEFAULT_COLOR_THEME, isHexColor, type ThemeColors } from './themes';
 
 /** User settings, stored as JSON in the app's data folder and editable by hand. */
 export interface Settings {
@@ -10,6 +11,10 @@ export interface Settings {
   /** Start Waypoint in the tray when you log in (the installed app, on every system). */
   launchAtLogin: boolean;
   theme: 'system' | 'light' | 'dark';
+  /** The colours on top of light or dark: one of `COLOR_THEMES`, or `"custom"` for `customTheme`. */
+  colorTheme: string;
+  /** Your own accent and, if you like, a tint for the panes, as `#rrggbb`. */
+  customTheme: ThemeColors;
   clipboardHistory: {
     enabled: boolean;
     /** How many entries to keep. */
@@ -38,6 +43,8 @@ export const DEFAULT_SETTINGS: Settings = {
   hideOnBlur: true,
   launchAtLogin: false,
   theme: 'system',
+  colorTheme: DEFAULT_COLOR_THEME,
+  customTheme: { accent: '#5b74ff' },
   clipboardHistory: { enabled: true, maxItems: 200, images: true },
   extensionDirectories: [],
   notesDirectory: '',
@@ -99,6 +106,25 @@ export function normalizeSettings(raw: unknown): NormalizedSettings {
       settings.theme = v;
     },
   );
+  take(
+    'colorTheme',
+    raw.colorTheme,
+    (v): v is string => v === CUSTOM_COLOR_THEME || COLOR_THEMES.some((theme) => theme.id === v),
+    (v) => {
+      settings.colorTheme = v;
+    },
+  );
+  take('customTheme', raw.customTheme, isRecord, (v) => {
+    take('customTheme.accent', v.accent, isHexColor, (accent) => {
+      settings.customTheme.accent = accent.toLowerCase();
+    });
+    // `null` or left out: no tint.
+    if (v.tint !== null) {
+      take('customTheme.tint', v.tint, isHexColor, (tint) => {
+        settings.customTheme.tint = tint.toLowerCase();
+      });
+    }
+  });
   take('clipboardHistory', raw.clipboardHistory, isRecord, (v) => {
     take('clipboardHistory.enabled', v.enabled, isBoolean, (enabled) => {
       settings.clipboardHistory.enabled = enabled;

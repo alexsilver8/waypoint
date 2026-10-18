@@ -2,8 +2,10 @@ import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { app, shell } from 'electron';
 import type { ListItem, View } from '../../shared/types';
+import type { ExtensionCatalog } from '../extensions/catalog';
 import type { ExtensionInstaller } from '../extensions/installer';
 import type { CommandRegistry } from '../registry';
+import { BROWSE_COMMAND, browseExtensionsCommand } from './extension-browse';
 import {
   extensionInstalls,
   INSTALL_COMMAND,
@@ -25,6 +27,8 @@ interface PaletteCommandOptions {
   registry: () => CommandRegistry;
   /** Installs extensions from npm and git. */
   installer: ExtensionInstaller;
+  /** Finds extensions published to npm, for Browse Extensions. */
+  catalog: ExtensionCatalog;
 }
 
 /** Commands for managing Waypoint itself. */
@@ -34,6 +38,7 @@ export function paletteExtension({
   extensionsDir,
   registry,
   installer,
+  catalog,
 }: PaletteCommandOptions): BuiltinExtension {
   const installs = extensionInstalls({ installer, registry });
 
@@ -85,6 +90,13 @@ export function paletteExtension({
         {
           items: [
             {
+              id: 'browse',
+              title: 'Browse Extensions',
+              subtitle: 'Find extensions people published',
+              icon: { builtin: 'search', tint: 'purple' },
+              actions: [{ type: 'open-command', ref: BROWSE_COMMAND, title: 'Browse Extensions' }],
+            },
+            {
               id: 'install',
               title: 'Install Extension…',
               subtitle: 'From npm or a git repository',
@@ -125,6 +137,13 @@ export function paletteExtension({
           title: 'Manage Extensions',
           mode: 'view',
           icon: { builtin: 'extension', tint: 'purple' },
+        },
+        {
+          name: 'browse-extensions',
+          title: 'Browse Extensions',
+          mode: 'view',
+          icon: { builtin: 'extension', tint: 'purple' },
+          keywords: ['store', 'find extensions', 'discover', 'npm', 'plugin', 'marketplace'],
         },
         {
           name: 'install-extension',
@@ -180,6 +199,7 @@ export function paletteExtension({
           return { ...(await reload()), replace: extensionsView() };
         },
       },
+      'browse-extensions': browseExtensionsCommand({ installer, registry, catalog }),
       'install-extension': installExtensionCommand({ installer, registry }),
       'reload-extensions': { run: reload },
       'open-extensions-folder': { run: openExtensionsFolder },
