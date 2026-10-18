@@ -76,7 +76,7 @@ function Row({ item, quickKey, enterKey, platform }: RowProps) {
         <span className="calc__side">
           <span className="calc__expression">{item.calculator.expression}</span>
           <span className="calc__label" aria-hidden="true">
-            Expression
+            {item.calculator.labels?.[0] ?? 'Expression'}
           </span>
         </span>
         <ArrowRight className="calc__arrow" size={22} strokeWidth={2} aria-hidden="true" />
@@ -84,7 +84,7 @@ function Row({ item, quickKey, enterKey, platform }: RowProps) {
         <span className="calc__side calc__side--result">
           <span className="calc__result">{item.calculator.result}</span>
           <span className="calc__label" aria-hidden="true">
-            Answer
+            {item.calculator.labels?.[1] ?? 'Answer'}
           </span>
         </span>
       </span>

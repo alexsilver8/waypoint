@@ -155,6 +155,13 @@ export class LauncherWindow {
     }
   }
 
+  /** Tells the page new exchange rates came. A hidden launcher asks for them when it opens. */
+  exchangeRatesChanged(): void {
+    if (!this.window.isDestroyed() && this.window.isVisible()) {
+      this.window.webContents.send(IpcChannel.exchangeRatesChanged);
+    }
+  }
+
   /**
    * Shows a message in the launcher's footer, once the page has loaded. While the launcher is
    * hidden it waits for it to open, since it would time out unseen.

@@ -538,7 +538,8 @@ button {
 }
 
 .calc__expression,
-.calc__result {
+.calc__result,
+.calc__label {
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
