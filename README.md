@@ -25,6 +25,7 @@ Website: [waypoint.alexsilver.dev](https://waypoint.alexsilver.dev/)
 - **Comes with extensions** — file search, your downloads and browser bookmarks, what's taking up space on your disk, your own scripts and Shortcuts, Keep Awake, translation and a dictionary, developer tools like Port Manager, Docker and GitHub, plus Media Controls and System Info, described [below](#included-extensions).
 - **Runs extensions** — commands written in JavaScript, each extension in a separate process. See [Writing extensions](docs/extensions.md).
 - **Everything has actions** — <kbd>⌘</kbd> <kbd>K</kbd> lists what you can do with the selected item.
+- **Gives any command its own shortcut** — press it anywhere to snap a window, search your files or keep your computer awake, without opening the launcher first. See [Command shortcuts](#command-shortcuts).
 - **Looks at home on your desktop** — the launcher is three panes floating on your desktop with nothing around them: the scope dock, the search field, and the results with their preview and action bar. Light or dark. Drag it anywhere that isn't a control to move it: like Raycast, guide lines show the screen's center, its middle and where the launcher opens, and it snaps to them. It opens again where you left it on that display. Settings floats the same way on macOS. The Notes window is liquid glass that blurs what's behind them on macOS and Windows 11; Linux gets the same design on a solid background, since it has no system blur.
 
 ## Install
@@ -49,12 +50,21 @@ The first time it starts, Waypoint opens a short setup in place of the launcher:
 | <kbd>Esc</kbd> | Go home to an empty search in All, from wherever you are; press it again to close |
 | <kbd>⌫</kbd> | Go back one step, when nothing is typed (so does the arrow before the search field) |
 | <kbd>⌘</kbd> <kbd>,</kbd> | Open settings (the gear at the bottom of the dock shows it while you hold <kbd>⌘</kbd> or point at it) |
+| A command's own shortcut | Run that command from anywhere; see [Command shortcuts](#command-shortcuts) |
 
 The Notes window has its own shortcuts, listed in the [Notes](#notes) section.
 
 On Windows and Linux, use <kbd>Ctrl</kbd> wherever you see <kbd>⌘</kbd>.
 
-On Linux under Wayland, global shortcuts may not reach the app. Bind a shortcut in your desktop settings to run `waypoint` instead: launching it again opens the running instance.
+On Linux under Wayland, global shortcuts may not reach the app. Bind a shortcut in your desktop settings to run `waypoint` instead: launching it again opens the running instance. To bind one command, run `waypoint --command <extension>/<command>`, like `waypoint --command keep-awake/toggle`; Settings → Extensions shows each command's name under it. A `waypoint://commands/<extension>/<command>` link opens one from anywhere that opens links; since any web page can open a link, one that would run something straight away waits for <kbd>↵</kbd> in the launcher.
+
+### Command shortcuts
+
+Any command can have a global shortcut of its own, built in or from an extension: **Left Half**, **Search Files**, **Toggle Keep Awake**. Pick a command in the launcher and choose **Set Shortcut…** from <kbd>⌘</kbd> <kbd>K</kbd>, or find it under **Command shortcuts** in **Settings → Extensions**, then press the keys you want. The × beside a shortcut removes it.
+
+Pressing it runs the command as if you'd picked it in the launcher, so it rises in your results too. A command that shows a list, like **Search Files**, opens the launcher at that list, and pressing its shortcut again closes it. Any other command just runs: **Left Half** moves the window you're in, and what a command has to say, like **Toggle Keep Awake** telling you how long it'll keep your computer awake, comes as a notification. If it fails, the launcher opens to say why. On macOS they follow what **System Settings → Notifications → Waypoint** allows; on Linux they need your desktop's notification service, which GNOME, KDE and most others run. Where there are none, the launcher opens with the message instead.
+
+A shortcut a command can't use, because the launcher or another command has it or another app took it first, isn't lost quietly: the launcher says so, and Settings shows why beside it. While you record a shortcut, the others are paused, so pressing one records it rather than running it. The launcher's shortcut and the commands' show beside them in the results and at the top of <kbd>⌘</kbd> <kbd>K</kbd>.
 
 ## Notes
 
@@ -100,7 +110,7 @@ Notes are saved as you type, one `.md` file per note, and what you see is what's
 
 ## Windows
 
-Type a layout and press <kbd>↵</kbd>: the launcher steps aside and the window you were using moves.
+Type a layout and press <kbd>↵</kbd>: the launcher steps aside and the window you were using moves. Give the ones you use a [shortcut of their own](#command-shortcuts) to move the window you're in without opening the launcher at all.
 
 | Command | |
 | --- | --- |
@@ -186,7 +196,7 @@ Raycast's `@raycast.` headers are read the same way, so the scripts in [raycast/
 
 ## Settings
 
-Open **Settings** with <kbd>⌘</kbd> <kbd>,</kbd> in the launcher, the **Open Settings** command, or **Settings…** in the tray menu. There you can record a new shortcut, pick light or dark, choose how much clipboard history to keep, move your notes folder and manage extensions.
+Open **Settings** with <kbd>⌘</kbd> <kbd>,</kbd> in the launcher, the **Open Settings** command, or **Settings…** in the tray menu. There you can record a new shortcut, pick light or dark, choose how much clipboard history to keep, move your notes folder, manage extensions and give any command a [shortcut of its own](#command-shortcuts).
 
 **Open at login** starts Waypoint quietly in the tray when you log in. On macOS and Windows it's added to the system's login items. On Linux, Waypoint writes `~/.config/autostart/dev.waypoint.app.desktop` (under `$XDG_CONFIG_HOME` if you set it), which GNOME, KDE, Xfce, Cinnamon and most other desktops follow, and turning it off removes the file. An AppImage is started from where the AppImage file is: if you move it, open it once from its new place and the entry follows. It works in the installed app, not when running from source.
 
@@ -200,7 +210,10 @@ Everything is also saved in `settings.json` (**Settings → About → Edit setti
   "theme": "system",                  // "light" or "dark"
   "clipboardHistory": { "enabled": true, "maxItems": 200 },
   "extensionDirectories": [],         // more places to load extensions from
-  "notesDirectory": ""                // where notes are saved; empty means the app's data folder
+  "notesDirectory": "",               // where notes are saved; empty means the app's data folder
+  "commandHotkeys": {                 // a shortcut for any command, by "<extension>/<command>"
+    "window-management/left-half": "Control+Alt+Left"
+  }
 }
 ```
 

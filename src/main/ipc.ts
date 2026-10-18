@@ -1,6 +1,6 @@
 import { clipboard, ipcMain } from 'electron';
 import { IpcChannel } from '../shared/ipc';
-import type { ActionContext, CommandRef } from '../shared/types';
+import type { ActionContext, ActionResult, CommandRef } from '../shared/types';
 import { sanitizeAction } from './extensions/validate';
 import { pasteIntoFrontApp } from './paste';
 import type { CommandRegistry } from './registry';
@@ -18,6 +18,30 @@ function toActionContext(value: unknown): ActionContext {
   if (typeof raw.rootItemId === 'string') context.rootItemId = raw.rootItemId;
   if (typeof raw.query === 'string') context.query = raw.query;
   return context;
+}
+
+/**
+ * Does the part of an action's result that happens here: copying, pasting into the app you were
+ * in and hiding the launcher. Returns the rest, for the launcher to show.
+ */
+export async function finishAction(
+  { copy, paste, ...result }: ActionResult,
+  launcher: Pick<LauncherWindow, 'hide' | 'hideAndReturnFocus'>,
+  options: { pasteIntoApps(): boolean },
+): Promise<ActionResult> {
+  const text = paste ?? copy;
+  if (text !== undefined) {
+    await clipboard.writeText(text);
+    result.hide = true;
+  }
+  if (paste !== undefined && options.pasteIntoApps()) {
+    // Hand the keyboard back to the app you were in, then paste there.
+    launcher.hideAndReturnFocus();
+    void pasteIntoFrontApp();
+  } else if (result.hide) {
+    launcher.hide();
+  }
+  return result;
 }
 
 /** Wires the renderer's `window.palette` API to the registry and the window. */
@@ -38,20 +62,7 @@ export function registerIpc(
     if (!fromLauncher(event)) throw new Error('Unexpected sender');
     const action = sanitizeAction(rawAction);
     if (!action) return { toast: 'Invalid action', toastStyle: 'failure' };
-    const { copy, paste, ...result } = await registry.runAction(action, toActionContext(rawContext));
-    const text = paste ?? copy;
-    if (text !== undefined) {
-      await clipboard.writeText(text);
-      result.hide = true;
-    }
-    if (paste !== undefined && options.pasteIntoApps()) {
-      // Hand the keyboard back to the app you were in, then paste there.
-      launcher.hideAndReturnFocus();
-      void pasteIntoFrontApp();
-    } else if (result.hide) {
-      launcher.hide();
-    }
-    return result;
+    return finishAction(await registry.runAction(action, toActionContext(rawContext)), launcher, options);
   });
 
   ipcMain.handle(IpcChannel.searchView, (event, ref: unknown, query: unknown) => {

@@ -442,6 +442,20 @@ button {
   font-size: 12px;
 }
 
+/* A command's own shortcut, quieter than the ↵ that runs the selected row. */
+.row__hotkey {
+  flex: none;
+  display: inline-flex;
+}
+
+.row__hotkey .keycap {
+  min-width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  color: var(--ink-faint);
+  font-weight: 500;
+}
+
 /* Beside a preview, rows show just their titles; the preview has the rest. */
 .content[data-detail] .row__subtitle {
   display: none;
@@ -850,13 +864,29 @@ button {
 }
 
 .action-panel__heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 10px 14px 4px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   color: var(--ink-muted);
   font-size: 12px;
   font-weight: 600;
+}
+
+.action-panel__title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.action-panel__hotkey .keycap {
+  min-width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  font-size: 10.5px;
+  font-weight: 500;
 }
 
 .action-panel__list {

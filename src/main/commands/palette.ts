@@ -5,7 +5,8 @@ import type { CommandRegistry } from '../registry';
 import type { BuiltinExtension } from './types';
 
 interface PaletteCommandOptions {
-  openSettings: () => void;
+  /** Opens Settings; with a command's key, at that command's shortcut (Set Shortcut… in the launcher). */
+  openSettings: (command?: string) => void;
   /** Opens first-launch setup again. */
   openOnboarding: () => void;
   extensionsDir: string;
@@ -114,8 +115,8 @@ export function paletteExtension({
     },
     commands: {
       settings: {
-        run() {
-          openSettings();
+        run(ctx) {
+          openSettings(ctx.argument || undefined);
           return { hide: true };
         },
       },

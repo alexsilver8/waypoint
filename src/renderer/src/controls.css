@@ -113,6 +113,35 @@
   font-size: 13px;
 }
 
+/* A command's shortcut, with a button beside it to remove it. */
+.hotkey__row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hotkey__clear {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 12px;
+  background: none;
+  color: var(--ink-faint);
+}
+
+.hotkey__clear:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+
+.hotkey__clear:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 75%, transparent);
+  outline-offset: 1px;
+}
+
 .hotkey__message {
   max-width: 260px;
   color: var(--pigment-red);

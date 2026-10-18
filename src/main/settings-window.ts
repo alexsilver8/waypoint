@@ -9,6 +9,9 @@ const isMac = process.platform === 'darwin';
 export class SettingsWindow {
   private window: BrowserWindow | undefined;
 
+  /** `onClosed`: e.g. so closing it mid-recording doesn't leave the shortcuts paused. */
+  constructor(private readonly options: { onClosed?(): void } = {}) {}
+
   get webContents(): Electron.WebContents | undefined {
     return this.window?.webContents;
   }
@@ -63,6 +66,7 @@ export class SettingsWindow {
     window.once('ready-to-show', () => window.show());
     window.on('closed', () => {
       this.window = undefined;
+      this.options.onClosed?.();
     });
     loadPage(window, 'settings', glass);
     return window;

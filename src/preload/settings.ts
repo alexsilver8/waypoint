@@ -14,6 +14,13 @@ const api: SettingsApi = {
   reloadExtensions: () => ipcRenderer.invoke(SettingsChannel.reloadExtensions),
   clearClipboard: () => ipcRenderer.invoke(SettingsChannel.clearClipboard),
   openOnboarding: () => ipcRenderer.send(SettingsChannel.openOnboarding),
+  setCommandHotkey: (key, accelerator) => ipcRenderer.invoke(SettingsChannel.setCommandHotkey, key, accelerator),
+  takeReveal: () => ipcRenderer.invoke(SettingsChannel.takeReveal),
+  onReveal: (listener) => {
+    const handler = () => listener();
+    ipcRenderer.on(SettingsChannel.reveal, handler);
+    return () => ipcRenderer.removeListener(SettingsChannel.reveal, handler);
+  },
   onChanged: (listener) => {
     const handler = () => listener();
     ipcRenderer.on(SettingsChannel.changed, handler);

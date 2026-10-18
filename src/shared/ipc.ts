@@ -18,6 +18,8 @@ export const IpcChannel = {
   rootItemsChanged: 'palette:root-items-changed',
   /** main → renderer: show a message in the footer. */
   toast: 'palette:toast',
+  /** main → renderer: open a command as if picked from the root search (its shortcut, `--command`). */
+  runCommand: 'palette:run-command',
 } as const;
 
 export interface ShownInfo {
@@ -28,6 +30,15 @@ export interface ShownInfo {
 export interface ToastMessage {
   text: string;
   style: 'success' | 'failure';
+}
+
+/** A command to open from outside the launcher: its own shortcut, `waypoint --command`, a link. */
+export interface CommandRequest {
+  ref: CommandRef;
+  /** The launcher was already in front; if this command's view is showing, it closes instead. */
+  toggle: boolean;
+  /** It already ran, out of sight: show what it returned rather than running it again. */
+  result?: ActionResult;
 }
 
 /** The API the preload script exposes to the renderer as `window.palette`. */
@@ -45,4 +56,6 @@ export interface PaletteApi {
   onHidden(listener: () => void): () => void;
   onRootItemsChanged(listener: () => void): () => void;
   onToast(listener: (toast: ToastMessage) => void): () => void;
+  /** Requests that came before anything listened are handed over when something does. */
+  onRunCommand(listener: (request: CommandRequest) => void): () => void;
 }

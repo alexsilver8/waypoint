@@ -1,4 +1,5 @@
 /** Contract between the main process and the Settings window. */
+import type { CommandShortcutInfo } from './command-hotkeys';
 import type { Settings } from './settings';
 import type { ExtensionSource, Platform } from './types';
 
@@ -19,6 +20,8 @@ export interface SettingsState {
   /** The shortcut that actually works right now (may differ from `settings.hotkey` if that one failed). */
   activeHotkey?: string;
   extensions: ExtensionSummary[];
+  /** Every command, with its own shortcut if it has one. */
+  commands: CommandShortcutInfo[];
   info: {
     version: string;
     electron: string;
@@ -50,6 +53,10 @@ export const SettingsChannel = {
   reloadExtensions: 'settings:reload-extensions',
   clearClipboard: 'settings:clear-clipboard',
   openOnboarding: 'settings:open-onboarding',
+  setCommandHotkey: 'settings:set-command-hotkey',
+  takeReveal: 'settings:take-reveal',
+  /** main → window: there's a command to show (Set Shortcut… in the launcher); take it. */
+  reveal: 'settings:reveal',
   /** main → window: something changed; fetch the state again. */
   changed: 'settings:changed',
 } as const;
@@ -79,5 +86,10 @@ export interface SettingsApi {
   clearClipboard(): Promise<SettingsState>;
   /** Opens first-launch setup again. */
   openOnboarding(): void;
+  /** Gives a command its own shortcut, or none with `null`; on failure the old one stays and `error` says why. */
+  setCommandHotkey(key: string, accelerator: string | null): Promise<{ state: SettingsState; error?: string }>;
+  /** The command Settings was opened to give a shortcut, once; `null` when there's none. */
+  takeReveal(): Promise<string | null>;
+  onReveal(listener: () => void): () => void;
   onChanged(listener: () => void): () => void;
 }

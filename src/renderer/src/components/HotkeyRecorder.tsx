@@ -1,3 +1,4 @@
+import { X } from 'lucide-react';
 import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from 'react';
 import type { Platform } from '../../../shared/types';
 import { acceleratorFromKeyPress, acceleratorKeys, heldModifiers } from '../accelerator';
@@ -12,17 +13,42 @@ export interface ShortcutRecorder {
 }
 
 interface HotkeyRecorderProps {
+  /** The shortcut set, or '' for none. */
   value: string;
   /** The shortcut that works right now, if it isn't `value`. */
   active?: string;
+  /** Why `value` isn't working, from whoever registers it; said instead of guessing from `active`. */
+  problem?: string;
   platform: Platform;
   recorder: ShortcutRecorder;
   /** Setup's big field, with a line under it saying what clicking does. */
   large?: boolean;
+  /** What the shortcut is for, e.g. a command's title, for screen readers. */
+  label?: string;
+  /** Shown in the field when there's no shortcut. */
+  emptyLabel?: string;
+  /** Offers to remove the shortcut, beside the field. */
+  onClear?(): void;
+  /**
+   * Starts recording whenever this becomes a new number, e.g. when Settings was opened to set
+   * this one. The recorder must keep its identity meanwhile (memoise it).
+   */
+  recordRequest?: number;
 }
 
 /** Shows the shortcut as keycaps; click it, then press a new one. */
-export function HotkeyRecorder({ value, active, platform, recorder, large }: HotkeyRecorderProps) {
+export function HotkeyRecorder({
+  value,
+  active,
+  problem,
+  platform,
+  recorder,
+  large,
+  label,
+  emptyLabel = 'Record Shortcut',
+  onClear,
+  recordRequest,
+}: HotkeyRecorderProps) {
   const [recording, setRecording] = useState(false);
   const [held, setHeld] = useState<string[]>([]);
   const [error, setError] = useState<string>();
@@ -51,7 +77,7 @@ export function HotkeyRecorder({ value, active, platform, recorder, large }: Hot
     handBack();
   }, [recorder, handBack]);
 
-  const start = () => {
+  const start = useCallback(() => {
     setError(undefined);
     recordingRef.current = true;
     setRecording(true);
@@ -60,7 +86,14 @@ export function HotkeyRecorder({ value, active, platform, recorder, large }: Hot
     const previous = document.activeElement;
     returnFocus.current = previous instanceof HTMLElement && previous !== field.current ? previous : null;
     field.current?.focus();
-  };
+  }, [recorder]);
+
+  const requested = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    if (recordRequest === undefined || recordRequest === requested.current) return;
+    requested.current = recordRequest;
+    if (!recordingRef.current) start();
+  }, [recordRequest, start]);
 
   // A click anywhere else stops recording, even where the click doesn't take focus.
   useEffect(() => {
@@ -102,33 +135,65 @@ export function HotkeyRecorder({ value, active, platform, recorder, large }: Hot
     }
   };
 
-  const notWorking = !recording && active !== value;
+  const notWorking = !recording && value !== '' && (problem !== undefined || active !== value);
   const escapeKey = platform === 'darwin' ? 'esc' : 'Esc';
+  const what = label ? `Shortcut for ${label}` : 'Shortcut';
+  const button = (
+    <button
+      ref={field}
+      type="button"
+      className="hotkey__field"
+      data-recording={recording || undefined}
+      onClick={() => (recording ? stop() : start())}
+      onKeyDown={onKeyDown}
+      onKeyUp={(event) => {
+        if (recording) setHeld(heldModifiers(event, platform));
+      }}
+      onBlur={() => recordingRef.current && stop()}
+      aria-label={
+        recording
+          ? 'Press the new shortcut, or Escape to cancel'
+          : value
+            ? `${what}: ${value}. Click to change`
+            : `${what}: none. Click to record one`
+      }
+    >
+      {recording ? (
+        held.length > 0 ? (
+          <Keycaps keys={acceleratorKeys(held.join('+'), platform)} />
+        ) : (
+          <span className="hotkey__prompt">Press a shortcut…</span>
+        )
+      ) : value ? (
+        <Keycaps keys={acceleratorKeys(value, platform)} />
+      ) : (
+        <span className="hotkey__prompt">{emptyLabel}</span>
+      )}
+    </button>
+  );
   return (
     <div className={large ? 'hotkey hotkey--large' : 'hotkey'}>
-      <button
-        ref={field}
-        type="button"
-        className="hotkey__field"
-        data-recording={recording || undefined}
-        onClick={() => (recording ? stop() : start())}
-        onKeyDown={onKeyDown}
-        onKeyUp={(event) => {
-          if (recording) setHeld(heldModifiers(event, platform));
-        }}
-        onBlur={() => recordingRef.current && stop()}
-        aria-label={recording ? 'Press the new shortcut, or Escape to cancel' : `Shortcut: ${value}. Click to change`}
-      >
-        {recording ? (
-          held.length > 0 ? (
-            <Keycaps keys={acceleratorKeys(held.join('+'), platform)} />
-          ) : (
-            <span className="hotkey__prompt">Press a shortcut…</span>
-          )
-        ) : (
-          <Keycaps keys={acceleratorKeys(value, platform)} />
-        )}
-      </button>
+      {onClear ? (
+        <span className="hotkey__row">
+          {button}
+          {value && !recording && (
+            <button
+              type="button"
+              className="hotkey__clear"
+              onClick={() => {
+                setError(undefined);
+                onClear();
+              }}
+              aria-label={label ? `Remove the shortcut for ${label}` : 'Remove the shortcut'}
+              title="Remove"
+            >
+              <X size={13} strokeWidth={2.25} aria-hidden="true" />
+            </button>
+          )}
+        </span>
+      ) : (
+        button
+      )}
       {large && !error && !notWorking && (
         <span className="hotkey__hint">
           {recording ? `Press the keys you want, or ${escapeKey} to cancel` : 'Click to record a different one'}
@@ -141,9 +206,10 @@ export function HotkeyRecorder({ value, active, platform, recorder, large }: Hot
       )}
       {!error && notWorking && (
         <span className="hotkey__message" role="status">
-          {active
-            ? `Couldn’t register this one, so ${active} is in use.`
-            : 'This shortcut isn’t working. Pick another.'}
+          {problem ??
+            (active
+              ? `Couldn’t register this one, so ${active} is in use.`
+              : 'This shortcut isn’t working. Pick another.')}
         </span>
       )}
     </div>

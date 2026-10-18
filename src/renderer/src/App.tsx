@@ -1,5 +1,7 @@
 import { ChevronLeft } from 'lucide-react';
 import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { commandItemId } from '../../shared/command-hotkeys';
+import type { CommandRequest } from '../../shared/ipc';
 import type { Action, ActionContext, ActionResult, CommandRef, RootItem, View } from '../../shared/types';
 import { ActionPanel } from './components/ActionPanel';
 import { DetailPane } from './components/DetailPane';
@@ -329,6 +331,27 @@ export function App() {
     [frame, applyResult, showToast, focusInput],
   );
 
+  /**
+   * A command opened from outside (its own shortcut, `waypoint --command`): it opens from the root
+   * search as if picked there. Pressed again while its view is in front, it closes the launcher.
+   */
+  const fromOutside = useRef<(request: CommandRequest) => void>(undefined);
+  fromOutside.current = ({ ref, toggle, result }) => {
+    const top = stackRef.current[stackRef.current.length - 1];
+    if (toggle && !result && top?.ref?.extension === ref.extension && top.ref.command === ref.command) {
+      palette.hide();
+      return;
+    }
+    const action: Action = { type: 'open-command', ref };
+    searchRequest.current++;
+    setPanelOpen(false);
+    setStack([ROOT]);
+    if (result) applyResult(result, action, ROOT);
+    else
+      void run({ id: commandItemId(ref), title: '', actions: [action], rootItemId: commandItemId(ref) }, action, ROOT);
+  };
+  useEffect(() => palette.onRunCommand((request) => fromOutside.current?.(request)), []);
+
   /** The same as running Open Settings: ⌘, and clicking Waypoint in the footer. */
   const openSettings = () =>
     void run(
@@ -541,6 +564,7 @@ export function App() {
                 resultsKey={`${frame.id}\u0000${filter}\u0000${frame.query}\u0000${frame.viewQuery ?? ''}`}
                 picked={frame.selectedId !== undefined}
                 enterKey={platform === 'darwin' ? '↵' : 'Enter'}
+                platform={platform}
                 emptyText={emptyText}
                 quickKeyModifier={modHeld ? MOD_LABEL : null}
                 quickKeyStart={firstInView}

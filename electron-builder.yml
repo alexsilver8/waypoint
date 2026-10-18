@@ -17,7 +17,8 @@ extraResources:
     filter:
       - '**/*'
       - '!**/*.test.*'
-# waypoint://notes/<id> opens a note (Copy Deeplink in the Notes window).
+# waypoint://notes/<id> opens a note (Copy Deeplink in the Notes window), and
+# waypoint://commands/<extension>/<command> runs a command.
 protocols:
   - name: Waypoint
     schemes: [waypoint]

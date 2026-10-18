@@ -2,12 +2,14 @@ import { existsSync, mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { app, nativeTheme, powerSaveBlocker, shell } from 'electron';
+import { commandFromDeeplink, commandInArgv, launchArguments } from '../shared/command-hotkeys';
 import { NotesChannel, noteIdFromDeeplink, RECENTLY_DELETED_DAYS } from '../shared/notes';
 import type { OnboardingOutcome } from '../shared/onboarding';
 import type { Platform } from '../shared/types';
 import { AppIndex } from './apps/app-index';
 import { electronClipboard } from './clipboard/electron-source';
 import { ClipboardHistory } from './clipboard/history';
+import { commandShortcuts } from './command-shortcuts';
 import { clipboardHistoryExtension, clipboardRootItems } from './commands/clipboard-history';
 import { noteRootItems, notesExtension } from './commands/notes';
 import { paletteExtension } from './commands/palette';
@@ -47,7 +49,8 @@ captureDeeplinks();
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-if (!app.requestSingleInstanceLock()) {
+// A second copy sends its arguments along as it got them (see `launchArguments`).
+if (!app.requestSingleInstanceLock({ argv: process.argv })) {
   // Running `waypoint` again toggles the existing instance (handy on Wayland,
   // where global shortcuts can be bound to a command instead).
   app.quit();
@@ -95,13 +98,22 @@ async function main(): Promise<void> {
   const purgeDeletedNotes = () => void notesStore.purgeOlderThan(RECENTLY_DELETED_DAYS * DAY_MS);
   purgeDeletedNotes();
   setInterval(purgeDeletedNotes, DAY_MS / 4).unref();
-  /** A waypoint://notes/<id> link opens that note, or just the Notes window if it's gone. */
+  /**
+   * A waypoint://notes/<id> link opens that note, or just the Notes window if it's gone; a
+   * waypoint://commands/<extension>/<command> link opens that command.
+   */
   const openDeeplink = (url: string) => {
+    const command = commandFromDeeplink(url);
+    if (command) {
+      void commands.runner.run(command, { ask: true });
+      return;
+    }
     const id = noteIdFromDeeplink(url);
     if (!id) return;
     void notesStore.get(id).then((note) => notesWindow.open(note?.id));
   };
-  const settingsWindow = new SettingsWindow();
+  // Closing it mid-recording mustn't leave the shortcuts paused.
+  const settingsWindow = new SettingsWindow({ onClosed: () => hotkeys.resume() });
 
   const registry: CommandRegistry = new CommandRegistry({
     platform,
@@ -113,6 +125,7 @@ async function main(): Promise<void> {
       () => noteRootItems(notesStore),
       () => clipboardRootItems(clipboardHistory, () => settings.get().clipboardHistory.enabled),
     ],
+    commandHotkey: (key) => commands.hotkeys.activeFor(key),
     // Shipped with the app: inside its resources once installed, the repo's folder from source.
     bundledRoots: () => [join(app.isPackaged ? process.resourcesPath : app.getAppPath(), 'extensions')],
     extensionRoots: () => [
@@ -129,7 +142,10 @@ async function main(): Promise<void> {
       // The launcher is created below; window commands only reach for it when they run.
       windowManagementExtension({ platform, launcher: () => launcher }),
       paletteExtension({
-        openSettings: () => settingsWindow.open(),
+        openSettings: (command) => {
+          if (command) settingsIpc.revealCommand(command);
+          settingsWindow.open();
+        },
         // Setup's window is made below too; the command only reaches for it when it runs.
         openOnboarding: () => onboardingWindow.open(),
         extensionsDir,
@@ -177,11 +193,23 @@ async function main(): Promise<void> {
     if (onboardingWindow.isOpen) onboardingWindow.hotkeyPressed();
     else launcher.toggle();
   });
+  const commands = commandShortcuts({
+    platform,
+    settings,
+    registry,
+    launcher,
+    hotkeys,
+    onChange: () => {
+      launcher.rootItemsChanged();
+      settingsIpc.notifyChanged();
+    },
+  });
   registerIpc(registry, launcher, { pasteIntoApps: () => settings.get().pasteIntoApps });
   const settingsIpc = registerSettingsIpc({
     store: settings,
     window: settingsWindow,
     hotkeys,
+    commandHotkeys: commands.hotkeys,
     registry,
     clipboardHistory,
     platform,
@@ -206,9 +234,13 @@ async function main(): Promise<void> {
     settingsIpc.notifyChanged();
   });
   notesStore.on('change', () => launcher.rootItemsChanged());
-  app.on('second-instance', (_event, argv: readonly string[] | undefined) => {
+  app.on('second-instance', (_event, rawArgv: readonly string[] | undefined, _directory, data: unknown) => {
+    const argv = launchArguments(rawArgv, data);
+    const command = commandInArgv(argv);
     const link = deeplinkIn(argv);
-    if (link) openDeeplink(link);
+    // `waypoint --command <extension>/<command>` runs it, for desktop shortcuts where global ones don't arrive.
+    if (command) void commands.runner.run(command);
+    else if (link) openDeeplink(link);
     else if (argv?.includes('--onboarding')) onboardingWindow.open();
     // On Linux, running `waypoint` again is how a desktop shortcut opens Waypoint where global
     // shortcuts don't arrive (Wayland), so during setup it counts as the shortcut being pressed.
@@ -262,7 +294,9 @@ async function main(): Promise<void> {
   // On first run, setup opens in place of the launcher (and again until it's finished or skipped).
   // Otherwise show the launcher right away in development, or when asked to. Apps and extensions
   // fill in as they load.
+  const launchCommand = commandInArgv(process.argv);
   if (onboarding.pending || process.argv.includes('--onboarding')) onboardingWindow.open();
+  else if (launchCommand) void commands.runner.run(launchCommand);
   else if (!app.isPackaged || process.argv.includes('--show')) launcher.show();
 
   await Promise.all([apps.refresh(), registry.loadUserExtensions()]);

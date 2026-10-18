@@ -7,6 +7,7 @@ import { ItemIcon } from '../components/ItemIcon';
 import { PaletteMark } from '../components/PaletteMark';
 import { ThemePicker } from '../components/ThemePicker';
 import { Toggle } from '../components/Toggle';
+import { CommandShortcuts, type RevealedCommand, useRevealedCommand } from './CommandShortcuts';
 
 const api = window.settings;
 const { platform } = api;
@@ -117,6 +118,8 @@ interface SectionProps {
   state: SettingsState;
   update(patch: Partial<Settings>): void;
   setState(state: SettingsState): void;
+  /** A command to show the shortcut of (Set Shortcut… in the launcher). */
+  revealed?: RevealedCommand;
 }
 
 function General({ state, update }: SectionProps) {
@@ -251,7 +254,7 @@ function Notes({ state, update }: SectionProps) {
   );
 }
 
-function Extensions({ state, update, setState }: SectionProps) {
+function Extensions({ state, update, setState, revealed }: SectionProps) {
   const folders = state.settings.extensionDirectories;
   const user = state.extensions.filter((e) => e.source === 'user');
   const builtin = state.extensions.filter((e) => e.source !== 'user');
@@ -347,6 +350,8 @@ function Extensions({ state, update, setState }: SectionProps) {
           ))}
         </ul>
       </Group>
+
+      <CommandShortcuts state={state} setState={setState} revealed={revealed} />
     </>
   );
 }
@@ -397,6 +402,7 @@ const SECTION_VIEWS: Record<SectionId, (props: SectionProps) => ReactNode> = {
 export function SettingsApp() {
   const [state, setState] = useState<SettingsState | null>(null);
   const [section, setSection] = useState<SectionId>('general');
+  const revealed = useRevealedCommand(() => setSection('extensions'));
 
   useEffect(() => {
     const load = () => void api.get().then(setState);
@@ -469,7 +475,7 @@ export function SettingsApp() {
             {current?.label}
           </h1>
         </header>
-        {state ? <View state={state} update={update} setState={setState} /> : null}
+        {state ? <View state={state} update={update} setState={setState} revealed={revealed} /> : null}
       </main>
     </div>
   );

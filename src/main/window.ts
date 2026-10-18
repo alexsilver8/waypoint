@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 import { app, BrowserWindow, screen } from 'electron';
-import { IpcChannel, type ShownInfo, type ToastMessage } from '../shared/ipc';
+import { type CommandRequest, IpcChannel, type ShownInfo, type ToastMessage } from '../shared/ipc';
 import { DragGuides } from './drag-guides';
 import { type Glass, glassWindowOptions, loadPage } from './glass';
 import { showOnEverySpace } from './spaces';
@@ -35,6 +35,8 @@ export class LauncherWindow {
   /** While you drag the launcher: the timer that moves it with the pointer. */
   private dragTimer: NodeJS.Timeout | null = null;
   private readonly guides = new DragGuides();
+  /** A toast that came while the launcher was hidden, where it would have gone unseen. */
+  private pendingToast: ToastMessage | null = null;
 
   constructor(private readonly options: LauncherWindowOptions) {
     // The launcher draws its own floating panes, so the window itself is clear: system blur
@@ -89,6 +91,11 @@ export class LauncherWindow {
     return this.window.isVisible();
   }
 
+  /** On screen and taking the keyboard, so its shortcut closes it rather than bringing it forward. */
+  get inFront(): boolean {
+    return this.visible && this.window.isFocused();
+  }
+
   toggle(): void {
     if (this.visible && this.window.isFocused()) this.hide();
     else this.show();
@@ -108,6 +115,8 @@ export class LauncherWindow {
     this.window.focus();
     if (isMac) app.focus({ steal: true });
     this.window.webContents.send(IpcChannel.shown, info);
+    if (this.pendingToast) this.send(IpcChannel.toast, this.pendingToast);
+    this.pendingToast = null;
   }
 
   hide(): void {
@@ -146,12 +155,28 @@ export class LauncherWindow {
     }
   }
 
-  /** Shows a message in the launcher's footer, once the page has loaded. */
+  /**
+   * Shows a message in the launcher's footer, once the page has loaded. While the launcher is
+   * hidden it waits for it to open, since it would time out unseen.
+   */
   toast(message: ToastMessage): void {
     if (this.window.isDestroyed()) return;
+    if (!this.visible) {
+      this.pendingToast = message;
+      return;
+    }
+    this.send(IpcChannel.toast, message);
+  }
+
+  /** Opens a command as if it was picked from the root search. Show the launcher first. */
+  runCommand(request: CommandRequest): void {
+    if (!this.window.isDestroyed()) this.send(IpcChannel.runCommand, request);
+  }
+
+  private send(channel: string, message: unknown): void {
     const { webContents } = this.window;
-    if (webContents.isLoading()) webContents.once('did-finish-load', () => webContents.send(IpcChannel.toast, message));
-    else webContents.send(IpcChannel.toast, message);
+    if (webContents.isLoading()) webContents.once('did-finish-load', () => webContents.send(channel, message));
+    else webContents.send(channel, message);
   }
 
   /**

@@ -9,6 +9,8 @@ export interface DisplayItem extends ListItem {
   rootItemId?: string;
   /** Set for the inline calculator row. */
   calculator?: { expression: string; result: string };
+  /** For commands: the global shortcut that runs it, drawn beside it. */
+  hotkey?: string;
 }
 
 export interface DisplaySection {

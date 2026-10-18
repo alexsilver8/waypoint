@@ -1,3 +1,5 @@
+import { normalizeCommandHotkeys } from './command-hotkeys';
+
 /** User settings, stored as JSON in the app's data folder and editable by hand. */
 export interface Settings {
   /** Global shortcut that toggles the launcher, as an Electron accelerator. */
@@ -18,6 +20,8 @@ export interface Settings {
   notesDirectory: string;
   /** Paste actions (emoji, gitmoji, commit messages) type into the app you were in; off, they copy. */
   pasteIntoApps: boolean;
+  /** A global shortcut for any command, as an Electron accelerator, by `"<extension>/<command>"`. */
+  commandHotkeys: Record<string, string>;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -29,6 +33,7 @@ export const DEFAULT_SETTINGS: Settings = {
   extensionDirectories: [],
   notesDirectory: '',
   pasteIntoApps: true,
+  commandHotkeys: {},
 };
 
 export interface NormalizedSettings {
@@ -106,6 +111,7 @@ export function normalizeSettings(raw: unknown): NormalizedSettings {
       settings.notesDirectory = v.trim();
     },
   );
+  settings.commandHotkeys = normalizeCommandHotkeys(raw.commandHotkeys, problems);
 
   return { settings, problems };
 }

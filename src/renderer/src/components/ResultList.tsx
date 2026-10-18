@@ -1,5 +1,7 @@
 import { ArrowRight } from 'lucide-react';
 import { type CSSProperties, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import type { Platform } from '../../../shared/types';
+import { acceleratorKeys } from '../accelerator';
 import type { DisplayItem, DisplaySection } from '../model';
 import { Highlight } from './Highlight';
 import { ItemIcon, tintOf } from './ItemIcon';
@@ -32,6 +34,8 @@ interface ResultListProps {
   picked: boolean;
   /** The key that runs the selected row, drawn at its end ("↵", or "Enter" off the Mac). */
   enterKey: string;
+  /** How a command's own shortcut is drawn. */
+  platform: Platform;
   emptyText: string | undefined;
   /** The modifier to draw beside the rows in view while it's held, e.g. "⌘". */
   quickKeyModifier: string | null;
@@ -61,9 +65,10 @@ interface RowProps {
   quickKey: string[] | null;
   /** Drawn on the selected row only, where ↵ runs it; hidden while the quick keys show. */
   enterKey: string | null;
+  platform: Platform;
 }
 
-function Row({ item, quickKey, enterKey }: RowProps) {
+function Row({ item, quickKey, enterKey, platform }: RowProps) {
   if (item.calculator) {
     // A card: the sum on the left, the answer large on the right.
     return (
@@ -97,7 +102,14 @@ function Row({ item, quickKey, enterKey }: RowProps) {
       {quickKey ? (
         <Keycaps keys={quickKey} />
       ) : (
-        item.accessory && <span className="row__accessory">{item.accessory}</span>
+        <>
+          {item.hotkey && (
+            <span className="row__hotkey" title="Runs it from anywhere">
+              <Keycaps keys={acceleratorKeys(item.hotkey, platform)} />
+            </span>
+          )}
+          {item.accessory && <span className="row__accessory">{item.accessory}</span>}
+        </>
       )}
       {enterKey && !quickKey && <Keycaps keys={[enterKey]} />}
     </>
@@ -134,6 +146,7 @@ export function ResultList({
   resultsKey,
   picked,
   enterKey,
+  platform,
   emptyText,
   quickKeyModifier,
   quickKeyStart,
@@ -256,6 +269,7 @@ export function ResultList({
       >
         <Row
           item={item}
+          platform={platform}
           enterKey={selected && !quickKeyModifier ? enterKey : null}
           quickKey={
             quickKeyModifier && index >= quickKeyStart && index < quickKeyStart + QUICK_KEY_COUNT

@@ -9,6 +9,7 @@ import {
 } from '../shared/settings-ipc';
 import type { Platform } from '../shared/types';
 import type { ClipboardHistory } from './clipboard/history';
+import { type CommandHotkeys, changeCommandHotkey, commandShortcutList } from './command-hotkeys';
 import { changeHotkey, type HotkeyManager } from './hotkey';
 import { canLaunchAtLogin } from './login-item';
 import type { CommandRegistry } from './registry';
@@ -19,6 +20,7 @@ export interface SettingsIpcOptions {
   store: SettingsStore;
   window: SettingsWindow;
   hotkeys: HotkeyManager;
+  commandHotkeys: CommandHotkeys;
   registry: CommandRegistry;
   clipboardHistory: ClipboardHistory;
   platform: Platform;
@@ -37,8 +39,14 @@ const PATCHABLE: Array<keyof Settings> = [
 ];
 
 /** Wires the Settings window's `window.settings` API. */
-export function registerSettingsIpc(options: SettingsIpcOptions): { notifyChanged(): void } {
-  const { store, window, hotkeys, registry, clipboardHistory, platform, paths, openOnboarding } = options;
+export function registerSettingsIpc(options: SettingsIpcOptions): {
+  notifyChanged(): void;
+  /** Has Settings show this command's shortcut once it opens. */
+  revealCommand(key: string): void;
+} {
+  const { store, window, hotkeys, commandHotkeys, registry, clipboardHistory, platform, paths, openOnboarding } =
+    options;
+  let reveal: string | null = null;
 
   const check = (event: Electron.IpcMainInvokeEvent | Electron.IpcMainEvent) => {
     if (!window.webContents || event.sender !== window.webContents) throw new Error('Unexpected sender');
@@ -57,6 +65,7 @@ export function registerSettingsIpc(options: SettingsIpcOptions): { notifyChange
         ...(info.dir ? { dir: info.dir } : {}),
         ...(info.error ? { error: info.error } : {}),
       })),
+      commands: commandShortcutList(registry.listCommands(), store.get().commandHotkeys, commandHotkeys),
       info: {
         version: app.getVersion(),
         electron: process.versions.electron,
@@ -146,7 +155,24 @@ export function registerSettingsIpc(options: SettingsIpcOptions): { notifyChange
     return state();
   });
 
+  ipcMain.handle(SettingsChannel.setCommandHotkey, (event, key: unknown, accelerator: unknown) => {
+    check(event);
+    const error = changeCommandHotkey(hotkeys, commandHotkeys, store, key, accelerator);
+    return error ? { state: state(), error } : { state: state() };
+  });
+
+  ipcMain.handle(SettingsChannel.takeReveal, (event) => {
+    check(event);
+    const key = reveal;
+    reveal = null;
+    return key;
+  });
+
   return {
     notifyChanged: () => window.webContents?.send(SettingsChannel.changed),
+    revealCommand: (key) => {
+      reveal = key;
+      window.webContents?.send(SettingsChannel.reveal);
+    },
   };
 }

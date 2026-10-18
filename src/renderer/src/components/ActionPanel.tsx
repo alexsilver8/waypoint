@@ -1,6 +1,7 @@
 import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { rankItems } from '../../../shared/search';
 import type { Action, Platform } from '../../../shared/types';
+import { acceleratorKeys } from '../accelerator';
 import { isModKey, shortcutKeys } from '../keys';
 import { actionTitle, type DisplayItem } from '../model';
 import { Keycaps } from './Keycaps';
@@ -57,7 +58,14 @@ export function ActionPanel({ item, platform, onRun, onClose }: ActionPanelProps
     <>
       <div className="action-panel__scrim" onClick={onClose} aria-hidden="true" />
       <div className="action-panel" role="dialog" aria-label={`Actions for ${item.title}`} onKeyDown={onKeyDown}>
-        <div className="action-panel__heading">{item.title}</div>
+        <div className="action-panel__heading">
+          <span className="action-panel__title">{item.title}</span>
+          {item.hotkey && (
+            <span className="action-panel__hotkey" title="Runs it from anywhere">
+              <Keycaps keys={acceleratorKeys(item.hotkey, platform)} />
+            </span>
+          )}
+        </div>
         <ul className="action-panel__list" role="listbox" aria-label="Actions">
           {actions.map(({ action, position, title }, i) => {
             const keys = keysForAction(action, position, platform);

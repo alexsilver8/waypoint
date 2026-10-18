@@ -1,5 +1,6 @@
 import { EventEmitter } from 'node:events';
 import { join } from 'node:path';
+import { commandItemId, commandKey } from '../shared/command-hotkeys';
 import type { HostExtension } from '../shared/extension-protocol';
 import type {
   Action,
@@ -11,6 +12,7 @@ import type {
   CommandRef,
   ExtensionManifest,
   ExtensionSource,
+  Icon,
   Platform,
   RootItem,
   View,
@@ -54,7 +56,21 @@ export interface RegistryOptions {
   supportRoot: string;
   /** More things the root search finds, like notes and clipboard entries. */
   rootSources?: Array<() => RootItem[] | Promise<RootItem[]>>;
+  /** The global shortcut that runs a command, by `"<extension>/<command>"`, shown beside it. */
+  commandHotkey?: (key: string) => string | undefined;
 }
+
+/** A command that's available on this computer. */
+export interface CommandInfo {
+  ref: CommandRef;
+  manifest: CommandManifest;
+  /** The command's icon, or its extension's. */
+  icon?: Icon;
+  extension: { name: string; title: string; source: ExtensionSource };
+}
+
+/** Opens Settings at a command's shortcut; its argument is the command's key. */
+const SET_SHORTCUT_REF: CommandRef = { extension: 'waypoint', command: 'settings' };
 
 const REVEAL_LABEL: Record<Platform, string> = {
   darwin: 'Show in Finder',
@@ -74,6 +90,11 @@ export class CommandRegistry extends EventEmitter<{ change: [] }> {
   private readonly extensions = new Map<string, RegisteredExtension>();
   private failures: ExtensionInfo[] = [];
   private reloading: Promise<unknown> = Promise.resolve();
+  private markLoaded: () => void = () => {};
+  /** Settles once user extensions have been loaded the first time. */
+  readonly firstLoad = new Promise<void>((resolve) => {
+    this.markLoaded = resolve;
+  });
 
   constructor(private readonly options: RegistryOptions) {
     super();
@@ -159,7 +180,31 @@ export class CommandRegistry extends EventEmitter<{ change: [] }> {
       console.warn(`[extensions] ${failure.manifest?.name ?? failure.dir}: ${failure.error}`);
     }
     this.emit('change');
+    this.markLoaded();
     return { loaded: report.loaded.length, failed: failures.length };
+  }
+
+  /** Every command there is on this platform, built-in or from an extension. */
+  listCommands(): CommandInfo[] {
+    const commands: CommandInfo[] = [];
+    for (const { manifest, source } of this.extensions.values()) {
+      for (const command of manifest.commands) {
+        if (command.platforms && !command.platforms.includes(this.options.platform)) continue;
+        const icon = command.icon ?? manifest.icon;
+        commands.push({
+          ref: { extension: manifest.name, command: command.name },
+          manifest: command,
+          ...(icon ? { icon } : {}),
+          extension: { name: manifest.name, title: manifest.title, source },
+        });
+      }
+    }
+    return commands;
+  }
+
+  /** The command `ref` names, if it's available on this platform. */
+  findCommand(ref: CommandRef): CommandInfo | undefined {
+    return this.listCommands().find((c) => c.ref.extension === ref.extension && c.ref.command === ref.command);
   }
 
   listExtensions(): ExtensionInfo[] {
@@ -190,7 +235,8 @@ export class CommandRegistry extends EventEmitter<{ change: [] }> {
       for (const command of extension.manifest.commands) {
         if (command.platforms && !command.platforms.includes(platform)) continue;
         const ref = { extension: extension.manifest.name, command: command.name };
-        const id = `command:${ref.extension}/${ref.command}`;
+        const id = commandItemId(ref);
+        const hotkey = this.options.commandHotkey?.(commandKey(ref));
         const item: RootItem = {
           id,
           kind: 'command',
@@ -198,8 +244,17 @@ export class CommandRegistry extends EventEmitter<{ change: [] }> {
           subtitle: command.subtitle ?? extension.manifest.title,
           accessory: 'Command',
           frecency: usage.score(id),
-          actions: [{ type: 'open-command', ref, title: command.mode === 'view' ? 'Open Command' : 'Run Command' }],
+          actions: [
+            { type: 'open-command', ref, title: command.mode === 'view' ? 'Open Command' : 'Run Command' },
+            {
+              type: 'open-command',
+              ref: SET_SHORTCUT_REF,
+              argument: commandKey(ref),
+              title: hotkey ? 'Change Shortcut…' : 'Set Shortcut…',
+            },
+          ],
         };
+        if (hotkey) item.hotkey = hotkey;
         const icon = command.icon ?? extension.manifest.icon;
         if (icon) item.icon = icon;
         if (command.keywords) item.keywords = command.keywords;
