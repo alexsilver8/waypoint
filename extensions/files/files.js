@@ -342,6 +342,38 @@ export function copyFileCommand(platform, path, { wayland, programs }) {
 }
 
 /**
+ * Moves the file or folder in WAYPOINT_FILE to the Recycle Bin the way Explorer's Delete does.
+ * What can't be recycled (on a network share, or bigger than the bin holds) would be deleted for
+ * good instead: Windows asks first, and it's left alone unless that's allowed.
+ */
+export const WINDOWS_RECYCLE = `$ErrorActionPreference = 'Stop'
+Add-Type -Namespace Waypoint -Name Shell -MemberDefinition @'
+[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+public struct FileOperation {
+  public IntPtr Window;
+  public uint Function;
+  public string From;
+  public string To;
+  public ushort Flags;
+  public bool Aborted;
+  public IntPtr NameMappings;
+  public string ProgressTitle;
+}
+[DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+public static extern int SHFileOperation(ref FileOperation operation);
+'@
+$operation = New-Object Waypoint.Shell+FileOperation
+# FO_DELETE, of a list of paths that ends in two NULs.
+$operation.Function = 3
+$operation.From = $env:WAYPOINT_FILE + [char]0
+# FOF_ALLOWUNDO (the Recycle Bin), FOF_SILENT, FOF_NOCONFIRMATION and FOF_NOERRORUI, but
+# FOF_WANTNUKEWARNING: ask before deleting anything for good.
+$operation.Flags = 0x4454
+$result = [Waypoint.Shell]::SHFileOperation([ref]$operation)
+if ($operation.Aborted) { [Console]::Error.WriteLine("It can't go in the Recycle Bin, so it was left where it is."); exit 1 }
+if ($result -ne 0) { [Console]::Error.WriteLine(('Windows answered 0x{0:X}.' -f $result)); exit 1 }`;
+
+/**
  * Moves a file or folder to the Trash (the Recycle Bin on Windows), where it can be put back.
  * @param {string} platform
  * @param {string} path
@@ -365,14 +397,7 @@ export function trashCommand(platform, path, programs) {
     };
   }
   if (platform === 'win32') {
-    const script = [
-      "$ErrorActionPreference = 'Stop'",
-      'Add-Type -AssemblyName Microsoft.VisualBasic',
-      '$path = $env:WAYPOINT_FILE',
-      "if (Test-Path -LiteralPath $path -PathType Container) { [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteDirectory($path, 'OnlyErrorDialogs', 'SendToRecycleBin') }",
-      "else { [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile($path, 'OnlyErrorDialogs', 'SendToRecycleBin') }",
-    ].join('\n');
-    return { file: 'powershell.exe', args: powershellArgs(script), env: { WAYPOINT_FILE: path } };
+    return { file: 'powershell.exe', args: powershellArgs(WINDOWS_RECYCLE), env: { WAYPOINT_FILE: path } };
   }
   if (programs.gio) return { file: programs.gio, args: ['trash', '--', path] };
   if (programs.kioclient5) return { file: programs.kioclient5, args: ['move', path, 'trash:/'] };
