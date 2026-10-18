@@ -2267,7 +2267,8 @@ h2 {
   list-style: none;
 }
 
-/* Four across, so the fifteen cards and the invitation fill the rows. */
+/* Four across, three or two. The invitation takes two places, so with the 22 cards it fills
+   the last row however many are across. */
 .ext-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
@@ -2474,15 +2475,23 @@ h2 {
   text-align: center;
 }
 
-/* Three across would leave the invitation alone on the last row, so there it fills that row,
-   laid on its side: the plus, then the words, then the link. */
 @media (min-width: 861px) and (max-width: 1100px) {
   .ext-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+}
 
+@media (max-width: 860px) {
+  .ext-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Two places wide wherever the cards are in rows, so laid on its side: the plus, then the words,
+   then the link. */
+@media (min-width: 641px) {
   .ext-grid > :last-child {
-    grid-column: 1 / -1;
+    grid-column: span 2;
   }
 
   .ext-grid .ext-yours {
@@ -2511,16 +2520,12 @@ h2 {
     align-self: start;
   }
 
+  /* Level with the words, however tall the cards beside it make the row. */
   .ext-yours .ext-link {
     grid-area: link;
+    align-self: center;
     margin: 0;
     padding: 0;
-  }
-}
-
-@media (max-width: 860px) {
-  .ext-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
