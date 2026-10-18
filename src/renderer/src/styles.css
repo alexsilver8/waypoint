@@ -253,8 +253,8 @@ button {
   color: var(--dock-active-ink);
 }
 
-/* A scope with nothing for what's typed steps back. */
-.dock__button[data-empty] {
+/* A scope with nothing for what's typed steps back. The picked one keeps its ink, or its icon fades into the disc. */
+.dock__button[data-empty]:not([aria-selected="true"]) {
   color: var(--ink-faint);
 }
 

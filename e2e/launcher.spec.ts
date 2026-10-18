@@ -280,6 +280,26 @@ test('switches what the root lists with the scope dock', async () => {
   await expect(page.getByRole('option', { name: /Clipboard History/ })).toBeVisible();
 });
 
+test('keeps the picked scope legible when nothing matches', async () => {
+  const all = page.getByRole('tab', { name: /^All\b/ });
+  const commands = page.getByRole('tab', { name: /^Commands\b/ });
+  // A tab's icon colour, once any fade between looks has finished.
+  const ink = (tab: typeof all) =>
+    tab.evaluate(async (el) => {
+      for (const animation of el.getAnimations()) await animation.finished;
+      return el.ownerDocument.defaultView.getComputedStyle(el).color;
+    });
+  const picked = await ink(all);
+  const other = await ink(commands);
+
+  await page.keyboard.type('qqqqqqqqqqqq');
+  await expect(all).toHaveAccessibleName('All, 0');
+  await expect(commands).toHaveAccessibleName('Commands, 0');
+  // Scopes with nothing step back, but the picked one keeps its ink: on its disc, a faded icon disappears.
+  expect(await ink(commands)).not.toBe(other);
+  expect(await ink(all)).toBe(picked);
+});
+
 test('lists each extension with its commands in the Extensions tab', async () => {
   const tab = (name: string) => page.getByRole('tab', { name, exact: true });
   await page.keyboard.press('Tab');
