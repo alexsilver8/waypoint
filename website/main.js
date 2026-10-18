@@ -32,11 +32,14 @@ async function detectMacArch() {
 
 const os = detectOS();
 
-// Windows and Linux use Alt and Ctrl where macOS uses ⌥ and ⌘.
+// Windows and Linux use Alt, Ctrl and Enter where macOS uses ⌥, ⌘ and ↵, as the app does.
 if (os === 'windows' || os === 'linux') {
   for (const el of document.querySelectorAll('[data-key-open]')) el.textContent = 'Alt Space';
+  for (const el of document.querySelectorAll('[data-key-alt]')) el.textContent = 'Alt';
   for (const el of document.querySelectorAll('[data-key-mod]')) el.textContent = 'Ctrl';
   for (const el of document.querySelectorAll('[data-key-tab]')) el.textContent = 'Tab';
+  for (const el of document.querySelectorAll('[data-key-enter]')) el.textContent = 'Enter';
+  for (const el of document.querySelectorAll('[data-key-backspace]')) el.textContent = 'Backspace';
   // The note action that shows the file, named for the system's file manager.
   for (const el of document.querySelectorAll('[data-reveal]')) {
     el.textContent = os === 'windows' ? 'Show in Explorer' : 'Show in Folder';

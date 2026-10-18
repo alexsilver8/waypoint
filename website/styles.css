@@ -1,9 +1,9 @@
 /*
  * Waypoint — landing page.
  *
- * Dark ground, the icon's three dots (blue, pink, amber) as the only colour, and liquid-glass
- * windows drawn with the same values as the app's own launcher (src/renderer/src/styles.css and
- * tokens.css, dark theme).
+ * Dark ground, the icon's three dots (blue, pink, amber) as the only colour, and the app drawn
+ * with its own values (src/renderer/src/styles.css, settings.css and tokens.css, dark theme):
+ * the launcher's Halo panes floating free, and the Notes window's liquid glass.
  */
 
 :root {
@@ -22,20 +22,39 @@
   --amber-ink: #f5c75a;
   --accent: #7b8cff;
 
-  /* The launcher, as in the app's dark theme. */
-  --l-glass: rgb(22 22 28 / 0.4);
-  --l-edge: rgb(255 255 255 / 0.13);
-  --l-raised: rgb(255 255 255 / 0.07);
-  --l-raised-border: rgb(255 255 255 / 0.1);
-  --l-sheen: rgb(255 255 255 / 0.1);
-  --l-selected: rgb(255 255 255 / 0.13);
-  --l-selected-border: rgb(255 255 255 / 0.13);
-  --l-selected-shadow: inset 0 1px 0 rgb(255 255 255 / 0.16), 0 6px 18px rgb(0 0 0 / 0.2);
+  /* The app, as in its dark theme. */
   --l-ink: rgb(255 255 255 / 0.92);
   --l-muted: rgb(255 255 255 / 0.56);
   --l-faint: rgb(255 255 255 / 0.46);
   --l-line: rgb(255 255 255 / 0.08);
   --l-keycap: rgb(255 255 255 / 0.1);
+  --l-hover: rgb(255 255 255 / 0.05);
+  --l-selected: rgb(255 255 255 / 0.13);
+  --l-selected-border: rgb(255 255 255 / 0.13);
+  --l-selected-shadow: inset 0 1px 0 rgb(255 255 255 / 0.16), 0 6px 18px rgb(0 0 0 / 0.2);
+
+  /* Halo: the launcher's panes. Nearly solid, with a hairline edge and their own shadow. */
+  --pane: rgb(28 28 33 / 0.94);
+  --pane-border: rgb(255 255 255 / 0.12);
+  --pane-sheen: rgb(255 255 255 / 0.1);
+  --pane-shadow: 0 6px 14px rgb(0 0 0 / 0.38);
+  /* On the page they also lift off the ground, as they would off a desktop. */
+  --pane-lift: 0 28px 70px rgb(0 0 0 / 0.42);
+  --pane-bar: rgb(255 255 255 / 0.035);
+  --pane-panel: rgb(40 40 46 / 0.78);
+  --dock-active: rgb(255 255 255 / 0.92);
+  --dock-active-ink: #16121a;
+  --badge: #8b9bff;
+  --badge-ink: #0d0f24;
+  --badge-quiet: rgb(255 255 255 / 0.22);
+  --match: #a9b4ff;
+
+  /* The Notes window: glass, with brighter panes floating inside. */
+  --l-glass: rgb(22 22 28 / 0.4);
+  --l-edge: rgb(255 255 255 / 0.13);
+  --l-raised: rgb(255 255 255 / 0.07);
+  --l-raised-border: rgb(255 255 255 / 0.1);
+  --l-sheen: rgb(255 255 255 / 0.1);
 
   --font: "Geist", -apple-system, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
   --mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
@@ -461,79 +480,95 @@ h1 {
   }
 }
 
-/* ── The launcher: a window of glass with brighter panes floating inside ── */
+/* ── The launcher: Halo ───────────────────────────────────
+ * Three panes float with nothing around them: the scope dock down the left, the search capsule
+ * along the top, and the results sheet below it, which holds the list, the preview and the action
+ * bar. The selected row lifts off as its own pane.
+ */
 
-.launcher {
+.halo {
+  --dock: 54px;
+  --gap: 10px;
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  overflow: hidden;
-  padding: 10px;
-  border-radius: 24px;
-  background-color: var(--l-glass);
-  box-shadow:
-    0 40px 100px rgb(0 0 0 / 0.5),
-    inset 0 0 0 1px var(--l-edge);
-  -webkit-backdrop-filter: blur(40px) saturate(1.6);
-  backdrop-filter: blur(40px) saturate(1.6);
+  gap: var(--gap);
   color: var(--l-ink);
   font-size: 14px;
   text-align: left;
 }
 
-.search {
+.halo-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.pane {
+  border: 1px solid var(--pane-border);
+  background-color: var(--pane);
+  box-shadow:
+    inset 0 1px 0 var(--pane-sheen),
+    var(--pane-shadow),
+    var(--pane-lift);
+  /* The little that shows through stays soft, as the desktop does behind the app's panes. */
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+}
+
+/* The search capsule. */
+.capsule {
   position: relative;
+  z-index: 1;
   display: flex;
   flex: none;
   align-items: center;
-  gap: 10px;
-  height: 52px;
-  padding: 0 12px 0 16px;
-  border: 1px solid var(--l-raised-border);
-  border-radius: 16px;
-  background: var(--l-raised);
-  box-shadow: inset 0 1px 0 var(--l-sheen);
-  font-size: 18px;
+  gap: 12px;
+  height: 56px;
+  padding: 0 18px 0 20px;
+  border-radius: 28px;
+  font-size: 19px;
   letter-spacing: -0.01em;
   white-space: nowrap;
 }
 
-.search-icon {
-  width: 18px;
-  height: 18px;
-  color: var(--l-muted);
+.capsule-sm {
+  gap: 10px;
+  height: 48px;
+  padding: 0 12px 0 16px;
+  border-radius: 24px;
+  font-size: 16px;
 }
 
-.search-sm {
-  gap: 10px;
-  height: 46px;
-  padding: 0 14px;
-  font-size: 15px;
+.capsule-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--l-faint);
+}
+
+.capsule-sm .capsule-icon {
+  width: 16px;
+  height: 16px;
 }
 
 .ph,
 .ph-static {
-  color: rgb(255 255 255 / 0.4);
+  overflow: hidden;
+  color: var(--l-faint);
+  text-overflow: ellipsis;
 }
 
 .ph {
   position: absolute;
-  left: 44px;
+  left: 50px;
+  right: 120px;
   opacity: 0;
-}
-
-.crumb {
-  padding: 3px 10px;
-  border-radius: 9px;
-  background: var(--l-keycap);
-  color: var(--l-muted);
-  font-size: 12px;
 }
 
 .query {
   display: flex;
   align-items: center;
-  height: 24px;
+  height: 26px;
 }
 
 .caret {
@@ -545,6 +580,10 @@ h1 {
   background: var(--accent);
   vertical-align: middle;
   animation: blink 1s steps(1) infinite;
+}
+
+.capsule-sm .caret {
+  height: 19px;
 }
 
 .caret-pink {
@@ -559,85 +598,225 @@ h1 {
   }
 }
 
-.tabs {
+/* "⇥ Scope" while empty, the match count while searching. */
+.capsule-hint {
+  position: relative;
   display: flex;
-  flex: none;
   align-items: center;
-  gap: 4px;
-  height: 32px;
-  overflow: hidden;
-  padding: 0 4px 0 2px;
-  white-space: nowrap;
+  margin-left: auto;
+  color: var(--l-faint);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
 }
 
-.tab-f {
+.hint-scope {
+  position: absolute;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  opacity: 0;
+}
+
+/* The scope being searched, as a chip before the text. */
+.scope-chip {
   display: inline-flex;
   flex: none;
   align-items: center;
-  gap: 6px;
   height: 28px;
-  padding: 0 11px;
-  border: 1px solid transparent;
-  border-radius: 9px;
+  padding: 0 12px;
+  border-radius: 14px;
+  background: var(--l-keycap);
+  color: var(--l-ink);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+/* Inside a command: back on the left, the command's name on the right. */
+.capsule-back {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin-left: -6px;
+  border-radius: 16px;
+  background: var(--l-keycap);
+  color: var(--l-muted);
+}
+
+.capsule-back .i {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2.25;
+}
+
+.capsule-crumb {
+  flex: none;
+  margin-left: auto;
+  padding: 5px 12px;
+  border-radius: 14px;
+  background: var(--l-keycap);
   color: var(--l-muted);
   font-size: 12.5px;
   font-weight: 500;
+  letter-spacing: 0;
 }
 
-.tab-f.on {
-  border-color: var(--l-selected-border);
-  background: var(--l-selected);
-  box-shadow: var(--l-selected-shadow);
-  color: var(--l-ink);
+/* Keycaps, rounded to sit with the capsules. */
+.kc {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border-radius: 7px;
+  background: var(--l-keycap);
+  color: var(--l-muted);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1;
 }
 
-.count {
-  color: var(--l-faint);
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
+.kcs {
+  display: inline-flex;
+  gap: 3px;
 }
 
-.tabs-hint {
+/* The scope dock: what the search looks through, a column of icons. */
+.dock {
+  position: relative;
   display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-left: auto;
-  color: var(--l-faint);
-  font-size: 12px;
+  flex: none;
+  flex-direction: column;
+  align-self: flex-start;
+  gap: 4px;
+  padding: 6px;
+  border-radius: 26px;
 }
 
-.content {
+.dock-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  color: var(--l-muted);
+}
+
+.dock-btn .i {
+  width: 18px;
+  height: 18px;
+}
+
+.dock-btn.on {
+  background: var(--dock-active);
+  color: var(--dock-active-ink);
+}
+
+/* A scope with nothing for what's typed steps back. */
+.dock-btn.empty {
+  color: var(--l-faint);
+}
+
+.dock-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  display: grid;
+  place-items: center;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: var(--badge-quiet);
+  color: var(--l-ink);
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.on .dock-badge {
+  background: var(--badge);
+  color: var(--badge-ink);
+}
+
+.dock-divider {
+  height: 1px;
+  margin: 4px 8px;
+  background: var(--l-line);
+}
+
+/* A smaller dock, for the cards further down. */
+.dock-sm {
+  gap: 3px;
+  padding: 5px;
+  border-radius: 22px;
+}
+
+.dock-sm .dock-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 17px;
+}
+
+.dock-sm .i {
+  width: 16px;
+  height: 16px;
+}
+
+/* The results sheet: list, preview and action bar on one pane. */
+.sheet {
   display: flex;
   flex: 1;
-  gap: 6px;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 24px;
+}
+
+.sheet-body {
+  display: flex;
+  flex: 1;
   min-height: 0;
 }
 
-.results {
+.list {
   flex: 1;
   min-width: 0;
-  padding: 2px 0;
+  overflow: hidden;
+  padding: 4px 8px;
 }
 
-.content .results {
-  flex: 0 0 52%;
+.has-detail .list {
+  flex: 0 0 50%;
 }
 
 .heading {
-  padding: 8px 12px 4px;
+  height: 28px;
+  padding: 8px 10px 4px;
+  overflow: hidden;
   color: var(--l-muted);
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .row {
   display: flex;
   align-items: center;
-  gap: 11px;
-  height: 42px;
+  gap: 12px;
+  height: 44px;
   padding: 0 10px;
   border: 1px solid transparent;
-  border-radius: 12px;
+  border-radius: 14px;
 }
 
 .sel {
@@ -657,12 +836,16 @@ h1 {
 .row-title {
   overflow: hidden;
   font-size: 14.5px;
+  font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.row-title b {
-  font-weight: 650;
+/* Matched letters take the accent colour. */
+.row-title mark {
+  background: none;
+  color: var(--match);
+  font-weight: 700;
 }
 
 .acc {
@@ -671,7 +854,7 @@ h1 {
   font-size: 12px;
 }
 
-/* Glossy icon tiles, lit from above like the glass around them. */
+/* Glossy icon tiles, lit from above. */
 .tile {
   display: grid;
   flex: none;
@@ -688,31 +871,37 @@ h1 {
 }
 
 .tile .i {
-  width: 14px;
-  height: 14px;
-  stroke-width: 2.3;
+  width: var(--tile-icon, 14px);
+  height: var(--tile-icon, 14px);
+  stroke-width: var(--tile-stroke, 2.3);
 }
 
-.preview {
+.row .tile {
+  --tile-icon: 16px;
+  --tile-stroke: 2.25;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+}
+
+/* The preview: a column of the sheet, split off by a hairline. */
+.detail {
   display: flex;
   flex: 1;
   flex-direction: column;
   gap: 12px;
   min-width: 0;
-  padding: 16px 18px;
-  border: 1px solid var(--l-raised-border);
-  border-radius: 16px;
-  background: var(--l-raised);
-  box-shadow: inset 0 1px 0 var(--l-sheen);
+  padding: 18px 20px;
+  border-left: 1px solid var(--l-line);
 }
 
-.preview-title {
+.detail-title {
   font-size: 15px;
   font-weight: 650;
   letter-spacing: -0.01em;
 }
 
-.preview-body {
+.detail-body {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -778,96 +967,84 @@ h1 {
   color: var(--l-muted);
 }
 
-/* The floating action bar. */
-.bar {
+/* The action bar, along the foot of the sheet. */
+.foot {
   display: flex;
   flex: none;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  height: 44px;
-  padding: 0 6px 0 14px;
-  border: 1px solid var(--l-raised-border);
-  border-radius: 14px;
-  background: var(--l-raised);
-  box-shadow: inset 0 1px 0 var(--l-sheen);
+  height: 46px;
+  padding: 0 8px 0 16px;
+  border-top: 1px solid var(--l-line);
+  background: var(--pane-bar);
   color: var(--l-muted);
-  font-size: 12.5px;
+  font-size: 13px;
   white-space: nowrap;
 }
 
-.bar-end {
-  justify-content: flex-end;
-}
-
-.bar-context,
-.bar-actions,
-.bar-primary,
-.bar-more {
+.foot-context,
+.foot-actions,
+.foot-btn {
   display: inline-flex;
   align-items: center;
 }
 
-.bar-context {
+.foot-context {
   gap: 8px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .mark {
+  flex: none;
   color: var(--l-faint);
 }
 
-.bar-actions {
+.foot-actions {
   gap: 4px;
 }
 
-.bar-primary,
-.bar-more {
+.foot-btn {
   gap: 8px;
   height: 32px;
-  padding: 0 8px 0 12px;
+  padding: 0 6px 0 14px;
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: 16px;
 }
 
-.bar-primary {
+.foot-primary {
   border-color: var(--l-selected-border);
   background: var(--l-selected);
   box-shadow: var(--l-selected-shadow);
   color: var(--l-ink);
-  font-weight: 500;
+  font-weight: 600;
 }
 
-.bar kbd,
-.tabs-hint kbd {
-  padding: 0 6px;
-  border-radius: 6px;
-  background: var(--l-keycap);
-  color: var(--l-muted);
-  font-size: 11.5px;
-  font-weight: 400;
-  line-height: 20px;
+.foot-primary .kc {
+  border-radius: 11px;
 }
 
-.bar-more kbd + kbd {
-  margin-left: -5px;
+.foot-on {
+  background: var(--l-hover);
+  color: var(--l-ink);
 }
 
 @media (max-width: 640px) {
-  .preview,
-  .tabs-hint,
-  .bar-more {
+  .detail,
+  .foot-more {
     display: none;
   }
 
-  .content .results {
+  .has-detail .list {
     flex: 1;
   }
 }
 
 /* ── Hero stage: the icon opens into the launcher ─────────
- * The pill grows into the search field and its dots bloom into the lights behind the glass.
- * The stage's base styles describe the finished launcher, so without animation (reduced
- * motion, or once it has played) the page simply shows the launcher.
+ * The icon's pill grows into the search capsule, its dots bloom into the lights behind, and the
+ * dock and the results sheet float in beside it. The stage's base styles describe the finished
+ * launcher, so without animation (reduced motion, or once it has played) the page simply shows it.
  */
 
 .stage {
@@ -922,9 +1099,8 @@ h1 {
   position: absolute;
   left: 50%;
   top: 24px;
-  display: block;
   width: min(800px, 100%);
-  height: 500px;
+  height: 476px;
   transform: translateX(-50%);
 }
 
@@ -953,15 +1129,22 @@ h1 {
   background: var(--amber);
 }
 
-.win-ui {
+.capsule-ui {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  height: 480px;
+  flex: 1;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
 }
 
-.stage.is-playing .win {
-  animation: morph 4.8s var(--ease-in-out) both;
+/* Centred, so the pill grows out from the middle; full width once it has. */
+.win .capsule {
+  align-self: center;
+  width: 100%;
+}
+
+.stage.is-playing .capsule {
+  animation: pill 4.8s var(--ease-in-out) both;
 }
 
 .stage.is-playing .win-dots {
@@ -984,12 +1167,24 @@ h1 {
   animation: bloom 4.8s var(--ease-out) both;
 }
 
-.stage.is-playing .win-ui {
+.stage.is-playing .dock {
+  animation: dock-in 4.8s var(--ease-out) both;
+}
+
+.stage.is-playing .sheet {
+  animation: sheet-in 4.8s var(--ease-out) both;
+}
+
+.stage.is-playing .capsule-ui {
   animation: ui-in 4.8s ease both;
 }
 
 .stage.is-playing .ph {
   animation: placeholder 4.8s linear both;
+}
+
+.stage.is-playing .hint-scope {
+  animation: hint-scope 4.8s linear both;
 }
 
 .stage.is-playing .ch {
@@ -1008,68 +1203,88 @@ h1 {
   animation-delay: 3.42s;
 }
 
-.stage.is-playing .tabs,
-.stage.is-playing .results > *,
-.stage.is-playing .preview,
-.stage.is-playing .bar {
+/* Once there's something typed, the dock counts the matches and empty scopes step back. */
+.stage.is-playing .dock-badge {
+  animation: badge-in 0.4s var(--ease-out) 3.5s both;
+}
+
+.stage.is-playing .dock-btn.empty {
+  animation: step-back 0.3s ease 3.5s both;
+}
+
+.stage.is-playing .hint-count {
+  animation: row-in 0.3s ease 3.5s both;
+}
+
+.stage.is-playing .list > *,
+.stage.is-playing .detail,
+.stage.is-playing .foot > * {
   animation: row-in 0.5s var(--ease-out) 3.7s both;
 }
 
-.stage.is-playing .results > :nth-child(2) {
+.stage.is-playing .list > :nth-child(2) {
   animation-delay: 3.76s;
 }
 
-.stage.is-playing .results > :nth-child(3) {
+.stage.is-playing .list > :nth-child(3) {
   animation-delay: 3.82s;
 }
 
-.stage.is-playing .results > :nth-child(4) {
+.stage.is-playing .list > :nth-child(4) {
   animation-delay: 3.88s;
 }
 
-.stage.is-playing .results > :nth-child(5) {
+.stage.is-playing .list > :nth-child(5) {
   animation-delay: 3.94s;
 }
 
-.stage.is-playing .results > :nth-child(6) {
+.stage.is-playing .list > :nth-child(6) {
   animation-delay: 4s;
 }
 
-.stage.is-playing .results > :nth-child(7) {
+.stage.is-playing .list > :nth-child(7) {
   animation-delay: 4.06s;
 }
 
-.stage.is-playing .preview {
+.stage.is-playing .list > :nth-child(8) {
+  animation-delay: 4.12s;
+}
+
+.stage.is-playing .detail {
   animation-delay: 3.95s;
 }
 
-.stage.is-playing .bar {
+.stage.is-playing .foot > * {
   animation-delay: 4.1s;
 }
 
-@keyframes morph {
+/* The pill sits where the capsule's middle will be, centred on the stage, then grows into it. */
+@keyframes pill {
   0%,
   29% {
     width: 168px;
     height: 64px;
-    padding: 0;
+    border-color: transparent;
     border-radius: 32px;
     background-color: rgb(22 23 36 / 0.94);
     box-shadow:
       0 20px 50px rgb(0 0 0 / 0.4),
       inset 0 0 0 5px #fff;
+    transform: translate(calc((var(--dock) + var(--gap)) / -2), -4px);
   }
 
   50%,
-  75% {
-    width: min(800px, 100%);
-    height: 72px;
-    padding: 10px;
-    border-radius: 24px;
-    background-color: var(--l-glass);
+  100% {
+    width: 100%;
+    height: 56px;
+    border-color: var(--pane-border);
+    border-radius: 28px;
+    background-color: var(--pane);
     box-shadow:
-      0 40px 100px rgb(0 0 0 / 0.5),
-      inset 0 0 0 1px var(--l-edge);
+      inset 0 1px 0 var(--pane-sheen),
+      var(--pane-shadow),
+      var(--pane-lift);
+    transform: none;
   }
 }
 
@@ -1116,6 +1331,33 @@ h1 {
   }
 }
 
+/* The dock slides out from behind the capsule; the sheet drops from under it. */
+@keyframes dock-in {
+  0%,
+  40% {
+    opacity: 0;
+    transform: translateX(48px) scale(0.92);
+  }
+
+  60% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes sheet-in {
+  0%,
+  42% {
+    opacity: 0;
+    transform: translateY(-28px) scale(0.97);
+  }
+
+  62% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 @keyframes ui-in {
   0%,
   44% {
@@ -1140,13 +1382,38 @@ h1 {
   }
 }
 
+@keyframes hint-scope {
+  0%,
+  61% {
+    opacity: 1;
+  }
+
+  62%,
+  100% {
+    opacity: 0;
+  }
+}
+
 @keyframes type {
   from {
     font-size: 0;
   }
 
   to {
-    font-size: 18px;
+    font-size: 19px;
+  }
+}
+
+@keyframes badge-in {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}
+
+@keyframes step-back {
+  from {
+    color: var(--l-muted);
   }
 }
 
@@ -1161,10 +1428,6 @@ h1 {
 
 .chapter {
   padding: 180px 24px 0;
-}
-
-#find {
-  padding-top: 140px;
 }
 
 .chapter-grid {
@@ -1234,6 +1497,16 @@ h2 {
   text-wrap: pretty;
 }
 
+.body kbd {
+  padding: 1px 8px;
+  border-radius: 7px;
+  background: rgb(255 255 255 / 0.08);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
+  color: var(--ink);
+  font-size: 0.86em;
+  white-space: nowrap;
+}
+
 .text-link {
   display: inline-flex;
   align-items: center;
@@ -1276,7 +1549,7 @@ h2 {
 }
 
 .visual-find {
-  min-height: 420px;
+  min-height: 432px;
 }
 
 .card-calc {
@@ -1285,53 +1558,70 @@ h2 {
   margin-left: auto;
 }
 
-.calc {
+/* The calculator answers in a card: the sum on the left, the answer large on the right. */
+.calc-card {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   gap: 16px;
-  height: 62px;
-  padding: 0 14px;
-  border: 1px solid transparent;
-  border-radius: 12px;
+  height: 92px;
+  padding: 0 22px;
+  border-radius: 18px;
+  background: var(--l-hover);
   font-variant-numeric: tabular-nums;
 }
 
-.calc.sel {
-  border-color: var(--l-selected-border);
+.calc-card.sel {
+  border-color: color-mix(in oklab, var(--accent) 55%, transparent);
 }
 
-.calc-expr {
+.calc-side {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.calc-side-result {
+  align-items: flex-end;
+}
+
+.calc-expr,
+.calc-result {
+  max-width: 100%;
   overflow: hidden;
-  color: var(--l-muted);
-  font-size: 16px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.calc-eq {
-  color: rgb(255 255 255 / 0.4);
-  font-size: 18px;
+.calc-expr {
+  color: var(--l-muted);
+  font-size: 22px;
+  font-weight: 500;
+}
+
+.calc-arrow {
+  width: 22px;
+  height: 22px;
+  color: var(--l-faint);
 }
 
 .calc-result {
-  font-size: 26px;
-  font-weight: 600;
+  font-size: 34px;
+  font-weight: 700;
   letter-spacing: -0.02em;
-  text-align: right;
 }
 
+.calc-label {
+  color: var(--l-faint);
+  font-size: 12px;
+}
+
+/* Below the calculator and to the right, over the end of its action bar. */
 .card-clip {
   position: absolute;
-  left: 0;
-  bottom: 0;
-  width: min(360px, 74%);
-  border-radius: 20px;
-  background-color: rgb(30 30 42 / 0.66);
-}
-
-.card-clip .row {
-  height: 38px;
+  right: 0;
+  top: 198px;
+  width: min(410px, 82%);
 }
 
 .card-clip .row-title {
@@ -1346,156 +1636,154 @@ h2 {
   font-size: 12.5px;
 }
 
-/* Notes window, as in src/renderer/src/notes/notes.css: the list floats on its own pane,
-   the word count sits under the title, and the formatting toolbar floats at the bottom. */
-.notes {
+@media (max-width: 640px) {
+  .calc-card {
+    grid-template-columns: minmax(0, 1.3fr) auto minmax(0, 1fr);
+    gap: 10px;
+    padding: 0 16px;
+  }
+
+  .calc-expr {
+    font-size: 15px;
+  }
+
+  .calc-arrow {
+    width: 18px;
+    height: 18px;
+  }
+
+  .calc-result {
+    font-size: 26px;
+  }
+}
+
+/* Notes window, as in src/renderer/src/notes/notes.css: like Raycast Notes, a small floating sheet
+   of glass showing one note, its title in the middle of the title bar and a capsule of buttons at
+   the top right. Browse Notes (⌘P) is open over the note, and the window has grown to fit it. */
+.glass-win {
+  --n-tint: rgb(0 0 0 / 0.46);
+  --n-text: rgb(255 255 255 / 0.94);
+  --n-strong: #fff;
+  --n-secondary: rgb(255 255 255 / 0.6);
+  --n-placeholder: rgb(255 255 255 / 0.42);
+  --n-control: rgb(255 255 255 / 0.06);
+  --n-control-border: rgb(255 255 255 / 0.17);
+  --n-selection: rgb(255 255 255 / 0.1);
+  /* The popover's solid colour, as the app draws it without a system blur: a tint over the note
+     would let the text behind show through wherever a browser can't blur inside the glass. */
+  --n-popover: rgb(27 27 28);
+  --n-popover-border: rgb(255 255 255 / 0.16);
+  --n-separator: rgb(255 255 255 / 0.1);
+  --n-code: rgb(255 255 255 / 0.08);
+  --n-current: #5e9df6;
   position: relative;
-  width: min(600px, 100%);
-  padding: 0;
-  gap: 0;
+  overflow: hidden;
+  border-radius: 16px;
+  background-color: var(--n-tint);
+  box-shadow:
+    0 40px 100px rgb(0 0 0 / 0.5),
+    inset 0 0 0 1px var(--l-edge);
+  -webkit-backdrop-filter: blur(40px) saturate(1.6);
+  backdrop-filter: blur(40px) saturate(1.6);
+  color: var(--n-text);
+  font-size: 14px;
+  text-align: left;
 }
 
-.notes-head {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  height: 48px;
-  padding: 0 14px;
-  color: var(--l-muted);
+.notes {
+  width: min(475px, 100%);
+  height: 485px;
 }
 
-.notes-head .i {
-  width: 16px;
-  height: 16px;
-}
-
-.notes-heading {
+.notes-bar {
+  position: relative;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 1px;
-  min-width: 0;
-  margin: 0 8px;
-  white-space: nowrap;
+  justify-content: center;
+  height: 52px;
+  padding: 0 112px;
+}
+
+/* The window can't be minimised or zoomed, so only the close button is lit. */
+.notes-lights {
+  position: absolute;
+  top: 50%;
+  left: 19px;
+  display: flex;
+  gap: 8px;
+  transform: translateY(-50%);
+}
+
+.notes-lights i {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.2);
+}
+
+.notes-lights i:first-child {
+  background: #ff5f57;
 }
 
 .notes-title {
-  color: var(--l-ink);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.notes-subtitle {
-  color: var(--l-faint);
-  font-size: 11px;
-}
-
-.notes-tools {
-  display: flex;
-  justify-content: flex-end;
-  gap: 14px;
-}
-
-.notes-body {
-  display: grid;
-  grid-template-columns: 216px 1fr;
-  grid-template-rows: minmax(0, 1fr);
-  height: 400px;
-}
-
-.notes-side {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  margin: 0 0 8px 8px;
-  border: 1px solid var(--l-raised-border);
-  border-radius: 16px;
-  background: var(--l-raised);
-  box-shadow: inset 0 1px 0 var(--l-sheen);
-}
-
-.notes-find {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  height: 32px;
-  margin: 8px 8px 6px;
-  padding: 0 10px;
-  border: 1px solid rgb(255 255 255 / 0.1);
-  border-radius: 10px;
-  background: rgb(255 255 255 / 0.07);
-  color: rgb(255 255 255 / 0.45);
-  font-size: 13px;
-}
-
-.notes-list {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 2px;
-  min-height: 0;
   overflow: hidden;
-  padding: 2px 6px 6px;
-}
-
-.note {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 7px 10px;
-  border: 1px solid transparent;
-  border-radius: 10px;
-}
-
-.note b {
-  font-size: 13.5px;
+  color: var(--n-secondary);
+  font-size: 13px;
   font-weight: 500;
-}
-
-.note-meta {
-  overflow: hidden;
-  color: var(--l-muted);
-  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.note-preview {
-  margin-left: 4px;
-  color: var(--l-faint);
-}
-
-.notes-foot {
+/* Actions, Browse Notes and New Note, in a capsule of glass. */
+.notes-tools {
+  position: absolute;
+  top: 8.5px;
+  right: 9px;
   display: flex;
   align-items: center;
-  height: 34px;
-  padding: 0 14px;
-  border-top: 1px solid var(--l-line);
-  color: var(--l-faint);
-  font-size: 12px;
+  height: 36px;
+  padding: 0 4px;
+  border-radius: 18px;
+  background: var(--n-control);
+  box-shadow: inset 0 0 0 1px var(--n-control-border);
 }
 
-.notes-editor {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
+.notes-tool {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  color: var(--n-strong);
 }
 
-/* The note as the editor shows it: Markdown, formatted. */
+.notes-tool .i {
+  width: 18px;
+  height: 18px;
+}
+
+.notes-tool .i-browse {
+  stroke-width: 1.5;
+}
+
+.notes-tool .i-plus {
+  width: 16px;
+  height: 16px;
+  stroke-width: 1.5;
+}
+
+/* The note, as the editor shows it: Markdown, formatted. */
 .notes-text {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  padding: 10px 28px 12px;
+  padding: 11.5px 24px 18px;
   font-size: 15px;
-  line-height: 1.6;
+  line-height: 1.5;
 }
 
 .n-h1,
 .n-h2 {
-  margin: 0.7em 0 0.25em;
+  margin: 0.6em 0 0.2em;
+  color: var(--n-strong);
   font-weight: 650;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.012em;
   line-height: 1.3;
 }
 
@@ -1505,51 +1793,47 @@ h2 {
 }
 
 .n-h2 {
-  font-size: 19px;
+  font-size: 19.5px;
 }
 
 .notes-text b {
+  color: var(--n-strong);
   font-weight: 650;
 }
 
 .n-link {
   color: #a5b1ff;
   text-decoration: underline;
-  text-decoration-color: rgb(165 177 255 / 0.45);
+  text-decoration-color: rgb(165 177 255 / 0.4);
   text-underline-offset: 2px;
 }
 
 .n-code {
   padding: 1px 5px;
   border-radius: 5px;
-  background: var(--l-keycap);
+  background: var(--n-code);
   font-family: var(--mono);
   font-size: 0.88em;
 }
 
 .n-quote {
-  margin: 0.4em 0;
+  margin: 0.3em 0;
   padding-left: 14px;
-  border-left: 3px solid rgb(255 255 255 / 0.16);
-  color: var(--l-muted);
-}
-
-.n-pre {
-  margin: 0.5em 0 0;
-  padding: 10px 14px;
-  border: 1px solid var(--l-raised-border);
-  border-radius: 10px;
-  background: var(--l-raised);
-  font-family: var(--mono);
-  font-size: 13px;
-  line-height: 1.55;
+  border-left: 3px solid var(--n-control-border);
+  color: var(--n-secondary);
 }
 
 .notes-text .box {
   width: 16px;
   height: 16px;
   margin-top: 4px;
+  border-color: var(--n-placeholder);
   border-radius: 5px;
+}
+
+.notes-text .done {
+  color: var(--n-secondary);
+  text-decoration-color: var(--n-placeholder);
 }
 
 .notes-text .done .box::after {
@@ -1560,71 +1844,142 @@ h2 {
   border-width: 0 1.75px 1.75px 0;
 }
 
-.n-toolbar-wrap {
-  display: flex;
-  flex: none;
-  justify-content: center;
-  padding: 0 12px 10px;
-}
-
-.n-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  max-width: 100%;
-  height: 42px;
+/* Browse Notes: a popover of glass 100px down the window, pinned notes first, then the rest by
+   when each was last open, the one you're on last. */
+.nb {
+  position: absolute;
+  top: 100px;
+  right: 0;
+  left: 0;
+  width: 320px;
+  max-width: calc(100% - 16px);
+  margin: 0 auto;
   overflow: hidden;
-  padding: 0 5px;
-  border: 1px solid var(--l-raised-border);
-  border-radius: 14px;
-  background: var(--l-raised);
+  border: 1px solid var(--n-popover-border);
+  border-radius: 16px;
+  background: var(--n-popover);
   box-shadow:
-    inset 0 1px 0 var(--l-sheen),
-    0 6px 18px rgb(0 0 0 / 0.08);
-  color: var(--l-muted);
+    0 0 0 0.5px rgb(0 0 0 / 0.7),
+    0 18px 48px rgb(0 0 0 / 0.45),
+    0 4px 12px rgb(0 0 0 / 0.25);
+  color: var(--n-strong);
 }
 
-.n-tb {
-  display: inline-flex;
-  flex: none;
+.nb-search {
+  display: flex;
   align-items: center;
+  height: 39px;
+  padding: 0 16px 0 15px;
+  border-bottom: 1px solid var(--n-separator);
+  color: var(--n-placeholder);
+}
+
+.nb-search .caret {
+  height: 17px;
+  margin: 0 1px 0 0;
+}
+
+.nb-list {
+  padding: 0 8px 8px;
+}
+
+.nb-count {
+  height: 18px;
+  padding: 0 4px;
+  color: var(--n-secondary);
+  line-height: 18px;
+}
+
+.nb-section {
+  padding: 17px 7px 6px;
+  color: var(--n-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+}
+
+.nb-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
   justify-content: center;
-  gap: 2px;
-  min-width: 32px;
-  height: 32px;
-  padding: 0 6px;
-  border: 1px solid transparent;
+  height: 58px;
+  padding: 9px 6px 9px 7px;
   border-radius: 9px;
 }
 
-.n-tb .i {
-  width: 17px;
-  height: 17px;
+.nb-current {
+  background: var(--n-selection);
 }
 
-.n-tb-menu {
-  padding: 0 5px 0 7px;
+.nb-title,
+.nb-meta {
+  overflow: hidden;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.n-tb.on {
-  border-color: var(--l-selected-border);
-  background: var(--l-selected);
-  color: var(--l-ink);
+.nb-title {
+  font-weight: 500;
 }
 
-.n-tb .n-chevron {
-  width: 12px;
-  height: 12px;
-  stroke-width: 2.5;
-  opacity: 0.7;
+.nb-meta {
+  color: var(--n-secondary);
 }
 
-.n-divider {
-  flex: none;
-  width: 1px;
-  height: 18px;
-  margin: 0 4px;
-  background: var(--l-line);
+.nb-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-right: 4px;
+  border-radius: 50%;
+  background: var(--n-current);
+  vertical-align: 0.2em;
+}
+
+/* The note you're on can be pinned or deleted from here. */
+.nb-buttons {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  display: flex;
+  gap: 4px;
+  transform: translateY(-50%);
+}
+
+.nb-buttons .i {
+  box-sizing: content-box;
+  width: 16px;
+  height: 16px;
+  padding: 6px;
+  stroke-width: 2.2;
+}
+
+.nb-current .nb-meta {
+  padding-right: 64px;
+}
+
+/* While a popover is open, a glass button in the corner closes it. */
+.notes-dismiss {
+  position: absolute;
+  right: 9px;
+  bottom: 9px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--n-control);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  box-shadow: inset 0 0 0 1px var(--n-control-border);
+  color: var(--n-strong);
+}
+
+.i-close {
+  width: 14px;
+  height: 14px;
 }
 
 .files {
@@ -1789,9 +2144,8 @@ h2 {
 .card-links {
   position: absolute;
   right: 0;
-  bottom: -10px;
-  width: min(380px, 80%);
-  background-color: rgb(30 30 42 / 0.66);
+  bottom: -34px;
+  width: min(400px, 80%);
 }
 
 .card-links .row {
@@ -1808,19 +2162,13 @@ h2 {
   .card-clip,
   .card-links {
     position: relative;
-    left: auto;
-    right: auto;
-    bottom: auto;
+    inset: auto;
     width: 100%;
     margin-top: 16px;
   }
 
-  .notes-body {
-    grid-template-columns: 1fr;
-    height: auto;
-  }
-
-  .notes-side {
+  /* On a narrow window the popover reaches the corner, where the close button would cover it. */
+  .notes-dismiss {
     display: none;
   }
 }
@@ -2033,13 +2381,14 @@ h2 {
 }
 
 /* ── Details: a bento of the smaller things ───────────────
- * Two wide cards beside a tall one, then three across. Each card draws a corner of the app
- * with the launcher's own glass, and its words sit bottom-left on a wash of the card colour.
+ * Two wide cards beside a tall one, three across, then one the full width. Each card draws a
+ * corner of the app with its own panes, and its words sit bottom-left on a wash of the card colour.
  */
 
+/* Straight after the hero. */
 .details {
   position: relative;
-  padding: 200px 24px 0;
+  padding: 140px 24px 0;
 }
 
 .details-glow {
@@ -2176,6 +2525,16 @@ h2 {
   grid-column: 5 / 7;
   grid-row: 3;
   height: 260px;
+}
+
+.bento-anywhere {
+  --glow: var(--blue);
+  --gx: 50%;
+  --gy: 40%;
+  --home: 64px;
+  grid-column: 1 / -1;
+  grid-row: 4;
+  height: 320px;
 }
 
 .bento-visual {
@@ -2330,14 +2689,14 @@ h2 {
   min-width: 26px;
   height: 26px;
   padding: 0 7px;
-  border-radius: 7px;
+  border-radius: 8px;
   background: var(--keycap, rgb(255 255 255 / 0.1));
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.14),
     inset 0 -1px 0 rgb(0 0 0 / 0.3);
   color: inherit;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .qk-row.sel .qk-keys {
@@ -2345,14 +2704,12 @@ h2 {
   color: var(--l-ink);
 }
 
-/* Use "…" with: the launcher, tipped back. */
+/* Use "…" with: the capsule and the sheet, tipped back. */
 .uw-win {
   position: absolute;
   top: 28px;
   left: 50%;
   width: min(500px, calc(100% - 48px));
-  padding: 8px;
-  border-radius: 20px;
   transform: translateX(-50%) perspective(1100px) rotateX(32deg);
   transform-origin: 50% 0;
 }
@@ -2362,7 +2719,7 @@ h2 {
 }
 
 .uw-win .row {
-  height: 38px;
+  height: 40px;
 }
 
 /* Actions: Search Notes with the action panel open, as in the app. */
@@ -2374,41 +2731,31 @@ h2 {
   bottom: 140px;
 }
 
-.ac-win .content {
-  overflow: hidden;
-}
-
-.ac-win .content .results {
-  flex: 0 0 290px;
+.ac-win .has-detail .list {
+  flex: 0 0 56%;
 }
 
 .ac-win .row {
-  height: 40px;
+  height: 42px;
 }
 
-.ac-on {
-  border-color: var(--l-selected-border);
-  background: var(--l-selected);
-  box-shadow: var(--l-selected-shadow);
-  color: var(--l-ink);
-}
-
+/* The panel is its own sheet of glass over the list, rounder to match the panes. */
 .ac-panel {
   position: absolute;
-  right: 16px;
-  bottom: 62px;
+  right: 10px;
+  bottom: 54px;
   display: flex;
   flex-direction: column;
-  width: min(300px, calc(100% - 32px));
-  border: 1px solid rgb(255 255 255 / 0.12);
-  border-radius: 16px;
-  background: rgb(38 39 48 / 0.94);
-  -webkit-backdrop-filter: blur(28px) saturate(1.8);
-  backdrop-filter: blur(28px) saturate(1.8);
+  width: min(300px, calc(100% - 20px));
+  border: 1px solid var(--pane-border);
+  border-radius: 18px;
+  background: var(--pane-panel);
+  -webkit-backdrop-filter: blur(40px) saturate(1.8);
+  backdrop-filter: blur(40px) saturate(1.8);
   box-shadow:
-    0 30px 60px rgb(0 0 0 / 0.55),
-    0 2px 8px rgb(0 0 0 / 0.3),
-    inset 0 1px 0 rgb(255 255 255 / 0.08);
+    inset 0 1px 0 var(--pane-sheen),
+    0 16px 40px rgb(0 0 0 / 0.5),
+    0 2px 8px rgb(0 0 0 / 0.3);
 }
 
 .bento-actions:hover .ac-panel {
@@ -2416,7 +2763,7 @@ h2 {
 }
 
 .ac-heading {
-  padding: 12px 16px 6px;
+  padding: 10px 14px 4px;
   color: var(--l-muted);
   font-size: 12px;
   font-weight: 600;
@@ -2425,7 +2772,6 @@ h2 {
 .ac-list {
   display: flex;
   flex-direction: column;
-  gap: 2px;
   padding: 2px 6px 6px;
 }
 
@@ -2434,40 +2780,26 @@ h2 {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  height: 38px;
-  padding: 0 10px;
+  height: 36px;
+  padding: 0 8px;
   border: 1px solid transparent;
   border-radius: 10px;
 }
 
 .ac-item.sel {
-  border-color: var(--l-selected-border);
+  box-shadow: none;
 }
 
 .ac-danger {
   color: #f2555a;
 }
 
-.ac-keys {
-  display: flex;
-  gap: 4px;
-}
-
-.ac-panel .ac-item kbd {
-  padding: 0 6px;
-  border-radius: 6px;
-  background: var(--l-keycap);
-  color: var(--l-muted);
-  font-size: 11.5px;
-  line-height: 20px;
-}
-
 .ac-filter {
-  height: 40px;
-  padding: 0 16px;
+  height: 38px;
+  padding: 0 14px;
   border-top: 1px solid var(--l-line);
-  color: rgb(255 255 255 / 0.4);
-  line-height: 40px;
+  color: var(--l-faint);
+  line-height: 38px;
 }
 
 /* Passwords stay out: a field of glass whose dots never land in the history. */
@@ -2560,23 +2892,16 @@ h2 {
   }
 }
 
-/* Settings: the window's General section, in miniature. */
+/* Settings: the General section in miniature. A sidebar pane and a content sheet float side by
+   side with nothing around them, the window's buttons inside the sidebar, as on macOS. */
 .st-win {
   position: absolute;
   top: 24px;
   left: 24px;
   display: flex;
-  gap: 6px;
-  width: min(340px, calc(100% - 44px));
+  gap: 7px;
+  width: min(344px, calc(100% - 44px));
   height: 230px;
-  padding: 6px;
-  border-radius: 18px;
-  background: rgb(26 26 34 / 0.6);
-  -webkit-backdrop-filter: blur(30px) saturate(1.6);
-  backdrop-filter: blur(30px) saturate(1.6);
-  box-shadow:
-    0 30px 70px rgb(0 0 0 / 0.5),
-    inset 0 0 0 1px var(--l-edge);
   color: var(--l-ink);
   font-size: 11px;
   white-space: nowrap;
@@ -2595,18 +2920,17 @@ h2 {
   flex: none;
   flex-direction: column;
   gap: 2px;
-  width: 108px;
-  padding: 6px;
-  border: 1px solid var(--l-raised-border);
-  border-radius: 13px;
-  background: var(--l-raised);
-  box-shadow: inset 0 1px 0 var(--l-sheen);
+  width: 112px;
+  padding: 5px;
+  border-radius: 14px;
 }
 
 .st-lights {
   display: flex;
+  align-items: center;
   gap: 5px;
-  padding: 4px 4px 10px;
+  height: 22px;
+  padding: 0 6px 2px;
 }
 
 .st-lights i {
@@ -2628,10 +2952,10 @@ h2 {
   display: flex;
   align-items: center;
   gap: 7px;
-  height: 26px;
-  padding: 0 6px;
+  height: 27px;
+  padding: 0 5px;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: 9px;
   font-weight: 500;
 }
 
@@ -2642,8 +2966,8 @@ h2 {
 }
 
 .st-item .tile {
-  width: 16px;
-  height: 16px;
+  width: 17px;
+  height: 17px;
   border-radius: 5px;
 }
 
@@ -2655,34 +2979,44 @@ h2 {
 .st-main {
   flex: 1;
   min-width: 0;
-  padding: 10px 8px;
+  padding: 11px 10px;
+  border-radius: 14px;
 }
 
 .st-h {
-  margin: 0 2px 10px;
+  margin: 0 3px 9px;
   font-size: 15px;
-  font-weight: 650;
-  letter-spacing: -0.01em;
+  font-weight: 700;
+  letter-spacing: -0.015em;
 }
 
+/* Each group of settings is a rounded card inside the sheet. */
 .st-card {
-  border: 1px solid var(--l-raised-border);
+  overflow: hidden;
+  border: 1px solid var(--l-line);
   border-radius: 11px;
-  background: var(--l-raised);
-  box-shadow: inset 0 1px 0 var(--l-sheen);
+  background: var(--l-hover);
 }
 
 .st-row {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
   height: 36px;
-  padding: 0 10px;
+  padding: 0 9px 0 10px;
 }
 
-.st-row + .st-row {
-  border-top: 1px solid var(--l-line);
+/* Hairlines between rows start at the text, not the card's edge. */
+.st-row + .st-row::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 10px;
+  right: 0;
+  height: 1px;
+  background: var(--l-line);
 }
 
 /* Narrow cards cut the label short, never the control. */
@@ -2692,38 +3026,58 @@ h2 {
   text-overflow: ellipsis;
 }
 
+/* The shortcut field: a capsule of round keycaps. */
 .st-hotkey {
   position: relative;
+  display: inline-flex;
   flex: none;
+  align-items: center;
+  height: 22px;
+  padding: 0 3px;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 11px;
+  background: var(--l-keycap);
 }
 
-.st-row .st-hotkey kbd {
-  padding: 0 6px;
-  border-radius: 6px;
+.st-keys {
+  display: inline-flex;
+  gap: 2px;
+  transition: opacity 0.3s ease;
+}
+
+.st-hotkey .st-keys kbd {
+  display: grid;
+  place-items: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
   background: var(--l-keycap);
   color: var(--l-ink);
-  font-size: 11px;
-  line-height: 20px;
-  transition: opacity 0.3s ease;
+  font-size: 9.5px;
+  font-weight: 600;
 }
 
 /* Hovering starts recording a new shortcut, as clicking the field does. */
 .st-prompt {
   position: absolute;
   top: 50%;
-  right: 0;
-  padding: 0 7px;
-  border-radius: 6px;
-  background: #262734;
-  box-shadow: 0 0 0 1.5px var(--accent);
+  right: -1px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 11px;
+  background: #2a2a32;
+  box-shadow:
+    0 0 0 1px var(--accent),
+    0 0 0 3px color-mix(in oklab, var(--accent) 22%, transparent);
   color: var(--l-muted);
-  line-height: 20px;
+  line-height: 22px;
   opacity: 0;
   transform: translateY(-50%);
   transition: opacity 0.3s ease;
 }
 
-.bento-settings:hover .st-hotkey kbd {
+.bento-settings:hover .st-keys {
   opacity: 0;
 }
 
@@ -2760,7 +3114,8 @@ h2 {
   left: 13px;
 }
 
-/* Light or dark: one launcher, cut on the diagonal. Hovering swipes the light across. */
+/* Light or dark: one desktop, cut on the diagonal, with the launcher's panes floating on each
+   half in that appearance. Hovering swipes the light across. */
 .th {
   position: absolute;
   top: 26px;
@@ -2785,26 +3140,53 @@ h2 {
   position: absolute;
   inset: 0;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 8px;
+  gap: 6px;
+  padding: 10px;
   border-radius: 18px;
-  font-size: 13px;
+  color: var(--th-ink);
+  font-size: 12.5px;
   white-space: nowrap;
   transition: clip-path 0.8s var(--ease-out);
 }
 
+/* The app's light and dark panes (tokens.css), each on a desktop of its own. */
 .th-light {
-  background: linear-gradient(180deg, #f7f8fc, #e8eaf2);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.9);
-  color: rgb(0 0 0 / 0.86);
+  --th-pane: rgb(247 247 250 / 0.94);
+  --th-border: rgb(0 0 0 / 0.08);
+  --th-sheen: rgb(255 255 255 / 0.9);
+  --th-shadow: 0 6px 14px rgb(20 25 45 / 0.14);
+  --th-ink: rgb(0 0 0 / 0.86);
+  --th-muted: rgb(0 0 0 / 0.5);
+  --th-faint: rgb(0 0 0 / 0.36);
+  --th-active: rgb(22 22 28 / 0.88);
+  --th-active-ink: #fff;
+  --th-selected: rgb(255 255 255 / 0.78);
+  --th-selected-border: rgb(0 0 0 / 0.05);
+  --th-selected-shadow: inset 0 1px 0 #fff, 0 4px 14px rgb(30 40 70 / 0.1);
+  background: linear-gradient(160deg, #e6eaf3, #d3d9e7);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.7);
   clip-path: polygon(0 0, 58% 0, 42% 100%, 0 100%);
 }
 
+.th-dark,
+.aw-launcher {
+  --th-pane: var(--pane);
+  --th-border: var(--pane-border);
+  --th-sheen: var(--pane-sheen);
+  --th-shadow: var(--pane-shadow);
+  --th-ink: var(--l-ink);
+  --th-muted: var(--l-muted);
+  --th-faint: var(--l-faint);
+  --th-active: var(--dock-active);
+  --th-active-ink: var(--dock-active-ink);
+  --th-selected: var(--l-selected);
+  --th-selected-border: var(--l-selected-border);
+  --th-selected-shadow: var(--l-selected-shadow);
+}
+
 .th-dark {
-  background: linear-gradient(180deg, #2b2c3a, #20212b);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.16);
-  color: var(--l-ink);
+  background: linear-gradient(160deg, #1c1d29, #101015);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12);
   clip-path: polygon(58% 0, 100% 0, 100% 100%, 42% 100%);
 }
 
@@ -2816,45 +3198,93 @@ h2 {
   clip-path: polygon(100% 0, 100% 0, 100% 100%, 100% 100%);
 }
 
+.th-dock,
+.th-search,
+.th-sheet {
+  border: 1px solid var(--th-border);
+  background: var(--th-pane);
+  box-shadow:
+    inset 0 1px 0 var(--th-sheen),
+    var(--th-shadow);
+}
+
+.th-dock {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-self: flex-start;
+  gap: 3px;
+  padding: 4px;
+  border-radius: 18px;
+}
+
+.th-btn {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 14px;
+  color: var(--th-muted);
+}
+
+.th-dock .th-btn .i {
+  width: 13px;
+  height: 13px;
+}
+
+.th-btn.on {
+  background: var(--th-active);
+  color: var(--th-active-ink);
+}
+
+.th-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
 .th-search {
   display: flex;
+  flex: none;
   align-items: center;
-  gap: 9px;
-  height: 40px;
-  margin-bottom: 2px;
+  gap: 8px;
+  height: 36px;
+  overflow: hidden;
   padding: 0 12px;
-  border-radius: 12px;
+  border-radius: 18px;
+  color: var(--th-faint);
 }
 
-.th-win .th-search .i {
-  width: 15px;
-  height: 15px;
+.th-main .th-search .i {
+  width: 14px;
+  height: 14px;
 }
 
-.th-light .th-search {
-  background: rgb(255 255 255 / 0.75);
-  box-shadow:
-    inset 0 0 0 1px rgb(0 0 0 / 0.06),
-    inset 0 1px 0 #fff;
-  color: rgb(0 0 0 / 0.4);
-}
-
-.th-dark .th-search {
-  background: var(--l-raised);
-  box-shadow:
-    inset 0 0 0 1px var(--l-raised-border),
-    inset 0 1px 0 var(--l-sheen);
-  color: rgb(255 255 255 / 0.4);
+.th-sheet {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 5px;
+  border-radius: 14px;
 }
 
 .th-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  height: 36px;
-  padding: 0 9px;
+  gap: 9px;
+  height: 34px;
+  padding: 0 7px;
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: 11px;
+  font-weight: 500;
+}
+
+.th-row.sel {
+  border-color: var(--th-selected-border);
+  background: var(--th-selected);
+  box-shadow: var(--th-selected-shadow);
 }
 
 .th-row .tile {
@@ -2868,12 +3298,100 @@ h2 {
   height: 13px;
 }
 
-.th-light .th-row.sel {
-  border-color: rgb(0 0 0 / 0.05);
-  background: rgb(255 255 255 / 0.9);
+/* Put it anywhere: the card is a display. Its vertical center, its middle and where the
+   launcher opens (along the panes' top edge) are drawn as guides, as the app draws them while you
+   drag; the launcher glides in and snaps to two of them, which light up. Hovering drags it away. */
+.aw-line {
+  position: absolute;
+  background: rgb(255 255 255 / 0.26);
+  transition:
+    background-color 0.25s ease 0.85s,
+    box-shadow 0.25s ease 0.85s;
+}
+
+.aw-center {
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+}
+
+.aw-home,
+.aw-middle {
+  left: 0;
+  right: 0;
+  height: 1px;
+}
+
+.aw-home {
+  top: var(--home);
+}
+
+.aw-middle {
+  top: 50%;
+}
+
+.aw-snap {
+  background: var(--badge);
+  box-shadow: 0 0 10px rgb(139 155 255 / 0.9);
+}
+
+.aw-launcher {
+  position: absolute;
+  left: 50%;
+  top: var(--home);
+  display: flex;
+  gap: 6px;
+  width: min(380px, calc(100% - 48px));
+  color: var(--th-ink);
+  font-size: 12.5px;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  transition: transform 1s var(--ease-out) 0.25s;
+}
+
+.aw-launcher .th-dock,
+.aw-launcher .th-search,
+.aw-launcher .th-sheet {
   box-shadow:
-    inset 0 1px 0 #fff,
-    0 4px 14px rgb(30 40 70 / 0.1);
+    inset 0 1px 0 var(--th-sheen),
+    var(--th-shadow),
+    0 24px 50px rgb(0 0 0 / 0.45);
+}
+
+.aw-pointer {
+  position: absolute;
+  left: 62%;
+  top: 14px;
+  width: 22px;
+  height: 22px;
+  fill: #fff;
+  stroke: rgb(0 0 0 / 0.75);
+  stroke-width: 1.3;
+  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.4));
+}
+
+/* While hovered, and before it's in view: dragged off the guides, which dim. */
+.bento-anywhere:hover .aw-launcher {
+  transform: translate(calc(-50% + 72px), 34px);
+  transition-delay: 0s;
+}
+
+.js .bento-anywhere:not(.is-in) .aw-launcher {
+  transform: translate(calc(-50% + 72px), 34px);
+  transition-delay: 0s;
+}
+
+.bento-anywhere:hover .aw-snap {
+  background: rgb(255 255 255 / 0.26);
+  box-shadow: none;
+  transition-delay: 0s;
+}
+
+.js .bento-anywhere:not(.is-in) .aw-snap {
+  background: rgb(255 255 255 / 0.26);
+  box-shadow: none;
+  transition-delay: 0s;
 }
 
 .bento-more {
@@ -2913,7 +3431,8 @@ h2 {
   .bento-keys,
   .bento-with,
   .bento-actions,
-  .bento-theme {
+  .bento-theme,
+  .bento-anywhere {
     grid-column: 1 / -1;
     grid-row: auto;
   }
@@ -2936,10 +3455,6 @@ h2 {
 
 /* Phones: one column, with a little less room around the words. */
 @media (max-width: 640px) {
-  .details {
-    padding-top: 140px;
-  }
-
   .details-head {
     margin-bottom: 44px;
   }
@@ -2969,6 +3484,11 @@ h2 {
     height: 260px;
   }
 
+  .bento-anywhere {
+    --home: 40px;
+    height: 300px;
+  }
+
   .bento-card {
     border-radius: 20px;
   }
@@ -2994,11 +3514,11 @@ h2 {
     width: calc(100% - 32px);
   }
 
-  .ac-win .content .results {
+  .ac-win .has-detail .list {
     flex: 1;
   }
 
-  .ac-win .bar-more {
+  .ac-win .foot-on {
     display: inline-flex;
   }
 
@@ -3007,7 +3527,7 @@ h2 {
   }
 
   .qk-row:nth-child(n + 5),
-  .uw-win .results > :nth-child(4) {
+  .uw-win .list > :nth-child(4) {
     display: none;
   }
 
