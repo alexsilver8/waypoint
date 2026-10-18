@@ -151,6 +151,29 @@ test('finds quicklinks and snippets written before launch, and opens and pastes 
   await expect.poll(opened).toContain('https://github.com/search?q=cats%20%26%20dogs');
 });
 
+/** A page's own requestAnimationFrame, and the callbacks held back from it. */
+interface Frames {
+  requestAnimationFrame(callback: (time: number) => void): number;
+  next?: Frames['requestAnimationFrame'];
+  held?: Array<(time: number) => void>;
+}
+
+/** Holds back a page's animation frames, as a busy machine does, until `releaseFrames(on)`. */
+const holdFrames = (on: Page) =>
+  on.evaluate(() => {
+    const frames = globalThis as unknown as Frames;
+    frames.next ??= frames.requestAnimationFrame.bind(frames);
+    const held: Array<(time: number) => void> = [];
+    frames.held = held;
+    frames.requestAnimationFrame = (callback) => held.push(callback);
+  });
+const releaseFrames = (on: Page) =>
+  on.evaluate(() => {
+    const frames = globalThis as unknown as Frames;
+    if (frames.next) frames.requestAnimationFrame = frames.next;
+    for (const callback of frames.held?.splice(0) ?? []) callback(performance.now());
+  });
+
 /** A field of the form that's open, by its label. */
 const field = (name: string) => page.getByRole('textbox', { name, exact: true });
 
@@ -303,9 +326,17 @@ test('makes, changes and deletes quicklinks and snippets in Settings', async () 
   await quicklinkForm.getByRole('button', { name: 'Save' }).click();
   await expect(quicklinkForm.getByRole('alert')).toContainText('Use a web address');
   await quicklinkForm.getByLabel('Link').fill('https://example.com/docs/');
+  // A placeholder goes in at once, caret and all: on a busy machine, the field clicked next keeps
+  // the keyboard rather than losing it to the Link field a frame later.
+  await holdFrames(settings);
   await quicklinkForm.getByRole('button', { name: '{argument}' }).click();
   await expect(quicklinkForm.getByLabel('Link')).toHaveValue('https://example.com/docs/{argument}');
-  await quicklinkForm.getByLabel('Icon').fill('📘');
+  await expect(quicklinkForm.getByLabel('Link')).toBeFocused();
+  await quicklinkForm.getByLabel('Icon').click();
+  await releaseFrames(settings);
+  await settings.keyboard.type('📘');
+  await expect(quicklinkForm.getByLabel('Icon')).toHaveValue('📘');
+  await expect(quicklinkForm.getByLabel('Link')).toHaveValue('https://example.com/docs/{argument}');
   await quicklinkForm.getByLabel('Link').press('Enter');
   await expect
     .poll(() => saved('quicklinks.json'))

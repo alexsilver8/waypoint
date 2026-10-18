@@ -1,5 +1,6 @@
 /** Pieces shared by the Quicklinks and Snippets sections: the editor's fields, and the list. */
 import { type ReactNode, type RefObject, useId } from 'react';
+import { flushSync } from 'react-dom';
 import type { PlaceholderName } from '../../../shared/placeholders';
 import type { Icon } from '../../../shared/types';
 import { ItemIcon } from '../components/ItemIcon';
@@ -41,11 +42,11 @@ type TextControl = HTMLInputElement | HTMLTextAreaElement;
 function insertAt(field: TextControl, text: string, onChange: (value: string) => void) {
   const start = field.selectionStart ?? field.value.length;
   const end = field.selectionEnd ?? start;
-  onChange(field.value.slice(0, start) + text + field.value.slice(end));
-  requestAnimationFrame(() => {
-    field.focus();
-    field.setSelectionRange(start + text.length, start + text.length);
-  });
+  // Rendered now, so the caret goes after the text straight away. Waiting a frame for it would
+  // take the keyboard back from a field clicked in the meantime, and type into this one.
+  flushSync(() => onChange(field.value.slice(0, start) + text + field.value.slice(end)));
+  field.focus();
+  field.setSelectionRange(start + text.length, start + text.length);
 }
 
 /** Buttons that type a placeholder into a field, under it. */
