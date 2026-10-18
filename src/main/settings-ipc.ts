@@ -35,6 +35,7 @@ export interface SettingsIpcOptions {
 const PATCHABLE: Array<keyof Settings> = [
   'hideOnBlur',
   'launchAtLogin',
+  'pasteIntoApps',
   'theme',
   'clipboardHistory',
   'extensionDirectories',
