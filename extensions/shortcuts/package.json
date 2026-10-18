@@ -1,0 +1,32 @@
+{
+  "name": "shortcuts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Run your Shortcuts from the launcher.",
+  "type": "module",
+  "main": "index.js",
+  "license": "MIT",
+  "waypoint": {
+    "title": "Shortcuts",
+    "icon": "⚡",
+    "commands": [
+      {
+        "name": "run",
+        "title": "Run Shortcut",
+        "mode": "view",
+        "icon": "⚡",
+        "keywords": [
+          "shortcuts",
+          "automation",
+          "siri",
+          "workflow",
+          "focus",
+          "do not disturb"
+        ],
+        "platforms": [
+          "darwin"
+        ]
+      }
+    ]
+  }
+}
