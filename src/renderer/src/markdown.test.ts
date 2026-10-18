@@ -100,11 +100,32 @@ describe('decodeEntities', () => {
 });
 
 describe('linkTarget', () => {
-  it('accepts web, mail and app links', () => {
+  it('accepts web pages and email, as a note does', () => {
     expect(linkTarget('https://example.com')).toBe('https://example.com/');
+    expect(linkTarget('http://example.com/a b')).toBe('http://example.com/a%20b');
     expect(linkTarget('mailto:me@example.com')).toBe('mailto:me@example.com');
-    expect(linkTarget('vscode://file/x')).toBe('vscode://file/x');
+    expect(linkTarget('HTTPS://Example.com')).toBe('https://example.com/');
     expect(linkTarget('https://example.com/?a=1&amp;b=2')).toBe('https://example.com/?a=1&b=2');
+  });
+
+  it('refuses every other kind of link, which could run something with one click', () => {
+    for (const href of [
+      'search-ms:query=invoice&crumb=location:\\\\attacker\\share',
+      'smb://attacker/share',
+      'ms-settings:privacy',
+      'ms-msdt:/id PCWDiagnostic',
+      'waypoint://commands/system/restart',
+      'x-apple.systempreferences:com.apple.preference.security',
+      'vscode://file/x',
+      'tel:+41000000',
+      'file:///etc/passwd',
+      'javascript:alert(1)',
+    ]) {
+      expect(linkTarget(href), href).toBeUndefined();
+    }
+    expect(html('[Open](search-ms:query=x) [Run](waypoint://commands/system/restart)')).toBe(
+      '<div class="markdown"><p><span>Open</span> <span>Run</span></p></div>',
+    );
   });
 
   it('refuses scripts, files, paths and relative links', () => {

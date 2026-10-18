@@ -5,10 +5,9 @@
  */
 import { Lexer, type Token, type Tokens } from 'marked';
 import { type MouseEvent, type ReactNode, useMemo } from 'react';
+import { isOpenableLink } from '../../shared/notes';
 import { isNetworkPath } from '../../shared/paths';
 
-/** Links that would run something in the page, or reach into it, never open. */
-const BLOCKED_SCHEMES = new Set(['javascript:', 'data:', 'vbscript:', 'file:', 'blob:']);
 const IMAGE_PATTERN = /\.(png|jpe?g|gif|webp|svg|ico|bmp|avif)$/i;
 
 /** The entities people write by hand; any other named one is left as typed. */
@@ -63,13 +62,16 @@ export function decodeEntities(text: string): string {
   });
 }
 
-/** The URL a link opens, or `undefined` when it isn't one that may open (a relative link, `javascript:`). */
+/**
+ * The URL a link opens, or `undefined` when it isn't one that may open. Like a note's links, only
+ * web pages and email: Markdown shows what anyone wrote (an issue, a README), and one click on a
+ * `search-ms:`, `smb:` or `waypoint://commands/…` link would do far more than open a page. An
+ * extension that means to open an app's own kind of link uses an `open-url` action for it.
+ */
 export function linkTarget(href: string): string | undefined {
   try {
     const url = new URL(decodeEntities(href));
-    // `C:\…` parses as a URL with the scheme "c:"; it's a path, not a link.
-    if (url.protocol.length <= 2 || BLOCKED_SCHEMES.has(url.protocol)) return undefined;
-    return url.href;
+    return isOpenableLink(url.href) ? url.href : undefined;
   } catch {
     return undefined;
   }

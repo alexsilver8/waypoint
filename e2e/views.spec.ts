@@ -12,7 +12,7 @@ let page: Page;
 
 const NOTES = `# What’s new
 
-Waypoint now shows **pages** and _forms_. See [the docs](https://example.com/docs).
+Waypoint now shows **pages** and _forms_. See [the docs](https://example.com/docs), not [the share](search-ms:query=notes).
 
 - Detail views
 - Forms
@@ -180,6 +180,9 @@ test('shows a Markdown page with its actions, and opens its links in the browser
       opened.push(url);
     };
   });
+  // Only web pages and email: any other kind of link in the text is just text.
+  await expect(article.getByText('the share')).toBeVisible();
+  await expect(article.getByRole('link', { name: 'the share' })).toHaveCount(0);
   const url = page.url();
   await article.getByRole('link', { name: 'the docs' }).click();
   await expect
