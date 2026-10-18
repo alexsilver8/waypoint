@@ -21,9 +21,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-/** The registry address of a package's metadata; a scope's slash is escaped, as npm does. */
+/** The registry address of a package's metadata; slashes are escaped, as npm does for a scope's. */
 export function packageUrl(registry: string, name: string): string {
-  return `${registry.replace(/\/+$/, '')}/${name.replace('/', '%2f')}`;
+  return `${registry.replace(/\/+$/, '')}/${name.replace(/\//g, '%2f')}`;
 }
 
 /**

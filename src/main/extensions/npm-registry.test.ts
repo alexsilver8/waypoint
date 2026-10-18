@@ -18,6 +18,10 @@ describe('packageUrl', () => {
     expect(packageUrl(NPM_REGISTRY, 'emoji')).toBe('https://registry.npmjs.org/emoji');
     expect(packageUrl('https://npm.example.com/', '@you/emoji')).toBe('https://npm.example.com/@you%2femoji');
   });
+
+  it('escapes every slash, so a name stays one path segment', () => {
+    expect(packageUrl(NPM_REGISTRY, '@a/b/../c')).toBe('https://registry.npmjs.org/@a%2fb%2f..%2fc');
+  });
 });
 
 describe('pickRelease', () => {
