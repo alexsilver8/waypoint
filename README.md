@@ -325,6 +325,10 @@ Built-in commands implement the same interface as extensions, so anything a buil
 
 ## Roadmap
 
+- Install extensions other people share, from npm or git
+- Images in clipboard history
+- Aliases for commands, so a short word opens one
+- Units and currencies in the calculator
 - Code-signed releases, so macOS installs updates by itself too
 
 Ideas and bug reports are welcome in [Issues](https://github.com/alexsilver8/waypoint/issues).
