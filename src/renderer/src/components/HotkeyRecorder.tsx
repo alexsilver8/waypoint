@@ -30,10 +30,10 @@ interface HotkeyRecorderProps {
   /** Offers to remove the shortcut, beside the field. */
   onClear?(): void;
   /**
-   * Starts recording whenever this becomes a new number, e.g. when Settings was opened to set
+   * Starts recording whenever this becomes a new object, e.g. when Settings was opened to set
    * this one. The recorder must keep its identity meanwhile (memoise it).
    */
-  recordRequest?: number;
+  recordRequest?: object;
 }
 
 /** Shows the shortcut as keycaps; click it, then press a new one. */
@@ -88,7 +88,7 @@ export function HotkeyRecorder({
     field.current?.focus();
   }, [recorder]);
 
-  const requested = useRef<number | undefined>(undefined);
+  const requested = useRef<object | undefined>(undefined);
   useEffect(() => {
     if (recordRequest === undefined || recordRequest === requested.current) return;
     requested.current = recordRequest;

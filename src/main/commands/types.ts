@@ -4,4 +4,9 @@ import type { CommandImplementation, ExtensionManifest } from '../../shared/type
 export interface BuiltinExtension {
   manifest: ExtensionManifest;
   commands: Record<string, CommandImplementation>;
+  /**
+   * Commands only its own items run, like opening one quicklink, left out of the root search.
+   * Items reach them with an `open-command` action, the argument saying which one.
+   */
+  unlisted?: string[];
 }

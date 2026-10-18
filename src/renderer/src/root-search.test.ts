@@ -90,6 +90,102 @@ describe('buildRootSections', () => {
   });
 });
 
+describe('items that take text', () => {
+  const open = { extension: 'quicklinks', command: 'open' };
+  const quicklink = (title: string, extra: Partial<RootItem> = {}): RootItem =>
+    command(title, {
+      id: `quicklink:${title}`,
+      subtitle: 'github.com/search?q={argument}',
+      takesText: { ref: open, prefix: `${title}\n` },
+      actions: [
+        { type: 'open-command', ref: open, argument: title, title: 'Open Quicklink' },
+        { type: 'open-command', ref: { extension: 'quicklinks', command: 'edit' }, argument: title, title: 'Edit' },
+      ],
+      ...extra,
+    });
+  const withLinks = [...items, quicklink('GitHub Search'), command('Get Help')];
+
+  it('offers an item with what’s typed after its title', () => {
+    const [results] = buildRootSections(withLinks, 'gh waypoint');
+    expect(results?.title).toBe('Results');
+    const row = results?.items[0];
+    expect(row).toMatchObject({
+      id: 'text:quicklink:GitHub Search',
+      title: 'GitHub Search',
+      subtitle: '“waypoint”',
+      titlePositions: [0, 3],
+      rootItemId: 'quicklink:GitHub Search',
+    });
+    expect(row?.actions).toEqual([
+      { type: 'open-command', ref: open, argument: 'GitHub Search\nwaypoint', title: 'Open Quicklink' },
+      {
+        type: 'open-command',
+        ref: { extension: 'quicklinks', command: 'edit' },
+        argument: 'GitHub Search',
+        title: 'Edit',
+      },
+    ]);
+    expect(countRootMatches(withLinks, 'gh waypoint').command).toBe(1);
+  });
+
+  it('shows the item itself while the search still matches its title', () => {
+    const [results] = buildRootSections(withLinks, 'github se');
+    expect(results?.items[0]).toMatchObject({
+      id: 'quicklink:GitHub Search',
+      subtitle: 'github.com/search?q={argument}',
+    });
+    expect(results?.items.some((item) => item.id.startsWith('text:'))).toBe(false);
+  });
+
+  it('ranks it among the other results by how well the title part matches', () => {
+    const ids = buildRootSections([...withLinks, command('GH Waypoint Sync')], 'gh waypoint')[0]?.items.map(
+      (item) => item.id,
+    );
+    expect(ids).toEqual(['command:x/GH Waypoint Sync', 'text:quicklink:GitHub Search']);
+  });
+
+  it('is offered under “Use … with” with the whole search', () => {
+    const sections = buildRootSections(withLinks, 'rust lifetimes');
+    const useWith = sections.find((section) => section.title === 'Use “rust lifetimes” with…');
+    const row = useWith?.items.find((item) => item.id === 'fallback:quicklink:GitHub Search');
+    expect(row?.subtitle).toBe('github.com/search?q={argument}');
+    expect(row?.actions[0]).toEqual({
+      type: 'open-command',
+      ref: open,
+      argument: 'GitHub Search\nrust lifetimes',
+      title: 'Open Quicklink',
+    });
+  });
+
+  it('works in the Commands tab too', () => {
+    const [tab] = buildRootSections(withLinks, 'gh cats', 'command');
+    expect(tab?.items[0]?.id).toBe('text:quicklink:GitHub Search');
+  });
+});
+
+describe('items only shown when searching', () => {
+  const snippet = command('Email Signature', { id: 'snippet:sig', keywords: ['!sig'], searchOnly: true });
+  const withSnippet = [...items, snippet];
+
+  it('leaves them out of the lists shown before anything is typed', () => {
+    const shown = buildRootSections(withSnippet, '').flatMap((s) => s.items.map((i) => i.id));
+    expect(shown).not.toContain('snippet:sig');
+    const used = buildRootSections([...items, { ...snippet, frecency: 9 }], '').flatMap((s) =>
+      s.items.map((i) => i.id),
+    );
+    expect(used).not.toContain('snippet:sig');
+    expect(buildRootSections(withSnippet, '', 'command').flatMap((s) => s.items.map((i) => i.id))).not.toContain(
+      'snippet:sig',
+    );
+  });
+
+  it('finds them by title or keyword', () => {
+    expect(buildRootSections(withSnippet, '!sig')[0]?.items[0]).toMatchObject({ id: 'snippet:sig' });
+    expect(buildRootSections(withSnippet, 'email sig')[0]?.items[0]).toMatchObject({ id: 'snippet:sig' });
+    expect(buildRootSections(withSnippet, 'email sig')[0]?.items[0]).not.toHaveProperty('searchOnly');
+  });
+});
+
 describe('asUrl', () => {
   it.each([
     ['https://example.com/a?b=c', 'https://example.com/a?b=c'],

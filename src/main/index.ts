@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { app, nativeTheme, powerSaveBlocker, shell } from 'electron';
+import { app, clipboard, nativeTheme, powerSaveBlocker, shell } from 'electron';
 import { commandFromDeeplink, commandInArgv, launchArguments } from '../shared/command-hotkeys';
 import { NotesChannel, noteIdFromDeeplink, RECENTLY_DELETED_DAYS } from '../shared/notes';
 import type { OnboardingOutcome } from '../shared/onboarding';
@@ -13,9 +13,12 @@ import { commandShortcuts } from './command-shortcuts';
 import { clipboardHistoryExtension, clipboardRootItems } from './commands/clipboard-history';
 import { noteRootItems, notesExtension } from './commands/notes';
 import { paletteExtension } from './commands/palette';
+import { quicklinkRootItems, quicklinksExtension } from './commands/quicklinks';
+import { snippetRootItems, snippetsExtension } from './commands/snippets';
 import { system } from './commands/system';
 import { webSearch } from './commands/web-search';
 import { windowManagementExtension } from './commands/window-management';
+import { QuicklinkStore, SnippetStore } from './entry-store';
 import { ExtensionHostClient } from './extensions/host-client';
 import { hostServices } from './extensions/services';
 import { HotkeyManager } from './hotkey';
@@ -29,6 +32,7 @@ import { NotesWindow } from './notes/window';
 import { registerOnboardingIpc } from './onboarding/ipc';
 import { OnboardingStore } from './onboarding/store';
 import { OnboardingWindow } from './onboarding/window';
+import { openLink } from './open-link';
 import { WakeLocks } from './power';
 import { CommandRegistry } from './registry';
 import { type Settings, SettingsStore } from './settings';
@@ -114,6 +118,12 @@ async function main(): Promise<void> {
   };
   // Closing it mid-recording mustn't leave the shortcuts paused.
   const settingsWindow = new SettingsWindow({ onClosed: () => hotkeys.resume() });
+  // Quicklinks and snippets: made and changed in Settings for now, where the launcher's Create and
+  // Edit commands take you.
+  const quicklinks = new QuicklinkStore(join(dataDir, 'quicklinks.json'));
+  const snippets = new SnippetStore(join(dataDir, 'snippets.json'));
+  const readClipboard = () => clipboard.readText();
+  const usageScore = (id: string) => usage.score(id);
 
   const registry: CommandRegistry = new CommandRegistry({
     platform,
@@ -124,6 +134,8 @@ async function main(): Promise<void> {
     rootSources: [
       () => noteRootItems(notesStore),
       () => clipboardRootItems(clipboardHistory, () => settings.get().clipboardHistory.enabled),
+      () => quicklinkRootItems(quicklinks, usageScore),
+      () => snippetRootItems(snippets, usageScore, readClipboard),
     ],
     commandHotkey: (key) => commands.hotkeys.activeFor(key),
     // Shipped with the app: inside its resources once installed, the repo's folder from source.
@@ -137,15 +149,27 @@ async function main(): Promise<void> {
     builtins: [
       clipboardHistoryExtension(clipboardHistory, () => settings.get().clipboardHistory.enabled),
       notesExtension(notesStore, notesWindow),
+      quicklinksExtension({
+        store: quicklinks,
+        platform,
+        readClipboard,
+        open: (link, openWith) =>
+          openLink(link, openWith, { platform, home: homedir(), apps: () => apps.list(), shell }),
+        edit: (id) =>
+          settingsWindow.open(id ? { section: 'quicklinks', edit: id } : { section: 'quicklinks', create: true }),
+      }),
+      snippetsExtension({
+        store: snippets,
+        readClipboard,
+        edit: (id) =>
+          settingsWindow.open(id ? { section: 'snippets', edit: id } : { section: 'snippets', create: true }),
+      }),
       webSearch,
       system,
       // The launcher is created below; window commands only reach for it when they run.
       windowManagementExtension({ platform, launcher: () => launcher }),
       paletteExtension({
-        openSettings: (command) => {
-          if (command) settingsIpc.revealCommand(command);
-          settingsWindow.open();
-        },
+        openSettings: (command) => settingsWindow.open(command ? { section: 'extensions', command } : undefined),
         // Setup's window is made below too; the command only reaches for it when it runs.
         openOnboarding: () => onboardingWindow.open(),
         extensionsDir,
@@ -220,6 +244,7 @@ async function main(): Promise<void> {
       notesDirectory: () => notesDirectoryFor(settings.get()),
     },
     openOnboarding: () => onboardingWindow.open(),
+    entries: { quicklinks, snippets, apps },
   });
   const onboardingIpc = registerOnboardingIpc({
     store: settings,
@@ -234,6 +259,13 @@ async function main(): Promise<void> {
     settingsIpc.notifyChanged();
   });
   notesStore.on('change', () => launcher.rootItemsChanged());
+  for (const store of [quicklinks, snippets]) {
+    store.on('change', () => {
+      launcher.rootItemsChanged();
+      settingsIpc.notifyChanged();
+    });
+    store.watch();
+  }
   app.on('second-instance', (_event, rawArgv: readonly string[] | undefined, _directory, data: unknown) => {
     const argv = launchArguments(rawArgv, data);
     const command = commandInArgv(argv);
@@ -308,6 +340,8 @@ async function main(): Promise<void> {
     clipboardHistory.flush();
     notesWindow.flushState();
     notesStore.unwatch();
+    quicklinks.close();
+    snippets.close();
     host.stop();
   });
   // A launcher lives in the tray; closing its window must not quit the app.

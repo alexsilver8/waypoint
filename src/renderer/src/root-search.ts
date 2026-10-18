@@ -1,5 +1,6 @@
 import { calculate, formatResult } from '../../shared/calculator';
-import { rankItems } from '../../shared/search';
+import { rankItems, scoreItem } from '../../shared/search';
+import { matchTitleAndText } from '../../shared/title-and-text';
 import type { RootItem, RootKind } from '../../shared/types';
 import type { DisplayItem, DisplaySection } from './model';
 
@@ -71,7 +72,9 @@ export function countRootMatches(items: readonly RootItem[], rawQuery: string): 
     note: 0,
     clipboard: 0,
   };
-  const matching = query ? rankItems(items, query).map((r) => r.item) : items;
+  const matching = query
+    ? [...rankItems(items, query).map((r) => r.item), ...items.filter((item) => textMatch(item, query))]
+    : items;
   for (const item of matching) {
     counts[item.kind] += 1;
     counts.all += 1;
@@ -110,12 +113,13 @@ export function buildRootSections(
   const launchable = ofKind(items, ['command', 'application']);
 
   if (!query) {
-    const suggestions = launchable
+    const listed = launchable.filter((item) => !item.searchOnly);
+    const suggestions = listed
       .filter((item) => item.frecency > 0)
       .sort((a, b) => b.frecency - a.frecency)
       .slice(0, MAX_SUGGESTIONS);
     const suggested = new Set(suggestions.map((item) => item.id));
-    const commands = launchable
+    const commands = listed
       .filter((item) => item.kind === 'command' && !suggested.has(item.id))
       .sort((a, b) => a.title.localeCompare(b.title));
     if (suggestions.length > 0) sections.push({ title: 'Suggestions', items: suggestions.map(asRootRow) });
@@ -161,7 +165,7 @@ export function buildRootSections(
     });
   }
 
-  const results = ranked(launchable, query).slice(0, MAX_RESULTS);
+  const results = rankedWithText(launchable, query).slice(0, MAX_RESULTS);
   if (results.length > 0) sections.push({ title: 'Results', items: results });
 
   const notes = ranked(ofKind(items, ['note']), query).slice(0, MAX_NOTES_IN_ALL);
@@ -184,6 +188,10 @@ export function buildRootSections(
         },
       ],
     }));
+  for (const item of items) {
+    if (item.takesText)
+      fallbacks.push({ ...withText(item, query), id: `fallback:${item.id}`, subtitle: item.subtitle });
+  }
   if (fallbacks.length > 0) sections.push({ title: `Use “${quote(query)}” with…`, items: fallbacks });
 
   return sections;
@@ -193,13 +201,14 @@ function buildTab(items: readonly RootItem[], query: string, kind: RootKind): Di
   const pool = ofKind(items, [kind]);
   const titles = TAB_TITLES[kind];
   if (!query) {
+    const listed = pool.filter((item) => !item.searchOnly);
     // Notes and clipboard entries arrive newest first; apps and commands read best A to Z.
     const ordered =
-      kind === 'note' || kind === 'clipboard' ? pool : [...pool].sort((a, b) => a.title.localeCompare(b.title));
+      kind === 'note' || kind === 'clipboard' ? listed : [...listed].sort((a, b) => a.title.localeCompare(b.title));
     const rows = ordered.slice(0, MAX_IN_TAB).map(asRootRow);
     return rows.length > 0 ? [{ title: titles.recent, items: rows }] : [];
   }
-  const rows = ranked(pool, query).slice(0, MAX_IN_TAB);
+  const rows = (kind === 'command' ? rankedWithText(pool, query) : ranked(pool, query)).slice(0, MAX_IN_TAB);
   return rows.length > 0 ? [{ title: titles.matches, items: rows }] : [];
 }
 
@@ -235,8 +244,57 @@ function buildExtensionsTab(items: readonly RootItem[], query: string): DisplayS
   return [...sections.values()];
 }
 
+/** What's typed after the title of an item that takes text, unless the whole search matches it anyway. */
+function textMatch(item: RootItem, query: string) {
+  if (!item.takesText || scoreItem(query, item)) return null;
+  return matchTitleAndText(query, item);
+}
+
+/** A row that opens an item that takes text with `text`, keeping the item's other actions. */
+function withText(item: RootItem, text: string): DisplayItem {
+  const row = asRootRow(item);
+  if (!item.takesText) return row;
+  const { ref, prefix = '' } = item.takesText;
+  const [first, ...rest] = item.actions;
+  return {
+    ...row,
+    id: `text:${item.id}`,
+    subtitle: `“${quote(text)}”`,
+    actions: [{ type: 'open-command', ref, argument: `${prefix}${text}`, title: first?.title ?? item.title }, ...rest],
+  };
+}
+
+/**
+ * The items that match, best first, with a row for each item that takes text whose title the
+ * search starts with: "gh waypoint" offers GitHub Search with "waypoint", ranked by how well "gh"
+ * matches the title, the text counting as matched (see `matchTitleAndText`).
+ */
+function rankedWithText(items: readonly RootItem[], query: string): DisplayItem[] {
+  const rows = rankItems(items, query, usageBoost).map(({ item, score, titlePositions }) => ({
+    score,
+    row: { ...asRootRow(item), titlePositions },
+  }));
+  for (const item of items) {
+    const match = textMatch(item, query);
+    if (match) {
+      const row = { ...withText(item, match.text), titlePositions: match.titlePositions };
+      rows.push({ score: match.score + usageBoost(item), row });
+    }
+  }
+  // Stable, so equal scores keep rankItems' order.
+  return rows.sort((a, b) => b.score - a.score).map(({ row }) => row);
+}
+
 function asRootRow(item: RootItem): DisplayItem {
-  const { kind, frecency: _frecency, fallback: _fallback, extension: _extension, ...row } = item;
+  const {
+    kind,
+    frecency: _frecency,
+    fallback: _fallback,
+    extension: _extension,
+    takesText: _takesText,
+    searchOnly: _searchOnly,
+    ...row
+  } = item;
   // Only launching apps and commands teaches the ranking what you use.
   return kind === 'command' || kind === 'application' ? { ...row, rootItemId: item.id } : row;
 }

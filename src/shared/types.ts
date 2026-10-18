@@ -346,6 +346,14 @@ export interface RootItem extends ListItem {
   frecency: number;
   /** Offered under "Use “…” with" and opened with the search text as argument. */
   fallback?: CommandRef;
+  /**
+   * Takes text, like a quicklink with `{argument}`: what's typed after its title ("gh waypoint"
+   * finds GitHub Search with "waypoint"), or the whole search under "Use “…” with". Either way it
+   * opens `ref` with `prefix` and then the text as the argument.
+   */
+  takesText?: { ref: CommandRef; prefix?: string };
+  /** Only shown once something is typed, like snippets, which would crowd the list of commands. */
+  searchOnly?: boolean;
   /** For commands: the extension they come from, to group them in the Extensions tab. */
   extension?: { name: string; title: string; source: ExtensionSource };
   /** For commands: the global shortcut that runs it, as an Electron accelerator. */

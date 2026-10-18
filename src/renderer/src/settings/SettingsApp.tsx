@@ -1,13 +1,16 @@
 import { type KeyboardEvent, type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import type { Settings } from '../../../shared/settings';
-import type { SettingsState } from '../../../shared/settings-ipc';
+import type { SettingsState, SettingsTarget } from '../../../shared/settings-ipc';
 import type { BuiltinIconName, Tint } from '../../../shared/types';
 import { HotkeyRecorder, type ShortcutRecorder } from '../components/HotkeyRecorder';
 import { ItemIcon } from '../components/ItemIcon';
 import { PaletteMark } from '../components/PaletteMark';
 import { ThemePicker } from '../components/ThemePicker';
 import { Toggle } from '../components/Toggle';
-import { CommandShortcuts, type RevealedCommand, useRevealedCommand } from './CommandShortcuts';
+import { CommandShortcuts } from './CommandShortcuts';
+import { Button, ConfirmButton, Group, PathRow, Row } from './controls';
+import { QuicklinksSection } from './QuicklinksSection';
+import { SnippetsSection } from './SnippetsSection';
 
 const api = window.settings;
 const { platform } = api;
@@ -18,99 +21,17 @@ const recorder: ShortcutRecorder = {
 const REVEAL = platform === 'darwin' ? 'Show in Finder' : platform === 'win32' ? 'Show in Explorer' : 'Show Folder';
 const HISTORY_SIZES = [50, 100, 200, 500, 1000, 5000];
 
-type SectionId = 'general' | 'clipboard' | 'notes' | 'extensions' | 'about';
+type SectionId = 'general' | 'clipboard' | 'notes' | 'quicklinks' | 'snippets' | 'extensions' | 'about';
 
 const SECTIONS: Array<{ id: SectionId; label: string; icon: BuiltinIconName; tint: Tint }> = [
   { id: 'general', label: 'General', icon: 'settings', tint: 'gray' },
   { id: 'clipboard', label: 'Clipboard', icon: 'clipboard', tint: 'orange' },
   { id: 'notes', label: 'Notes', icon: 'note', tint: 'yellow' },
+  { id: 'quicklinks', label: 'Quicklinks', icon: 'link', tint: 'blue' },
+  { id: 'snippets', label: 'Snippets', icon: 'text', tint: 'teal' },
   { id: 'extensions', label: 'Extensions', icon: 'extension', tint: 'purple' },
   { id: 'about', label: 'About', icon: 'sparkles', tint: 'pink' },
 ];
-
-// ── Controls ────────────────────────────────────────────────
-
-function Row({ label, description, children }: { label: string; description?: ReactNode; children: ReactNode }) {
-  return (
-    <div className="row-setting">
-      <div className="row-setting__text">
-        <span className="row-setting__label">{label}</span>
-        {description && <span className="row-setting__description">{description}</span>}
-      </div>
-      <div className="row-setting__control">{children}</div>
-    </div>
-  );
-}
-
-/** A rounded card of settings rows, with an optional title above it. */
-function Group({ title, children }: { title?: string; children: ReactNode }) {
-  return (
-    <section className="group" aria-label={title}>
-      {title && <h2 className="group__title">{title}</h2>}
-      <div className="group__card">{children}</div>
-    </section>
-  );
-}
-
-function Button({
-  children,
-  onClick,
-  tone,
-  disabled,
-}: {
-  children: ReactNode;
-  onClick(): void;
-  tone?: 'destructive';
-  disabled?: boolean;
-}) {
-  return (
-    <button type="button" className="button" data-tone={tone} onClick={onClick} disabled={disabled}>
-      {children}
-    </button>
-  );
-}
-
-/** A button that asks "are you sure" by changing its own label, instead of a dialog. */
-function ConfirmButton({
-  children,
-  confirm,
-  disabled,
-  onConfirm,
-}: {
-  children: ReactNode;
-  confirm: string;
-  disabled?: boolean;
-  onConfirm(): void;
-}) {
-  const [armed, setArmed] = useState(false);
-  useEffect(() => {
-    if (!armed) return;
-    const timer = setTimeout(() => setArmed(false), 4000);
-    return () => clearTimeout(timer);
-  }, [armed]);
-  return (
-    <Button
-      tone="destructive"
-      disabled={disabled}
-      onClick={() => {
-        if (armed) {
-          setArmed(false);
-          onConfirm();
-        } else setArmed(true);
-      }}
-    >
-      {armed ? confirm : children}
-    </Button>
-  );
-}
-
-function PathRow({ path }: { path: string }) {
-  return (
-    <span className="path" title={path}>
-      {path}
-    </span>
-  );
-}
 
 // ── Sections ────────────────────────────────────────────────
 
@@ -118,8 +39,11 @@ interface SectionProps {
   state: SettingsState;
   update(patch: Partial<Settings>): void;
   setState(state: SettingsState): void;
-  /** A command to show the shortcut of (Set Shortcut… in the launcher). */
-  revealed?: RevealedCommand;
+  /**
+   * Where the window was asked to go, e.g. a quicklink to edit or a command to give a shortcut;
+   * a new object each time.
+   */
+  target: SettingsTarget | null;
 }
 
 function General({ state, update }: SectionProps) {
@@ -254,7 +178,7 @@ function Notes({ state, update }: SectionProps) {
   );
 }
 
-function Extensions({ state, update, setState, revealed }: SectionProps) {
+function Extensions({ state, update, setState, target }: SectionProps) {
   const folders = state.settings.extensionDirectories;
   const user = state.extensions.filter((e) => e.source === 'user');
   const builtin = state.extensions.filter((e) => e.source !== 'user');
@@ -351,7 +275,11 @@ function Extensions({ state, update, setState, revealed }: SectionProps) {
         </ul>
       </Group>
 
-      <CommandShortcuts state={state} setState={setState} revealed={revealed} />
+      <CommandShortcuts
+        state={state}
+        setState={setState}
+        revealed={target?.command ? { key: target.command, request: target } : undefined}
+      />
     </>
   );
 }
@@ -393,6 +321,8 @@ const SECTION_VIEWS: Record<SectionId, (props: SectionProps) => ReactNode> = {
   general: General,
   clipboard: Clipboard,
   notes: Notes,
+  quicklinks: QuicklinksSection,
+  snippets: SnippetsSection,
   extensions: Extensions,
   about: About,
 };
@@ -402,7 +332,25 @@ const SECTION_VIEWS: Record<SectionId, (props: SectionProps) => ReactNode> = {
 export function SettingsApp() {
   const [state, setState] = useState<SettingsState | null>(null);
   const [section, setSection] = useState<SectionId>('general');
-  const revealed = useRevealedCommand(() => setSection('extensions'));
+  const [target, setTarget] = useState<SettingsTarget | null>(null);
+
+  // Opened to edit something (a quicklink from the launcher, say): go to its section. Asked when
+  // the page loads, and again whenever the main process says there's somewhere new to go.
+  useEffect(() => {
+    const go = (next: SettingsTarget | null) => {
+      const known = SECTIONS.find((s) => s.id === next?.section);
+      if (!next || !known) return;
+      setSection(known.id);
+      setTarget({ ...next });
+    };
+    const take = () => void api.takeTarget().then(go);
+    take();
+    return api.onNavigate(take);
+  }, []);
+  const pickSection = (id: SectionId) => {
+    setSection(id);
+    setTarget(null);
+  };
 
   useEffect(() => {
     const load = () => void api.get().then(setState);
@@ -433,7 +381,7 @@ export function SettingsApp() {
     const index = SECTIONS.findIndex((s) => s.id === section);
     const next = SECTIONS[Math.min(SECTIONS.length - 1, Math.max(0, index + (event.key === 'ArrowDown' ? 1 : -1)))];
     if (next) {
-      setSection(next.id);
+      pickSection(next.id);
       document.getElementById(`nav-${next.id}`)?.focus();
     }
   };
@@ -462,7 +410,7 @@ export function SettingsApp() {
             data-tint={item.tint}
             aria-current={item.id === section ? 'page' : undefined}
             tabIndex={item.id === section ? 0 : -1}
-            onClick={() => setSection(item.id)}
+            onClick={() => pickSection(item.id)}
           >
             <ItemIcon icon={{ builtin: item.icon, tint: item.tint }} />
             {item.label}
@@ -475,7 +423,7 @@ export function SettingsApp() {
             {current?.label}
           </h1>
         </header>
-        {state ? <View state={state} update={update} setState={setState} revealed={revealed} /> : null}
+        {state ? <View state={state} update={update} setState={setState} target={target} /> : null}
       </main>
     </div>
   );

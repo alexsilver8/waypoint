@@ -1,5 +1,6 @@
 import { join } from 'node:path';
 import { app, BrowserWindow } from 'electron';
+import { SettingsChannel, type SettingsTarget } from '../shared/settings-ipc';
 import { type Glass, glassFor, glassWindowOptions, loadPage } from './glass';
 import { showOnEverySpace } from './spaces';
 
@@ -8,6 +9,7 @@ const isMac = process.platform === 'darwin';
 /** The Settings window. One at a time; opening it again brings it forward. */
 export class SettingsWindow {
   private window: BrowserWindow | undefined;
+  private target: SettingsTarget | undefined;
 
   /** `onClosed`: e.g. so closing it mid-recording doesn't leave the shortcuts paused. */
   constructor(private readonly options: { onClosed?(): void } = {}) {}
@@ -16,12 +18,25 @@ export class SettingsWindow {
     return this.window?.webContents;
   }
 
-  open(): void {
+  /** Opens the window, at `target` if given: a section, and something to edit there. */
+  open(target?: SettingsTarget): void {
+    if (target) {
+      // The page asks for it when it loads, or when told to now if it's already open.
+      this.target = target;
+      this.window?.webContents.send(SettingsChannel.navigate);
+    }
     const window = this.window ?? this.create();
     if (window.isMinimized()) window.restore();
     window.show();
     window.focus();
     if (isMac) app.focus({ steal: true });
+  }
+
+  /** Where the window was last asked to go, once. */
+  takeTarget(): SettingsTarget | null {
+    const target = this.target ?? null;
+    this.target = undefined;
+    return target;
   }
 
   private create(): BrowserWindow {

@@ -18,6 +18,7 @@ Website: [waypoint.alexsilver.dev](https://waypoint.alexsilver.dev/)
 - **Keeps notes, as many as you want** — a floating Notes window that works like Raycast Notes: one note at a time in a small window that grows as you write, **Browse Notes** (<kbd>⌘</kbd> <kbd>P</kbd>), an action panel (<kbd>⌘</kbd> <kbd>K</kbd>), pinned notes, back and forward, find and replace, and Recently Deleted. Every note is a plain Markdown file, so you can sync, back up or edit them with anything. There's no limit on how many you keep.
 - **Calculates as you type** — `1200 * 1.077 + 2^5` shows `1,324.4`; <kbd>↵</kbd> copies it.
 - **Remembers your clipboard** — searchable history of copied text, skipping anything password managers mark as private.
+- **Quicklinks and snippets** — save a link (a website, a file or folder, a place in an app) or some text you paste often, and open or paste it with a few keys: `gh waypoint` searches GitHub for “waypoint”, `!sig` pastes your signature. See [Quicklinks and snippets](#quicklinks-and-snippets).
 - **Searches the web** — anything that doesn't match falls back to Google, DuckDuckGo or any extension that offers itself.
 - **Learns what you use** — frequently used items rise to the top.
 - **Snaps windows** — halves, thirds, quarters, maximize, centre and the next display for the window you were using, and **Restore** to put it back. See [Windows](#windows).
@@ -110,6 +111,45 @@ Markdown you type turns into formatting as you go: `# ` starts a heading, `- ` a
 
 Notes are saved as you type, one `.md` file per note, and what you see is what's in the file: the formatting is Markdown, so it reads the same in any editor. A note is only rewritten when you change it, and then in a tidy form (for example `*` bullets become `-`). Notes with Markdown the editor can't show yet, like tables, images or front matter, open as plain Markdown instead, so nothing in them is lost. Set `notesDirectory` to a synced folder (Dropbox, iCloud Drive, a git repo) to have them everywhere; Markdown files already in that folder show up as notes too. Recently Deleted is the hidden `.deleted` folder inside it.
 
+## Quicklinks and snippets
+
+**Quicklinks** open a website, a file or folder, or a place in an app with a few keys. **Snippets** are text you paste often, like an address or a reply. Make them in **Settings → Quicklinks** and **Settings → Snippets**, where **Create Quicklink** and **Create Snippet** take you. Both show up in the launcher's search as you type: a quicklink by its name, a snippet by its name or its keyword, like `!sig`. Snippets only show once you've typed something, so they don't crowd the list of commands.
+
+A quicklink's link is a web address (`https://github.com`, or just `github.com`), a path (`~/Downloads`, `C:\Projects`), or an app's own link (`spotify:`, `obsidian://open?vault=Notes`). Pick an app under **Open with** to open it there rather than in the usual one: Waypoint uses `open -a` on macOS, `Start-Process` on Windows, and `gio launch` (or the app's own command) on Linux.
+
+Put `{argument}` in a link to fill it in as you go. Type the quicklink's name, or its first letters or initials, then the text: with a quicklink called GitHub Search that links to `https://github.com/search?q={argument}`, `gh waypoint` ↵ opens the search for “waypoint”. Picking one with nothing typed after its name types the name for you, so you only add the rest. Quicklinks with `{argument}` are also offered under **Use “…” with** for anything you type.
+
+**Search Quicklinks** and **Search Snippets** list them all, with a preview filled in:
+
+| Keys | Search Quicklinks | Search Snippets |
+| --- | --- | --- |
+| <kbd>↵</kbd> | Open it | Paste it into the app you were in |
+| <kbd>⌘</kbd> <kbd>↵</kbd> | Copy the link | Copy it |
+| <kbd>⌘</kbd> <kbd>E</kbd> | Edit it in Settings | Edit it in Settings |
+| <kbd>⌘</kbd> <kbd>⌫</kbd> | Delete it | Delete it |
+
+A snippet picked in the launcher's search pastes too. Pasting works as it does for emoji, so with **Paste into the app you were in** turned off, <kbd>↵</kbd> copies instead.
+
+| Placeholder | |
+| --- | --- |
+| `{argument}` | Quicklinks only: what you type after the name. `{argument default="news"}` is used when nothing is typed, and `{argument name="term"}` gives it a name. |
+| `{clipboard}` | The text you copied last. |
+| `{date}`, `{time}`, `{datetime}` | Now, written the way your system writes dates and times. `format="yyyy-MM-dd HH:mm"` writes it your way: `yyyy` `yy` years, `MMMM` `MMM` `MM` `M` months, `dd` `d` days, `EEEE` `EEE` weekdays, `HH` `H` `hh` `h` hours, `mm` minutes, `ss` seconds, `a` AM or PM, and words in single quotes as they are. `offset="+1d"` moves it, in `y` years, `M` months, `w` weeks, `d` days, `h` hours or `m` minutes, like `-2w` or `+1M -3h`. |
+| `{uuid}` | A new random ID each time. |
+
+In a link that's a web address or an app's link, what goes in is percent-encoded, so `cats & dogs` arrives as `cats%20%26%20dogs`; in a path it goes in as it is. Anything else in braces stays as it is, so JSON in a snippet comes out intact.
+
+Quicklinks and snippets are kept in `quicklinks.json` and `snippets.json` in Waypoint's data folder, and changes you save there show up right away. One Waypoint can't use, like a quicklink without a link, is left out with a warning in the log, and the rest still load:
+
+```json
+[
+  { "name": "GitHub Search", "link": "https://github.com/search?q={argument}", "icon": "🐙" },
+  { "name": "Plans", "link": "~/Documents/plans.md", "openWith": "Visual Studio Code" }
+]
+```
+
+Snippets don't expand as you type in other apps, which would need a system-wide keyboard hook; type a snippet's keyword in the launcher instead.
+
 ## Windows
 
 Type a layout and press <kbd>↵</kbd>: the launcher steps aside and the window you were using moves. Give the ones you use a [shortcut of their own](#command-shortcuts) to move the window you're in without opening the launcher at all.
@@ -198,7 +238,7 @@ Raycast's `@raycast.` headers are read the same way, so the scripts in [raycast/
 
 ## Settings
 
-Open **Settings** with <kbd>⌘</kbd> <kbd>,</kbd> in the launcher, the **Open Settings** command, or **Settings…** in the tray menu. There you can record a new shortcut, pick light or dark, choose how much clipboard history to keep, move your notes folder, manage extensions and give any command a [shortcut of its own](#command-shortcuts).
+Open **Settings** with <kbd>⌘</kbd> <kbd>,</kbd> in the launcher, the **Open Settings** command, or **Settings…** in the tray menu. There you can record a new shortcut, pick light or dark, choose how much clipboard history to keep, move your notes folder, make quicklinks and snippets, manage extensions and give any command a [shortcut of its own](#command-shortcuts).
 
 **Open at login** starts Waypoint quietly in the tray when you log in. On macOS and Windows it's added to the system's login items. On Linux, Waypoint writes `~/.config/autostart/dev.waypoint.app.desktop` (under `$XDG_CONFIG_HOME` if you set it), which GNOME, KDE, Xfce, Cinnamon and most other desktops follow, and turning it off removes the file. An AppImage is started from where the AppImage file is: if you move it, open it once from its new place and the entry follows. It works in the installed app, not when running from source.
 

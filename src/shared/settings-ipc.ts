@@ -1,6 +1,8 @@
 /** Contract between the main process and the Settings window. */
 import type { CommandShortcutInfo } from './command-hotkeys';
+import type { Quicklink, QuicklinkDraft } from './quicklinks';
 import type { Settings } from './settings';
+import type { Snippet, SnippetDraft } from './snippets';
 import type { ExtensionSource, Platform } from './types';
 
 export interface ExtensionSummary {
@@ -22,6 +24,8 @@ export interface SettingsState {
   extensions: ExtensionSummary[];
   /** Every command, with its own shortcut if it has one. */
   commands: CommandShortcutInfo[];
+  quicklinks: readonly Quicklink[];
+  snippets: readonly Snippet[];
   info: {
     version: string;
     electron: string;
@@ -42,6 +46,30 @@ export interface SettingsState {
 
 export type SettingsLocation = 'settingsFile' | 'dataDirectory' | 'extensionsDirectory' | 'notesDirectory';
 
+/** Where to take the Settings window when it opens: a section, and something to edit there. */
+export interface SettingsTarget {
+  /** A section's id, like "quicklinks". */
+  section: string;
+  /** The id of the quicklink or snippet to edit. */
+  edit?: string;
+  /** A command to give a shortcut (Set Shortcut… in the launcher), as `"<extension>/<command>"`. */
+  command?: string;
+  /** Start a new one. */
+  create?: boolean;
+}
+
+/** What saving a quicklink or snippet gives back: the new state, or why it wasn't saved. */
+export interface SaveResult {
+  state: SettingsState;
+  error?: string;
+}
+
+/** An installed app, to open quicklinks with. */
+export interface AppChoice {
+  name: string;
+  path: string;
+}
+
 export const SettingsChannel = {
   get: 'settings:get',
   update: 'settings:update',
@@ -54,11 +82,16 @@ export const SettingsChannel = {
   clearClipboard: 'settings:clear-clipboard',
   openOnboarding: 'settings:open-onboarding',
   setCommandHotkey: 'settings:set-command-hotkey',
-  takeReveal: 'settings:take-reveal',
-  /** main → window: there's a command to show (Set Shortcut… in the launcher); take it. */
-  reveal: 'settings:reveal',
+  saveQuicklink: 'settings:save-quicklink',
+  deleteQuicklink: 'settings:delete-quicklink',
+  saveSnippet: 'settings:save-snippet',
+  deleteSnippet: 'settings:delete-snippet',
+  listApps: 'settings:list-apps',
+  takeTarget: 'settings:take-target',
   /** main → window: something changed; fetch the state again. */
   changed: 'settings:changed',
+  /** main → window: the window was asked to go somewhere; `takeTarget()` says where. */
+  navigate: 'settings:navigate',
 } as const;
 
 /** Links the Settings window may open. */
@@ -88,8 +121,16 @@ export interface SettingsApi {
   openOnboarding(): void;
   /** Gives a command its own shortcut, or none with `null`; on failure the old one stays and `error` says why. */
   setCommandHotkey(key: string, accelerator: string | null): Promise<{ state: SettingsState; error?: string }>;
-  /** The command Settings was opened to give a shortcut, once; `null` when there's none. */
-  takeReveal(): Promise<string | null>;
-  onReveal(listener: () => void): () => void;
+  /** Adds a quicklink, or changes the one with the draft's `id`. */
+  saveQuicklink(draft: QuicklinkDraft): Promise<SaveResult>;
+  deleteQuicklink(id: string): Promise<SettingsState>;
+  /** Adds a snippet, or changes the one with the draft's `id`. */
+  saveSnippet(draft: SnippetDraft): Promise<SaveResult>;
+  deleteSnippet(id: string): Promise<SettingsState>;
+  /** The installed apps, A to Z. */
+  listApps(): Promise<AppChoice[]>;
+  /** Where the window was last asked to go, once; `null` when nowhere in particular. */
+  takeTarget(): Promise<SettingsTarget | null>;
   onChanged(listener: () => void): () => void;
+  onNavigate(listener: () => void): () => void;
 }

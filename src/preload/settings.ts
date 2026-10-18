@@ -15,16 +15,21 @@ const api: SettingsApi = {
   clearClipboard: () => ipcRenderer.invoke(SettingsChannel.clearClipboard),
   openOnboarding: () => ipcRenderer.send(SettingsChannel.openOnboarding),
   setCommandHotkey: (key, accelerator) => ipcRenderer.invoke(SettingsChannel.setCommandHotkey, key, accelerator),
-  takeReveal: () => ipcRenderer.invoke(SettingsChannel.takeReveal),
-  onReveal: (listener) => {
-    const handler = () => listener();
-    ipcRenderer.on(SettingsChannel.reveal, handler);
-    return () => ipcRenderer.removeListener(SettingsChannel.reveal, handler);
-  },
+  saveQuicklink: (draft) => ipcRenderer.invoke(SettingsChannel.saveQuicklink, draft),
+  deleteQuicklink: (id) => ipcRenderer.invoke(SettingsChannel.deleteQuicklink, id),
+  saveSnippet: (draft) => ipcRenderer.invoke(SettingsChannel.saveSnippet, draft),
+  deleteSnippet: (id) => ipcRenderer.invoke(SettingsChannel.deleteSnippet, id),
+  listApps: () => ipcRenderer.invoke(SettingsChannel.listApps),
+  takeTarget: () => ipcRenderer.invoke(SettingsChannel.takeTarget),
   onChanged: (listener) => {
     const handler = () => listener();
     ipcRenderer.on(SettingsChannel.changed, handler);
     return () => ipcRenderer.removeListener(SettingsChannel.changed, handler);
+  },
+  onNavigate: (listener) => {
+    const handler = () => listener();
+    ipcRenderer.on(SettingsChannel.navigate, handler);
+    return () => ipcRenderer.removeListener(SettingsChannel.navigate, handler);
   },
 };
 

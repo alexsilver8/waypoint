@@ -40,6 +40,8 @@ interface RegisteredExtension {
   dir?: string;
   /** Only for built-ins; the others run in the extension host. */
   commands?: Record<string, CommandImplementation>;
+  /** Built-in commands left out of the root search; see `BuiltinExtension.unlisted`. */
+  unlisted?: ReadonlySet<string>;
 }
 
 export interface RegistryOptions {
@@ -103,6 +105,7 @@ export class CommandRegistry extends EventEmitter<{ change: [] }> {
         manifest: builtin.manifest,
         source: 'builtin',
         commands: builtin.commands,
+        ...(builtin.unlisted ? { unlisted: new Set(builtin.unlisted) } : {}),
       });
     }
     options.apps.on('change', () => this.emit('change'));
@@ -184,12 +187,13 @@ export class CommandRegistry extends EventEmitter<{ change: [] }> {
     return { loaded: report.loaded.length, failed: failures.length };
   }
 
-  /** Every command there is on this platform, built-in or from an extension. */
+  /** Every command you can run yourself on this platform (not the unlisted ones), built-in or from an extension. */
   listCommands(): CommandInfo[] {
     const commands: CommandInfo[] = [];
-    for (const { manifest, source } of this.extensions.values()) {
+    for (const { manifest, source, unlisted } of this.extensions.values()) {
       for (const command of manifest.commands) {
         if (command.platforms && !command.platforms.includes(this.options.platform)) continue;
+        if (unlisted?.has(command.name)) continue;
         const icon = command.icon ?? manifest.icon;
         commands.push({
           ref: { extension: manifest.name, command: command.name },
@@ -207,8 +211,15 @@ export class CommandRegistry extends EventEmitter<{ change: [] }> {
     return this.listCommands().find((c) => c.ref.extension === ref.extension && c.ref.command === ref.command);
   }
 
+  /** Every extension, with the commands you can run yourself (not the unlisted ones). */
   listExtensions(): ExtensionInfo[] {
-    const loaded = [...this.extensions.values()].map(({ manifest, source, dir }) => ({ manifest, source, dir }));
+    const loaded = [...this.extensions.values()].map(({ manifest, source, dir, unlisted }) => ({
+      manifest: unlisted
+        ? { ...manifest, commands: manifest.commands.filter((command) => !unlisted.has(command.name)) }
+        : manifest,
+      source,
+      dir,
+    }));
     return [...loaded, ...this.failures];
   }
 
@@ -234,6 +245,7 @@ export class CommandRegistry extends EventEmitter<{ change: [] }> {
     for (const extension of this.extensions.values()) {
       for (const command of extension.manifest.commands) {
         if (command.platforms && !command.platforms.includes(platform)) continue;
+        if (extension.unlisted?.has(command.name)) continue;
         const ref = { extension: extension.manifest.name, command: command.name };
         const id = commandItemId(ref);
         const hotkey = this.options.commandHotkey?.(commandKey(ref));

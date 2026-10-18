@@ -6,40 +6,20 @@ import { ItemIcon } from '../components/ItemIcon';
 
 const api = window.settings;
 
-/** A command Settings was opened to give a shortcut; `request` changes each time it's asked. */
+/**
+ * A command Settings was opened to give a shortcut (Set Shortcut… in the launcher). `request` is a
+ * new object each time it's asked, so asking again for the same command records again.
+ */
 export interface RevealedCommand {
   key: string;
-  request: number;
-}
-
-/**
- * The command Set Shortcut… in the launcher opened Settings for, if any. Calls `show` to switch
- * to the section that lists it.
- */
-export function useRevealedCommand(show: () => void): RevealedCommand | undefined {
-  const [revealed, setRevealed] = useState<RevealedCommand>();
-  const showRef = useRef(show);
-  showRef.current = show;
-  useEffect(() => {
-    let request = 0;
-    const take = () =>
-      void api.takeReveal().then((key) => {
-        if (!key) return;
-        showRef.current();
-        request += 1;
-        setRevealed({ key, request });
-      });
-    take();
-    return api.onReveal(take);
-  }, []);
-  return revealed;
+  request: object;
 }
 
 interface CommandRowProps {
   command: CommandShortcutInfo;
   platform: SettingsState['info']['platform'];
   setState(state: SettingsState): void;
-  recordRequest?: number;
+  recordRequest?: object;
 }
 
 function CommandRow({ command, platform, setState, recordRequest }: CommandRowProps) {
@@ -105,9 +85,10 @@ export function CommandShortcuts({ state, setState, revealed }: CommandShortcuts
   const { platform } = state.info;
 
   // Opened for one command: make sure the search doesn't hide it.
+  const request = revealed?.request;
   useEffect(() => {
-    if (revealed) setQuery('');
-  }, [revealed]);
+    if (request) setQuery('');
+  }, [request]);
 
   const groups = useMemo(() => {
     const byExtension = new Map<string, { title: string; commands: CommandShortcutInfo[] }>();

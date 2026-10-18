@@ -14,6 +14,7 @@ import { changeHotkey, type HotkeyManager } from './hotkey';
 import { canLaunchAtLogin } from './login-item';
 import type { CommandRegistry } from './registry';
 import type { SettingsStore } from './settings';
+import { registerEntriesIpc, type SettingsEntries } from './settings-entries-ipc';
 import type { SettingsWindow } from './settings-window';
 
 export interface SettingsIpcOptions {
@@ -27,6 +28,8 @@ export interface SettingsIpcOptions {
   paths: { settingsFile: string; dataDirectory: string; extensionsDirectory: string; notesDirectory: () => string };
   /** Opens first-launch setup again. */
   openOnboarding(): void;
+  /** Quicklinks and snippets, and the apps quicklinks can open with. */
+  entries: SettingsEntries;
 }
 
 const PATCHABLE: Array<keyof Settings> = [
@@ -39,14 +42,19 @@ const PATCHABLE: Array<keyof Settings> = [
 ];
 
 /** Wires the Settings window's `window.settings` API. */
-export function registerSettingsIpc(options: SettingsIpcOptions): {
-  notifyChanged(): void;
-  /** Has Settings show this command's shortcut once it opens. */
-  revealCommand(key: string): void;
-} {
-  const { store, window, hotkeys, commandHotkeys, registry, clipboardHistory, platform, paths, openOnboarding } =
-    options;
-  let reveal: string | null = null;
+export function registerSettingsIpc(options: SettingsIpcOptions): { notifyChanged(): void } {
+  const {
+    store,
+    window,
+    hotkeys,
+    commandHotkeys,
+    registry,
+    clipboardHistory,
+    platform,
+    paths,
+    openOnboarding,
+    entries,
+  } = options;
 
   const check = (event: Electron.IpcMainInvokeEvent | Electron.IpcMainEvent) => {
     if (!window.webContents || event.sender !== window.webContents) throw new Error('Unexpected sender');
@@ -66,6 +74,8 @@ export function registerSettingsIpc(options: SettingsIpcOptions): {
         ...(info.error ? { error: info.error } : {}),
       })),
       commands: commandShortcutList(registry.listCommands(), store.get().commandHotkeys, commandHotkeys),
+      quicklinks: entries.quicklinks.list(),
+      snippets: entries.snippets.list(),
       info: {
         version: app.getVersion(),
         electron: process.versions.electron,
@@ -161,18 +171,14 @@ export function registerSettingsIpc(options: SettingsIpcOptions): {
     return error ? { state: state(), error } : { state: state() };
   });
 
-  ipcMain.handle(SettingsChannel.takeReveal, (event) => {
+  ipcMain.handle(SettingsChannel.takeTarget, (event) => {
     check(event);
-    const key = reveal;
-    reveal = null;
-    return key;
+    return window.takeTarget();
   });
+
+  registerEntriesIpc(check, entries, state);
 
   return {
     notifyChanged: () => window.webContents?.send(SettingsChannel.changed),
-    revealCommand: (key) => {
-      reveal = key;
-      window.webContents?.send(SettingsChannel.reveal);
-    },
   };
 }
