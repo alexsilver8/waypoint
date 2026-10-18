@@ -1,4 +1,4 @@
-import { EditorState } from '@tiptap/pm/state';
+import { EditorState, Selection } from '@tiptap/pm/state';
 import { type Editor, EditorContent, useEditor, useEditorState } from '@tiptap/react';
 import {
   Bold,
@@ -37,6 +37,8 @@ import {
 import { isOpenableLink, normalizeLink } from '../../../shared/notes';
 import { Keycaps } from '../components/Keycaps';
 import { applyNoteStyle, noteExtensions, showsFaithfully } from './markdown';
+import { SlashMenu } from './SlashMenu';
+import { type SlashKeys, slashState } from './slash';
 
 const api = window.notes;
 const { platform } = api;
@@ -622,7 +624,8 @@ export function NoteEditor({
   const shownText = useRef<string | null>(null);
   const shownNote = useRef<string | null>(null);
 
-  const extensions = useMemo(() => noteExtensions({ onLinkShortcut: () => setLinkOpen(true) }), []);
+  const slashKeys = useRef<SlashKeys | null>(null);
+  const extensions = useMemo(() => noteExtensions({ onLinkShortcut: () => setLinkOpen(true), slashKeys }), []);
   const editor = useEditor({
     extensions,
     editable: false,
@@ -652,6 +655,8 @@ export function NoteEditor({
       onChangeRef.current(markdown);
     },
   });
+
+  const slash = useEditorState({ editor, selector: ({ editor: e }) => (e ? slashState(e) : null) });
 
   useEffect(() => {
     onEditor(editor);
@@ -692,8 +697,12 @@ export function NoteEditor({
       const area = sourceArea.current;
       area?.focus();
       area?.setSelectionRange(area.value.length, area.value.length);
-    } else {
-      editor?.commands.focus('end');
+    } else if (editor && !editor.isDestroyed) {
+      // Right away, not on the next frame as Tiptap's focus command does, so a popover opened
+      // straight after (⌘N then ⌘K) keeps the keyboard.
+      const { tr, doc } = editor.state;
+      editor.view.dispatch(tr.setSelection(Selection.atEnd(doc)).scrollIntoView());
+      editor.view.focus();
     }
   }, [editor, focusRequest, noteId]);
 
@@ -756,6 +765,7 @@ export function NoteEditor({
         )}
         <EditorContent editor={editor} className="notes__scroller" hidden={source} ref={scroller} />
       </main>
+      {editor && slash && !linkOpen && <SlashMenu editor={editor} match={slash} keys={slashKeys} />}
       {editor && linkOpen && (
         <LinkField
           editor={editor}

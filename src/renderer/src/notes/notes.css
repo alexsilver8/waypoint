@@ -1004,6 +1004,15 @@ button {
   background: var(--n-selection);
 }
 
+/* The / menu: its rows are chosen with the arrow keys, like the popovers'. */
+.slash__item {
+  cursor: default;
+}
+
+.slash__item[aria-selected="true"] {
+  background: var(--n-selection);
+}
+
 .toolbar__item-icon {
   display: grid;
   place-items: center;

@@ -6,6 +6,7 @@ import { Placeholder } from '@tiptap/extensions';
 import { Markdown, type MarkdownManager } from '@tiptap/markdown';
 import { StarterKit } from '@tiptap/starter-kit';
 import { Find } from './find';
+import { SlashCommands, type SlashKeys } from './slash';
 
 /**
  * How notes turn into Markdown and back. Notes are files people also open elsewhere, so
@@ -144,7 +145,14 @@ const TaskToggle = Extension.create({
 });
 
 /** Everything the Notes editor understands. */
-export function noteExtensions({ onLinkShortcut }: { onLinkShortcut(): void }): Extensions {
+export function noteExtensions({
+  onLinkShortcut,
+  slashKeys = { current: null },
+}: {
+  onLinkShortcut(): void;
+  /** Where the / menu, while it's open, takes the keys it uses. */
+  slashKeys?: { current: SlashKeys | null };
+}): Extensions {
   return [
     StarterKit.configure({
       // All six levels, so headings from other apps survive; the toolbar offers three.
@@ -164,6 +172,7 @@ export function noteExtensions({ onLinkShortcut }: { onLinkShortcut(): void }): 
     LinkShortcut.configure({ open: onLinkShortcut }),
     TaskToggle,
     Find,
+    SlashCommands.configure({ onKey: (key) => slashKeys.current?.onKey(key) ?? false }),
   ];
 }
 

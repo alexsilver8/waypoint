@@ -78,19 +78,16 @@ export function ListPopover<T extends PopoverEntry>({
   const list = useRef<HTMLDivElement>(null);
   const items = useMemo(() => sections.flatMap((section) => section.items), [sections]);
   const firstEnabled = items.find((item) => !item.disabled)?.key;
-  const [selectedKey, setSelectedKey] = useState<string | undefined>(() =>
-    initialKey && items.some((item) => item.key === initialKey && !item.disabled) ? initialKey : firstEnabled,
-  );
-  // Typing starts over at the top, as in Raycast; a list that changes otherwise keeps its place.
-  const lastQuery = useRef(query);
-  useEffect(() => {
-    if (lastQuery.current !== query) {
-      lastQuery.current = query;
-      setSelectedKey(firstEnabled);
-    } else if (!items.some((item) => item.key === selectedKey && !item.disabled)) {
-      setSelectedKey(firstEnabled);
-    }
-  }, [query, items, selectedKey, firstEnabled]);
+  const selectable = (key: string | undefined) => items.some((item) => item.key === key && !item.disabled);
+  // The selection belongs to the query it was made for. Typing starts over at the top, as in
+  // Raycast, and an item that's gone hands over to the first one, worked out as the list is
+  // drawn so a ↵ pressed straight after typing picks what's shown.
+  const [selection, setSelection] = useState(() => ({
+    key: initialKey && selectable(initialKey) ? initialKey : firstEnabled,
+    query,
+  }));
+  const selectedKey = selection.query === query && selectable(selection.key) ? selection.key : firstEnabled;
+  const setSelectedKey = (key: string) => setSelection({ key, query });
 
   const selected = items.find((item) => item.key === selectedKey);
   const optionId = (key: string) => `${id}-${key.replace(/[^\w-]/g, '_')}`;

@@ -219,6 +219,31 @@ test('grows the window as the note gets longer, and shrinks it back', async () =
   expect((await notesWindow())?.height).toBe(308);
 });
 
+test('formats a line from the / menu', async () => {
+  await editor().press(`${mod}+End`);
+  await notes.keyboard.press('Enter');
+  await notes.keyboard.type('/');
+  const menu = notes.getByRole('listbox', { name: 'Format as' });
+  await expect(menu.getByRole('option')).toHaveCount(10);
+  await notes.keyboard.type('chec');
+  await expect(menu.getByRole('option')).toHaveText(['Checklist']);
+  await notes.keyboard.press('Enter');
+  await expect(menu).toHaveCount(0);
+  await notes.keyboard.type('pack the adapter');
+  await expect(notes.getByRole('checkbox')).not.toBeChecked();
+
+  // Esc leaves the / as typed, and the window open.
+  await notes.keyboard.press('Enter');
+  await notes.keyboard.type('/');
+  await expect(menu).toBeVisible();
+  await notes.keyboard.press('Escape');
+  await expect(menu).toHaveCount(0);
+  expect((await notesWindow())?.visible).toBe(true);
+  await expect
+    .poll(() => note('trip.md'))
+    .toBe('# Trip to Lisbon\n\nBook the train\n\n- [ ] pack the adapter\n- [ ] /');
+});
+
 test('ticks a checklist item with ⌘↵', async () => {
   await editor().press(`${mod}+End`);
   await notes.keyboard.press('Enter');
