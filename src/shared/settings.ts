@@ -1,3 +1,4 @@
+import { normalizeCommandAliases } from './command-aliases';
 import { normalizeCommandHotkeys } from './command-hotkeys';
 
 /** User settings, stored as JSON in the app's data folder and editable by hand. */
@@ -26,6 +27,8 @@ export interface Settings {
   snippetExpansion: boolean;
   /** A global shortcut for any command, as an Electron accelerator, by `"<extension>/<command>"`. */
   commandHotkeys: Record<string, string>;
+  /** A word to type in the launcher for any command, lowercase, by `"<extension>/<command>"`. */
+  commandAliases: Record<string, string>;
   /** Look for new versions every few hours (the installed app). */
   checkForUpdates: boolean;
 }
@@ -41,6 +44,7 @@ export const DEFAULT_SETTINGS: Settings = {
   pasteIntoApps: true,
   snippetExpansion: false,
   commandHotkeys: {},
+  commandAliases: {},
   checkForUpdates: true,
 };
 
@@ -129,6 +133,7 @@ export function normalizeSettings(raw: unknown): NormalizedSettings {
     },
   );
   settings.commandHotkeys = normalizeCommandHotkeys(raw.commandHotkeys, problems);
+  settings.commandAliases = normalizeCommandAliases(raw.commandAliases, problems);
 
   return { settings, problems };
 }

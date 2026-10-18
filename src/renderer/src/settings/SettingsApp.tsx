@@ -323,7 +323,11 @@ function Extensions({ state, update, setState, target }: SectionProps) {
       <CommandShortcuts
         state={state}
         setState={setState}
-        revealed={target?.command ? { key: target.command, request: target } : undefined}
+        revealed={
+          target?.command
+            ? { key: target.command, request: target, ...(target.alias ? { alias: true } : {}) }
+            : undefined
+        }
       />
     </>
   );

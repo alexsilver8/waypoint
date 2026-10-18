@@ -25,7 +25,7 @@ export interface SettingsState {
   /** The shortcut that actually works right now (may differ from `settings.hotkey` if that one failed). */
   activeHotkey?: string;
   extensions: ExtensionSummary[];
-  /** Every command, with its own shortcut if it has one. */
+  /** Every command, with its own shortcut and alias if it has them. */
   commands: CommandShortcutInfo[];
   quicklinks: readonly Quicklink[];
   snippets: readonly Snippet[];
@@ -60,6 +60,8 @@ export interface SettingsTarget {
   edit?: string;
   /** A command to give a shortcut (Set Shortcut… in the launcher), as `"<extension>/<command>"`. */
   command?: string;
+  /** Give that command an alias instead (Set Alias… in the launcher). */
+  alias?: boolean;
   /** Start a new one. */
   create?: boolean;
 }
@@ -90,6 +92,7 @@ export const SettingsChannel = {
   clearClipboard: 'settings:clear-clipboard',
   openOnboarding: 'settings:open-onboarding',
   setCommandHotkey: 'settings:set-command-hotkey',
+  setCommandAlias: 'settings:set-command-alias',
   saveQuicklink: 'settings:save-quicklink',
   deleteQuicklink: 'settings:delete-quicklink',
   saveSnippet: 'settings:save-snippet',
@@ -137,6 +140,8 @@ export interface SettingsApi {
   openOnboarding(): void;
   /** Gives a command its own shortcut, or none with `null`; on failure the old one stays and `error` says why. */
   setCommandHotkey(key: string, accelerator: string | null): Promise<{ state: SettingsState; error?: string }>;
+  /** Gives a command an alias, or none with `null`; on failure the old one stays and `error` says why. */
+  setCommandAlias(key: string, alias: string | null): Promise<{ state: SettingsState; error?: string }>;
   /** Adds a quicklink, or changes the one with the draft's `id`. */
   saveQuicklink(draft: QuicklinkDraft): Promise<SaveResult>;
   /** Removes a quicklink; `error` says why when it couldn't be. */

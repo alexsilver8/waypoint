@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { X } from 'lucide-react';
+import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
 import type { CommandShortcutInfo } from '../../../shared/command-hotkeys';
 import type { SettingsState } from '../../../shared/settings-ipc';
 import { HotkeyRecorder, type ShortcutRecorder } from '../components/HotkeyRecorder';
@@ -7,12 +8,101 @@ import { ItemIcon } from '../components/ItemIcon';
 const api = window.settings;
 
 /**
- * A command Settings was opened to give a shortcut (Set Shortcut… in the launcher). `request` is a
- * new object each time it's asked, so asking again for the same command records again.
+ * A command Settings was opened to give a shortcut (Set Shortcut… in the launcher), or an alias
+ * with `alias` (Set Alias…). `request` is a new object each time it's asked, so asking again for
+ * the same command records or focuses again.
  */
 export interface RevealedCommand {
   key: string;
   request: object;
+  alias?: boolean;
+}
+
+interface AliasFieldProps {
+  command: CommandShortcutInfo;
+  setState(state: SettingsState): void;
+  /** Focuses the field whenever this becomes a new object. */
+  focusRequest?: object;
+}
+
+/** A command's alias, saved on ↵ or when the field loses focus; Esc puts back the saved one. */
+function AliasField({ command, setState, focusRequest }: AliasFieldProps) {
+  const { key, title } = command;
+  const saved = command.alias ?? '';
+  const [draft, setDraft] = useState(saved);
+  const [error, setError] = useState<string>();
+  const field = useRef<HTMLInputElement>(null);
+
+  // Changed elsewhere (settings.json, the launcher): show it, unless it's being typed over.
+  useEffect(() => {
+    if (document.activeElement !== field.current) setDraft(saved);
+  }, [saved]);
+
+  useEffect(() => {
+    if (focusRequest !== undefined) field.current?.focus();
+  }, [focusRequest]);
+
+  const save = async (value: string | null) => {
+    if ((value ?? '').trim().toLowerCase() === saved) {
+      setDraft(saved);
+      setError(undefined);
+      return;
+    }
+    const result = await api.setCommandAlias(key, value);
+    setState(result.state);
+    setError(result.error);
+    if (!result.error) setDraft(value === null ? '' : value.trim().toLowerCase());
+  };
+
+  const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      void save(draft);
+    } else if (event.key === 'Escape' && draft !== saved) {
+      event.preventDefault();
+      event.stopPropagation();
+      setDraft(saved);
+      setError(undefined);
+    }
+  };
+
+  return (
+    <div className="alias">
+      <span className="hotkey__row">
+        <input
+          ref={field}
+          className="alias__field"
+          type="text"
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={onKeyDown}
+          onBlur={() => void save(draft)}
+          placeholder="Add Alias"
+          aria-label={`Alias for ${title}`}
+          aria-invalid={error ? true : undefined}
+          spellCheck={false}
+          autoCapitalize="off"
+          autoComplete="off"
+        />
+        {saved && (
+          <button
+            type="button"
+            className="hotkey__clear"
+            onClick={() => void save(null)}
+            aria-label={`Remove the alias for ${title}`}
+            title="Remove"
+          >
+            <X size={13} strokeWidth={2.25} aria-hidden="true" />
+          </button>
+        )}
+      </span>
+      {error && (
+        <span className="hotkey__message" role="alert">
+          {error}
+        </span>
+      )}
+    </div>
+  );
 }
 
 interface CommandRowProps {
@@ -20,9 +110,10 @@ interface CommandRowProps {
   platform: SettingsState['info']['platform'];
   setState(state: SettingsState): void;
   recordRequest?: object;
+  aliasRequest?: object;
 }
 
-function CommandRow({ command, platform, setState, recordRequest }: CommandRowProps) {
+function CommandRow({ command, platform, setState, recordRequest, aliasRequest }: CommandRowProps) {
   const { key, title } = command;
   const row = useRef<HTMLLIElement>(null);
   // Kept the same while it records, or a refresh of the page would resume the shortcuts too soon.
@@ -38,17 +129,19 @@ function CommandRow({ command, platform, setState, recordRequest }: CommandRowPr
     [key, setState],
   );
 
+  const revealed = recordRequest ?? aliasRequest;
   useEffect(() => {
-    if (recordRequest !== undefined) row.current?.scrollIntoView({ block: 'center' });
-  }, [recordRequest]);
+    if (revealed !== undefined) row.current?.scrollIntoView({ block: 'center' });
+  }, [revealed]);
 
   return (
-    <li ref={row} className="command-shortcut" data-revealed={recordRequest !== undefined || undefined}>
+    <li ref={row} className="command-shortcut" data-revealed={revealed !== undefined || undefined}>
       <ItemIcon icon={command.icon ?? { builtin: 'extension', tint: 'purple' }} />
       <span className="command-shortcut__text">
         <span className="command-shortcut__title">{title}</span>
         <span className="command-shortcut__key">{key}</span>
       </span>
+      <AliasField command={command} setState={setState} focusRequest={aliasRequest} />
       <HotkeyRecorder
         value={command.hotkey ?? ''}
         active={command.error ? undefined : command.hotkey}
@@ -63,9 +156,9 @@ function CommandRow({ command, platform, setState, recordRequest }: CommandRowPr
   );
 }
 
-/** Whether every word typed is somewhere in the command's title, extension or name. */
+/** Whether every word typed is somewhere in the command's title, extension, name or alias. */
 function matches(command: CommandShortcutInfo, query: string): boolean {
-  const haystack = `${command.title} ${command.extension.title} ${command.key}`.toLowerCase();
+  const haystack = `${command.title} ${command.extension.title} ${command.key} ${command.alias ?? ''}`.toLowerCase();
   return query
     .toLowerCase()
     .split(/\s+/)
@@ -79,7 +172,7 @@ interface CommandShortcutsProps {
   revealed?: RevealedCommand;
 }
 
-/** Settings → Extensions: every command, by extension, each with its own global shortcut. */
+/** Settings → Extensions: every command, by extension, each with its own alias and global shortcut. */
 export function CommandShortcuts({ state, setState, revealed }: CommandShortcutsProps) {
   const [query, setQuery] = useState('');
   const { platform } = state.info;
@@ -106,7 +199,7 @@ export function CommandShortcuts({ state, setState, revealed }: CommandShortcuts
       <h2 className="group__title">Command shortcuts</h2>
       <p className="section__intro">
         Give any command its own shortcut to run it from anywhere. Commands that open a list open the launcher at it;
-        the rest just run.
+        the rest just run. An alias is a word to type in the launcher that puts its command first.
         {platform === 'linux' && (
           <>
             {' '}
@@ -139,7 +232,8 @@ export function CommandShortcuts({ state, setState, revealed }: CommandShortcuts
                       command={command}
                       platform={platform}
                       setState={setState}
-                      recordRequest={revealed?.key === command.key ? revealed.request : undefined}
+                      recordRequest={revealed?.key === command.key && !revealed.alias ? revealed.request : undefined}
+                      aliasRequest={revealed?.key === command.key && revealed.alias ? revealed.request : undefined}
                     />
                   ))}
                 </ul>

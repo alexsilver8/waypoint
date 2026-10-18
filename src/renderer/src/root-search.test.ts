@@ -238,6 +238,37 @@ describe('items only shown when searching', () => {
   });
 });
 
+describe('command aliases', () => {
+  const open = { extension: 'quicklinks', command: 'open' };
+  const quicklink = command('GitHub Search', { id: 'quicklink:gh', takesText: { ref: open, prefix: 'gh\n' } });
+  const snippet = command('Email Signature', { id: 'snippet:sig', keywords: ['!sig'], searchOnly: true });
+  const aliased = [
+    ...items,
+    command('Left Half', { alias: 'gh' }),
+    quicklink,
+    snippet,
+    command('Gharial Facts', { frecency: 50 }),
+  ];
+
+  it('ranks the command first and shows its alias on the row', () => {
+    const [results] = buildRootSections(aliased, 'GH');
+    expect(results?.items[0]).toMatchObject({ id: 'command:x/Left Half', alias: 'gh' });
+  });
+
+  it('wins over a snippet’s keyword, but text after it still goes to a quicklink', () => {
+    const withSig = [...aliased, command('Sign Document', { alias: '!sig' })];
+    expect(buildRootSections(withSig, '!sig')[0]?.items.map((item) => item.id)).toEqual([
+      'command:x/Sign Document',
+      'snippet:sig',
+    ]);
+    expect(buildRootSections(aliased, 'gh waypoint')[0]?.items[0]?.id).toBe('text:quicklink:gh');
+  });
+
+  it('works in the Commands tab too', () => {
+    expect(buildRootSections(aliased, 'gh', 'command')[0]?.items[0]?.id).toBe('command:x/Left Half');
+  });
+});
+
 describe('asUrl', () => {
   it.each([
     ['https://example.com/a?b=c', 'https://example.com/a?b=c'],

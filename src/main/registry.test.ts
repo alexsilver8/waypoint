@@ -14,9 +14,10 @@ const greet: BuiltinExtension = {
   commands: { hello: { run: () => ({ toast: 'Hello' }) } },
 };
 
-function setup() {
+function setup(aliases: Record<string, string> = {}) {
   const record = vi.fn();
   const registry = new CommandRegistry({
+    commandAlias: (key) => aliases[key],
     platform: 'linux',
     builtins: [greet],
     host: {} as ExtensionHostClient,
@@ -40,6 +41,19 @@ describe('CommandRegistry', () => {
     const [run, setShortcut] = (await commandRow(registry)).actions;
     expect(run).toMatchObject({ type: 'open-command', ref: { extension: 'greet', command: 'hello' } });
     expect(setShortcut).toMatchObject({ title: 'Set Shortcut…', argument: 'greet/hello', panelOnly: true });
+  });
+
+  it('offers Set Alias… beside it, and shows the alias once there is one', async () => {
+    const [, , setAlias] = (await commandRow(setup().registry)).actions;
+    expect(setAlias).toMatchObject({
+      title: 'Set Alias…',
+      ref: { extension: 'waypoint', command: 'alias' },
+      argument: 'greet/hello',
+      panelOnly: true,
+    });
+    const row = await commandRow(setup({ 'greet/hello': 'hi' }).registry);
+    expect(row.alias).toBe('hi');
+    expect(row.actions[2]).toMatchObject({ title: 'Change Alias…' });
   });
 
   it('counts running a command as using it, but not changing its shortcut', async () => {

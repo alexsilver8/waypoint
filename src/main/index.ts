@@ -178,6 +178,7 @@ async function main(): Promise<void> {
       () => snippetRootItems(snippets, usageScore, readClipboard),
     ],
     commandHotkey: (key) => commands.hotkeys.activeFor(key),
+    commandAlias: (key) => settings.get().commandAliases[key],
     // Shipped with the app: inside its resources once installed, the repo's folder from source.
     bundledRoots: () => [join(app.isPackaged ? process.resourcesPath : app.getAppPath(), 'extensions')],
     extensionRoots: () => [
@@ -208,7 +209,8 @@ async function main(): Promise<void> {
       // The launcher is created below; window commands only reach for it when they run.
       windowManagementExtension({ platform, launcher: () => launcher }),
       paletteExtension({
-        openSettings: (command) => settingsWindow.open(command ? { section: 'extensions', command } : undefined),
+        openSettings: (command, alias) =>
+          settingsWindow.open(command ? { section: 'extensions', command, ...(alias ? { alias } : {}) } : undefined),
         // Setup's window is made below too; the command only reaches for it when it runs.
         openOnboarding: () => onboardingWindow.open(),
         extensionsDir,
@@ -396,6 +398,9 @@ async function main(): Promise<void> {
     }
     if (previous && JSON.stringify(current.extensionDirectories) !== JSON.stringify(previous.extensionDirectories)) {
       void registry.loadUserExtensions();
+    }
+    if (previous && JSON.stringify(current.commandAliases) !== JSON.stringify(previous.commandAliases)) {
+      launcher.rootItemsChanged();
     }
   };
   apply(settings.get());

@@ -14,8 +14,11 @@ import {
 import type { BuiltinExtension } from './types';
 
 interface PaletteCommandOptions {
-  /** Opens Settings; with a command's key, at that command's shortcut (Set Shortcut… in the launcher). */
-  openSettings: (command?: string) => void;
+  /**
+   * Opens Settings; with a command's key, at that command's shortcut (Set Shortcut… in the
+   * launcher), or at its alias with `alias` (Set Alias…).
+   */
+  openSettings: (command?: string, alias?: boolean) => void;
   /** Opens first-launch setup again. */
   openOnboarding: () => void;
   extensionsDir: string;
@@ -109,6 +112,7 @@ export function paletteExtension({
           icon: { builtin: 'settings', tint: 'gray' },
           keywords: ['preferences', 'hotkey', 'config'],
         },
+        { name: 'alias', title: 'Set Alias', mode: 'no-view', icon: { builtin: 'settings', tint: 'gray' } },
         {
           name: 'onboarding',
           title: 'Set Up Waypoint',
@@ -157,6 +161,12 @@ export function paletteExtension({
           return { hide: true };
         },
       },
+      alias: {
+        run(ctx) {
+          openSettings(ctx.argument || undefined, true);
+          return { hide: true };
+        },
+      },
       onboarding: {
         run() {
           openOnboarding();
@@ -180,5 +190,7 @@ export function paletteExtension({
         },
       },
     },
+    // Set Alias… on a command runs it, with the command's key.
+    unlisted: ['alias'],
   };
 }

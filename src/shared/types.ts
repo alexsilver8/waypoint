@@ -367,6 +367,8 @@ export interface RootItem extends ListItem {
   extension?: { name: string; title: string; source: ExtensionSource };
   /** For commands: the global shortcut that runs it, as an Electron accelerator. */
   hotkey?: string;
+  /** For commands: the alias that finds it first, lowercase. */
+  alias?: string;
 }
 
 /** Where an action was triggered from, so the main process can route and record it. */

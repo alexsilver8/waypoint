@@ -88,7 +88,7 @@ Each command:
 | `fallback` | `true` offers the command under **Use “…” with** for any search, and passes the search text as `ctx.argument`. |
 | `platforms` | Limit to some of `"darwin"`, `"win32"`, `"linux"`. |
 
-People can give any of your commands a [shortcut of its own](../README.md#command-shortcuts), which `settings.json` names `"<extension>/<command>"`, like `"developer-utilities/uuid"`; so does `waypoint --command`. Keep a command's `name` once people may have used it. A `no-view` command run by its shortcut runs without the launcher open: its `toast` comes as a notification (a `'failure'` one opens the launcher), and a list it returns opens the launcher.
+People can give any of your commands a [shortcut](../README.md#command-shortcuts) or an [alias](../README.md#command-aliases) of its own, which `settings.json` names `"<extension>/<command>"`, like `"developer-utilities/uuid"`; so does `waypoint --command`. Keep a command's `name` once people may have used it. A `no-view` command run by its shortcut runs without the launcher open: its `toast` comes as a notification (a `'failure'` one opens the launcher), and a list it returns opens the launcher.
 
 ## The module
 

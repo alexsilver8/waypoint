@@ -103,6 +103,11 @@ function Row({ item, quickKey, enterKey, platform }: RowProps) {
         <Keycaps keys={quickKey} />
       ) : (
         <>
+          {item.alias && (
+            <span className="row__alias" title="Its alias">
+              {item.alias}
+            </span>
+          )}
           {item.hotkey && (
             <span className="row__hotkey" title="Runs it from anywhere">
               <Keycaps keys={acceleratorKeys(item.hotkey, platform)} />

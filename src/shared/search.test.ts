@@ -65,3 +65,36 @@ describe('scoreItem', () => {
     expect(scoreItem('browser', { title: 'Google Chrome', keywords: ['browser'] })?.titlePositions).toEqual([]);
   });
 });
+
+describe('aliases', () => {
+  const commands = [
+    { title: 'Left Half', alias: 'lh' },
+    { title: 'Lighthouse', keywords: ['lh'] },
+    { title: 'LH', keywords: ['exact title'] },
+    { title: 'Toggle Keep Awake', alias: 'caf' },
+    { title: 'Café Finder' },
+  ];
+  const ranked = (query: string) => rankItems(commands, query).map((r) => r.item.title);
+
+  it('puts the command first when the alias is typed whole, in any case', () => {
+    expect(ranked('lh')[0]).toBe('Left Half');
+    expect(ranked('LH')[0]).toBe('Left Half');
+  });
+
+  it('beats any usage boost', () => {
+    const boosted = rankItems(commands, 'lh', (item) => (item.title === 'LH' ? 20 : 0));
+    expect(boosted[0]?.item.title).toBe('Left Half');
+  });
+
+  it('ranks the start of an alias above a title that merely starts the same', () => {
+    expect(ranked('ca')[0]).toBe('Toggle Keep Awake');
+  });
+
+  it('doesn’t match letters scattered through an alias', () => {
+    expect(scoreItem('cf', { title: 'Toggle Keep Awake', alias: 'caf' })).toBeNull();
+  });
+
+  it('still highlights the title when it matches too', () => {
+    expect(scoreItem('lh', { title: 'Left Half', alias: 'lh' })?.titlePositions).toEqual([0, 5]);
+  });
+});

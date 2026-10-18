@@ -260,16 +260,21 @@ export function changeCommandHotkey(
   return undefined;
 }
 
-/** Every command with its shortcut and what's wrong with it, as Settings → Extensions lists them. */
+/**
+ * Every command with its shortcut, what's wrong with it, and its alias, as Settings → Extensions
+ * lists them.
+ */
 export function commandShortcutList(
   commands: readonly CommandInfo[],
   wanted: Readonly<Record<string, string>>,
   hotkeys: Pick<CommandHotkeys, 'problemFor'>,
+  aliases: Readonly<Record<string, string>> = {},
 ): CommandShortcutInfo[] {
   return commands.map(({ ref, manifest, icon, extension }) => {
     const key = commandKey(ref);
     const hotkey = wanted[key];
     const error = hotkeys.problemFor(key);
+    const alias = aliases[key];
     return {
       key,
       title: manifest.title,
@@ -277,6 +282,7 @@ export function commandShortcutList(
       extension: { name: extension.name, title: extension.title },
       ...(hotkey ? { hotkey } : {}),
       ...(error ? { error } : {}),
+      ...(alias ? { alias } : {}),
     };
   });
 }

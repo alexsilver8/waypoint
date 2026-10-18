@@ -253,7 +253,7 @@ export function launchArguments(argv: readonly string[] | undefined, additionalD
 
 // ── Settings window ─────────────────────────────────────────
 
-/** A command as Settings → Extensions lists it, with its shortcut. */
+/** A command as Settings → Extensions lists it, with its shortcut and alias. */
 export interface CommandShortcutInfo {
   /** `"<extension>/<command>"`. */
   key: string;
@@ -264,4 +264,6 @@ export interface CommandShortcutInfo {
   hotkey?: string;
   /** Why that shortcut isn't working. */
   error?: string;
+  /** The alias set for it, if any. */
+  alias?: string;
 }

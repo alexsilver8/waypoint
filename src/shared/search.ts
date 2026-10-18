@@ -3,6 +3,8 @@ import { fuzzyMatch } from './fuzzy';
 export interface Searchable {
   title: string;
   keywords?: string[];
+  /** A command's alias (see `command-aliases.ts`), lowercase. */
+  alias?: string;
 }
 
 export interface Ranked<T> {
@@ -16,6 +18,10 @@ const EXACT_BONUS = 4;
 const PREFIX_BONUS = 2;
 const KEYWORD_WEIGHT = 0.8;
 const MULTI_WORD_WEIGHT = 0.9;
+/** Typing an alias whole puts its command first, ahead of any title or keyword, however used. */
+const ALIAS_EXACT_SCORE = 1000;
+/** Part of one counts as much as an exact title match would, plus a little. */
+const ALIAS_PREFIX_BONUS = EXACT_BONUS + 1;
 
 interface TextScore {
   score: number;
@@ -68,11 +74,30 @@ function bestKeywordScore(query: string, keywords: readonly string[]): number | 
   return best;
 }
 
+/**
+ * How well the query matches an alias: whole, or its start. Aliases are short words picked on
+ * purpose, so letters scattered through one don't count.
+ */
+function aliasScore(query: string, alias: string | undefined): number | null {
+  if (!alias) return null;
+  const lowerQuery = query.toLowerCase();
+  if (lowerQuery === alias) return ALIAS_EXACT_SCORE;
+  if (!alias.startsWith(lowerQuery)) return null;
+  return (fuzzyMatch(query, alias)?.score ?? 0) + ALIAS_PREFIX_BONUS;
+}
+
 /** Scores one item against the query, or returns `null` if it doesn't match. */
 export function scoreItem(query: string, item: Searchable): { score: number; titlePositions: number[] } | null {
   const q = query.trim();
   if (!q) return { score: 0, titlePositions: [] };
   const keywords = item.keywords ?? [];
+
+  const alias = aliasScore(q, item.alias);
+  if (alias !== null) {
+    // The title is highlighted when it matches as well, but the alias decides the rank.
+    const title = scoreText(q, item.title);
+    if (!title || title.score < alias) return { score: alias, titlePositions: title?.positions ?? [] };
+  }
 
   const title = scoreText(q, item.title);
   const keyword = bestKeywordScore(q, keywords);

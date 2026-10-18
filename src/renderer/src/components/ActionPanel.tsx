@@ -65,6 +65,11 @@ export function ActionPanel({ item, platform, keysFor, onRun, onClose }: ActionP
       <div className="action-panel" role="dialog" aria-label={`Actions for ${item.title}`} onKeyDown={onKeyDown}>
         <div className="action-panel__heading">
           <span className="action-panel__title">{item.title}</span>
+          {item.alias && (
+            <span className="action-panel__alias" title="Its alias">
+              {item.alias}
+            </span>
+          )}
           {item.hotkey && (
             <span className="action-panel__hotkey" title="Runs it from anywhere">
               <Keycaps keys={acceleratorKeys(item.hotkey, platform)} />

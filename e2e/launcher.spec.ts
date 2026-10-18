@@ -191,7 +191,7 @@ test('shows the actions of the selected item', async () => {
   await page.keyboard.press(`${mod}+k`);
   const panel = page.getByRole('dialog', { name: /Actions for Quit Waypoint/ });
   await expect(panel).toBeVisible();
-  await expect(panel.getByRole('option')).toHaveText([/^Run Command/, /^Set Shortcut…/]);
+  await expect(panel.getByRole('option')).toHaveText([/^Run Command/, /^Set Shortcut…/, /^Set Alias…/]);
   await page.keyboard.press('Escape');
   await expect(panel).toHaveCount(0);
 });

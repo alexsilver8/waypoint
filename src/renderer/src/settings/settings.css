@@ -469,6 +469,37 @@ select {
   font-size: 12px;
 }
 
+/* A command's alias, a short field beside its shortcut. */
+.alias {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.alias__field {
+  width: 96px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--control-border);
+  border-radius: 16px;
+  background: var(--keycap);
+  color: inherit;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  outline: none;
+}
+
+.alias__field::placeholder {
+  color: var(--ink-muted);
+  font-family: var(--font-ui);
+}
+
+.alias__field:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 22%, transparent);
+}
+
 .section__intro code {
   font-family: var(--font-mono);
   font-size: 12px;
