@@ -63,6 +63,27 @@ jobs:
           path: test-results/
           retention-days: 7
 
+  # pnpm release runs the unit tests on the Mac it's run from, and some extensions work differently
+  # there (Disk Usage leaves cloud storage alone, Downloads go by a creation time macOS moves), so
+  # they run on macOS here too.
+  unit-macos:
+    name: unit tests (macOS)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      # The unit tests need no Electron, so skip downloading it.
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Unit tests
+        run: pnpm run test
+
   # Conventions Biome and TypeScript don't check, shared with the other apps:
   # https://github.com/alexsilver8/cleaner
   cleaner:
@@ -81,7 +102,7 @@ jobs:
   ci:
     name: ci
     if: always()
-    needs: [check, e2e, cleaner]
+    needs: [check, unit-macos, e2e, cleaner]
     runs-on: ubuntu-latest
     steps:
       - name: Verify all jobs passed
