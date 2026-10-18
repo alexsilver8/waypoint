@@ -51,6 +51,22 @@ export function filterView(view: ListView, query: string): DisplaySection[] {
 }
 
 /**
+ * A view as it shows when an action pushed it, rather than the command opening with it. Asking the
+ * command's `view()` again would give its own view, not this one, so nothing here asks: `loading`
+ * is left out, as nothing would ever end it, and a list is filtered by the launcher even if it
+ * says `filtering: false`.
+ */
+export function pushedView(view: View): View {
+  if (view.type === 'form') return view;
+  if (view.type === 'detail') {
+    const { loading: _loading, ...detail } = view;
+    return detail;
+  }
+  const { loading: _loading, filtering: _filtering, ...list } = view;
+  return list;
+}
+
+/**
  * A detail view or a form as one item with the view's actions, so ↵, ⌘↵, ⌘K, the action bar and
  * shortcuts work on it as on a list's selected row. A form's first action submits it.
  */

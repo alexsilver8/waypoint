@@ -15,7 +15,7 @@ import { ScopeDock } from './components/ScopeDock';
 import { useWindowDrag } from './drag';
 import { type FormState, formValues, isSubmitAction, missingFields } from './form';
 import { isModKey, matchesShortcut, shortcutKeys } from './keys';
-import { type DisplayItem, type DisplaySection, filterView, pageItem } from './model';
+import { type DisplayItem, type DisplaySection, filterView, pageItem, pushedView } from './model';
 import { buildRootSections, countRootMatches, ROOT_FILTERS, type RootFilter } from './root-search';
 
 const palette = window.palette;
@@ -41,6 +41,11 @@ interface Frame {
   filter?: RootFilter;
   /** A form's values, once something was typed or picked. */
   form?: FormState;
+  /**
+   * `view` is the command's own, from its `view()`: the one it opened with, or one an action put
+   * in its place. Only that one is asked for again, for a search or while it's loading.
+   */
+  own?: boolean;
   /** ↵ does nothing until then (ms since the epoch), on a link's confirmation; see `CommandRequest.confirm`. */
   enterAfter?: number;
 }
@@ -391,14 +396,22 @@ export function App() {
           next = [
             ...next.slice(0, -1),
             // A form put in its place starts from its own defaults.
-            { ...top, query, ...(result.replace ? { view: result.replace, viewQuery: query, form: undefined } : {}) },
+            {
+              ...top,
+              query,
+              ...(result.replace
+                ? { view: top.own ? result.replace : pushedView(result.replace), viewQuery: query, form: undefined }
+                : {}),
+            },
           ];
         }
         if (result.push) {
           const opened = action.type === 'open-command';
           const query = opened ? (action.argument ?? '') : '';
           const ref = opened ? action.ref : from.ref;
-          next = [...next, { id: nextFrameId++, ref, view: result.push, query, viewQuery: query }];
+          // Pushed by any other action, it belongs to the command but isn't what its `view()` gives.
+          const view = opened ? result.push : pushedView(result.push);
+          next = [...next, { id: nextFrameId++, ref, view, query, viewQuery: query, own: opened }];
         }
         return next;
       });

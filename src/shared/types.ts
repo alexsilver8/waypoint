@@ -169,7 +169,8 @@ export interface ListView {
   sections: ListSection[];
   /**
    * `true` (default): the launcher fuzzy-filters the items as the user types.
-   * `false`: the command filters itself — its `view()` is called again with the new query.
+   * `false`: the command filters itself — its `view()` is called again with the new query. Only
+   * for the command's own view; the launcher filters a list an action pushes.
    */
   filtering?: boolean;
   /** Shown when there is nothing to list. */
@@ -177,7 +178,8 @@ export interface ListView {
   /**
    * The list is still filling in, e.g. while a scan runs. The launcher shows that it's busy and,
    * while it's open, calls `view()` again about once a second with the same query, until a list
-   * comes back without `loading`.
+   * comes back without `loading`. Only for the command's own view: in one an action pushes, it's
+   * ignored, since `view()` doesn't give that one.
    */
   loading?: boolean;
 }
@@ -195,7 +197,8 @@ export interface DetailView {
   actions?: Action[];
   /**
    * Still loading: the launcher shows that it's busy and calls `view()` again about once a
-   * second, until a view comes back without `loading`.
+   * second, until a view comes back without `loading`. Only for the command's own view: in one
+   * an action pushes, it's ignored, since `view()` doesn't give that one.
    */
   loading?: boolean;
 }

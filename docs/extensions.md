@@ -180,6 +180,8 @@ A list with `filtering: false` is also asked for again when someone goes back to
 
 Work that takes longer than a call may (10 seconds), like a scan, can carry on in the background after `view()` returns. Return what you have so far with `loading: true`: the launcher shows it's busy and calls `view()` again about once a second, with the same `ctx.query`, until a list comes back without it. A row picked with the arrows or the pointer stays picked as rows move, nothing changes while the action panel is open, and it waits while the launcher is closed. [Disk Usage](../extensions/disk-usage) adds up folders this way.
 
+`loading` and `filtering: false` work by calling `view()` again, so they apply to your command's own view: the one `view()` returns, or one an action puts in its place with `replace`. A view an action opens with `push` isn't what `view()` gives, so it can't be asked for again: it shows as it came, without `loading`, and the launcher filters its rows itself.
+
 ### Previews
 
 When any item in a view has a `detail`, the launcher splits in two: the list on the left and a preview of the selected item on the right. Items without one show their icon, title and subtitle there instead.
@@ -216,7 +218,7 @@ A page of Markdown that fills the launcher: a README, an article, the result of 
 | `title` | Shown by the back button and in the action bar, up to 100 characters. Without one, the command's title is. |
 | `metadata` | Optional `{ label, value }` pairs listed beside the text, up to 24. |
 | `actions` | Optional, up to 50, as for a [list item](#actions). |
-| `loading` | `true` while it's still being worked out: the launcher shows that it's busy and calls `view()` again about once a second, as for a [list that fills in](#lists-that-fill-in). |
+| `loading` | `true` while it's still being worked out: the launcher shows that it's busy and calls `view()` again about once a second, as for a [list that fills in](#lists-that-fill-in). Only in your command's own view, not one an action pushes. |
 
 The search field has nothing to search, so it steps aside: <kbd>↑</kbd> <kbd>↓</kbd>, <kbd>Page Up</kbd> <kbd>Page Down</kbd>, <kbd>Space</kbd>, <kbd>Home</kbd> and <kbd>End</kbd> scroll the text, and the action keys work as in a list. <kbd>⌫</kbd> goes back.
 

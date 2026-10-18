@@ -84,6 +84,7 @@ const respond = (id, payload) => {
   if (id === 'star') return { toast: 'Starred' };
   if (id === 'open-form') return { push: feedback };
   if (id === 'later') return { toast: 'Later, then' };
+  if (id === 'work') return { push: { type: 'detail', title: 'Working', markdown: 'Still working it out.', loading: true } };
   if (id === 'send') {
     if (payload.name === 'fail') return { toast: 'Could not send', toastStyle: 'failure' };
     return { pop: true, toast: 'Sent ' + JSON.stringify(payload) };
@@ -102,6 +103,7 @@ export default {
           { type: 'callback', id: 'open-form', title: 'Give Feedback' },
           { type: 'callback', id: 'star', title: 'Star' },
           { type: 'copy', text: 'v2', title: 'Copy Version', shortcut: { key: 'c', modifiers: ['mod', 'shift'] } },
+          { type: 'callback', id: 'work', title: 'Work It Out' },
         ],
       }),
       onAction: respond,
@@ -167,7 +169,7 @@ test('shows a Markdown page with its actions, and opens its links in the browser
   await expect(page.locator('.toast')).toHaveText('Starred');
   await page.keyboard.press(`${mod}+k`);
   const panel = page.getByRole('dialog');
-  await expect(panel.getByRole('option')).toHaveText([/Give Feedback/, /Star/, /Copy Version/]);
+  await expect(panel.getByRole('option')).toHaveText([/Give Feedback/, /Star/, /Copy Version/, /Work It Out/]);
   await page.keyboard.press('Escape');
   await expect(panel).toHaveCount(0);
   await expect(page.locator('.search__crumb')).toHaveText('Release Notes');
@@ -190,6 +192,21 @@ test('shows a Markdown page with its actions, and opens its links in the browser
     .toEqual(['https://example.com/docs']);
   expect(page.url()).toBe(url);
   await expect.poll(launcherVisible).toBe(false);
+});
+
+test('keeps a page an action pushed, even one that says it’s loading', async () => {
+  await open('Show Release Notes', 'Release Notes');
+  await page.keyboard.press(`${mod}+k`);
+  await page.keyboard.type('work it out');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.search__crumb')).toHaveText('Working');
+  // Asking the command's view() again would give Release Notes, so it isn't asked, nor shown as busy.
+  await page.waitForTimeout(2500);
+  await expect(page.locator('.search__crumb')).toHaveText('Working');
+  await expect(page.getByRole('article', { name: 'Working' })).toHaveText('Still working it out.');
+  await expect(page.locator('.search')).not.toHaveAttribute('data-loading');
+  await page.keyboard.press('Backspace');
+  await expect(page.locator('.search__crumb')).toHaveText('Release Notes');
 });
 
 test('fills in a form and submits it with ⌘↵', async () => {
