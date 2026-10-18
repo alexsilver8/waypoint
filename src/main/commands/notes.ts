@@ -63,9 +63,9 @@ export function notesExtension(store: NotesStore, notesWindow: NotesWindow): Bui
         { type: 'reveal-path', path: store.pathOf(note.id), title: REVEAL_LABEL[process.platform] ?? 'Show in Folder' },
         {
           type: 'callback',
-          id: 'trash',
+          id: 'delete',
           payload: note.id,
-          title: 'Move to Trash',
+          title: 'Delete Note',
           style: 'destructive',
           shortcut: { key: 'Backspace', modifiers: ['mod'] },
         },
@@ -120,9 +120,9 @@ export function notesExtension(store: NotesStore, notesWindow: NotesWindow): Bui
             notesWindow.open(payload);
             return { hide: true };
           }
-          if (id === 'trash') {
-            await store.trash(payload);
-            return { replace: await searchView(), toast: 'Moved to Trash' };
+          if (id === 'delete') {
+            await store.delete(payload);
+            return { replace: await searchView(), toast: 'Moved to Recently Deleted' };
           }
           return undefined;
         },

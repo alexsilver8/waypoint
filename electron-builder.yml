@@ -17,6 +17,10 @@ extraResources:
     filter:
       - '**/*'
       - '!**/*.test.*'
+# waypoint://notes/<id> opens a note (Copy Deeplink in the Notes window).
+protocols:
+  - name: Waypoint
+    schemes: [waypoint]
 
 mac:
   category: public.app-category.productivity

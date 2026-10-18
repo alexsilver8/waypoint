@@ -1,6 +1,10 @@
 /*
- * Notes window: the launcher's liquid glass, with the note list on a floating pane of
- * brighter glass.
+ * The Notes window, laid out like Raycast Notes: a small floating sheet of glass with the
+ * note's title in the middle of its title bar, a glass capsule of buttons at the top right,
+ * and popovers (Browse Notes, Actions) that open over the note.
+ *
+ * Sizes are Raycast's, measured in points from its window: a 52pt title bar, a 36pt capsule
+ * 8pt in from the corner, 320pt popovers 100pt down, 36pt action rows and 58pt note rows.
  */
 
 @import "../base.css";
@@ -31,249 +35,151 @@ button {
 }
 
 .notes {
-  --pigment: var(--pigment-yellow);
-  --sidebar-width: 216px;
-  --sidebar-duration: 280ms;
-  --sidebar-ease: cubic-bezier(0.32, 0.72, 0, 1);
-  display: grid;
-  grid-template-columns: 0 minmax(0, 1fr);
-  grid-template-rows: 46px 1fr 58px;
-  grid-template-areas:
-    "header header"
-    "sidebar body"
-    "sidebar footer";
+  /* Light */
+  --n-tint: rgb(255 255 255 / 0.46);
+  --n-text: rgb(0 0 0 / 0.86);
+  --n-strong: rgb(0 0 0 / 0.9);
+  --n-title: rgb(0 0 0 / 0.5);
+  --n-secondary: rgb(0 0 0 / 0.5);
+  --n-placeholder: rgb(0 0 0 / 0.3);
+  --n-control: rgb(0 0 0 / 0.035);
+  --n-control-border: rgb(0 0 0 / 0.1);
+  --n-hover: rgb(0 0 0 / 0.06);
+  --n-selection: rgb(0 0 0 / 0.07);
+  --n-popover: rgb(250 250 250 / 0.84);
+  --n-popover-border: rgb(0 0 0 / 0.1);
+  --n-popover-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.12), 0 16px 44px rgb(0 0 0 / 0.18), 0 3px 10px rgb(0 0 0 / 0.08);
+  --n-separator: rgb(0 0 0 / 0.08);
+  --n-keycap-border: rgb(0 0 0 / 0.16);
+  --n-keycap-text: rgb(0 0 0 / 0.5);
+  --n-current: #2f7cf6;
+  --n-close: rgb(0 0 0 / 0.72);
+  --notes-close-ink: #fff;
+  --n-match: rgb(255 204 0 / 0.35);
+  --n-match-current: rgb(255 204 0);
+  --n-code: rgb(0 0 0 / 0.05);
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
   height: 100%;
-  background: var(--glass);
+  overflow: hidden;
+  background: var(--n-tint);
+  color: var(--n-text);
 }
 
-.notes[data-sidebar] {
-  grid-template-columns: calc(var(--sidebar-width) + 8px) minmax(0, 1fr);
+/* Dark, as in Raycast's screenshots: a deep tint over the blur, white text, grey details. */
+@media (prefers-color-scheme: dark) {
+  .notes {
+    --n-tint: rgb(0 0 0 / 0.46);
+    --n-text: rgb(255 255 255 / 0.94);
+    --n-strong: #fff;
+    --n-title: rgb(255 255 255 / 0.6);
+    --n-secondary: rgb(255 255 255 / 0.6);
+    --n-placeholder: rgb(255 255 255 / 0.42);
+    --n-control: rgb(255 255 255 / 0.06);
+    --n-control-border: rgb(255 255 255 / 0.17);
+    --n-hover: rgb(255 255 255 / 0.08);
+    --n-selection: rgb(255 255 255 / 0.1);
+    --n-popover: rgb(26 26 27 / 0.72);
+    --n-popover-border: rgb(255 255 255 / 0.16);
+    --n-popover-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.7), 0 18px 48px rgb(0 0 0 / 0.45), 0 4px 12px rgb(0 0 0 / 0.25);
+    --n-separator: rgb(255 255 255 / 0.1);
+    --n-keycap-border: rgb(255 255 255 / 0.2);
+    --n-keycap-text: rgb(255 255 255 / 0.6);
+    --n-current: #5e9df6;
+    --n-close: #fff;
+    --notes-close-ink: #2a2222;
+    --n-match: rgb(255 214 10 / 0.3);
+    --n-match-current: rgb(255 214 10 / 0.9);
+    --n-code: rgb(255 255 255 / 0.08);
+  }
 }
 
-/* Opening or closing the sidebar: its column folds away while the pane slides out past the window's left edge, its
-   right edge staying on the editor's, so the editor widens into the space it leaves. */
-.notes[data-animate-sidebar] {
-  transition: grid-template-columns var(--sidebar-duration) var(--sidebar-ease);
+/* No system blur (Linux, older Windows): solid surfaces instead of tints. */
+:root[data-glass="none"] .notes {
+  --n-tint: rgb(246 246 246);
+  --n-popover: rgb(255 255 255);
 }
 
-/* ── Header ─────────────────────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  :root[data-glass="none"] .notes {
+    --n-tint: rgb(24 24 24);
+    --n-popover: rgb(27 27 28);
+  }
+}
+
+/* ── Title bar ───────────────────────────────────────────── */
 
 .notes__header {
-  grid-area: header;
+  position: relative;
+  flex: none;
   display: flex;
   align-items: center;
-  gap: 2px;
-  padding: 0 8px;
+  justify-content: center;
+  height: 52px;
+  /* The title stays centred in the window, clear of the traffic lights and the buttons. */
+  padding: 0 112px;
   user-select: none;
   -webkit-app-region: drag;
 }
 
-/* Room for the traffic lights. */
-[data-platform="darwin"] .notes__header {
-  padding-left: 78px;
+.notes__title {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--n-title);
+  font-size: 13px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Actions, Browse Notes and New Note, in a capsule of glass. */
+.notes__toolbar {
+  position: absolute;
+  top: 8.5px;
+  right: 9px;
+  display: flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 4px;
+  border-radius: 18px;
+  background: var(--n-control);
+  box-shadow: inset 0 0 0 1px var(--n-control-border);
+  -webkit-app-region: no-drag;
 }
 
 .notes__tool {
   display: grid;
   place-items: center;
-  width: 30px;
+  width: 28px;
   height: 28px;
+  padding: 0;
   border: none;
-  border-radius: 9px;
+  border-radius: 14px;
   background: none;
-  color: var(--ink-muted);
-  -webkit-app-region: no-drag;
+  color: var(--n-strong);
 }
 
 .notes__tool:hover {
-  background: var(--keycap);
-  color: var(--ink);
-}
-
-.notes__tool[aria-pressed="true"] {
-  color: var(--ink);
+  background: var(--n-hover);
 }
 
 .notes__tool:focus-visible,
-.notes__item:focus-visible {
+.notes__dismiss:focus-visible,
+.browse__button:focus-visible,
+.find__button:focus-visible,
+.find__text-button:focus-visible,
+.format-bar__count:focus-visible {
   outline: 2px solid color-mix(in oklab, var(--accent) 75%, transparent);
   outline-offset: -2px;
 }
 
-.notes__heading {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1px;
-  margin: 0 8px;
-}
-
-.notes__title,
-.notes__subtitle {
-  max-width: 100%;
-  margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.notes__title {
-  color: var(--ink);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.notes__subtitle {
-  color: var(--ink-faint);
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-}
-
-/* ── Sidebar ────────────────────────────────────────────── */
-
-/* A pane of brighter glass floating in the window, like the launcher's preview. */
-.notes__sidebar {
-  grid-area: sidebar;
-  display: flex;
-  flex-direction: column;
-  /* Its own width, not the column's, so the list doesn't squeeze while the column folds. */
-  width: var(--sidebar-width);
-  min-height: 0;
-  margin: 0 0 8px 8px;
-  overflow: hidden;
-  border: 1px solid var(--glass-raised-border);
-  border-radius: 16px;
-  background: var(--glass-raised);
-  box-shadow: inset 0 1px 0 var(--glass-sheen);
-}
-
-.notes:not([data-sidebar]) .notes__sidebar {
-  visibility: hidden;
-  opacity: 0;
-  transform: translateX(calc(-100% - 8px));
-}
-
-.notes[data-animate-sidebar] .notes__sidebar {
-  transition:
-    transform var(--sidebar-duration) var(--sidebar-ease),
-    opacity var(--sidebar-duration) var(--sidebar-ease),
-    visibility 0s;
-}
-
-/* Closing, it stays visible until it's out of sight. */
-.notes[data-animate-sidebar]:not([data-sidebar]) .notes__sidebar {
-  transition:
-    transform var(--sidebar-duration) var(--sidebar-ease),
-    opacity var(--sidebar-duration) var(--sidebar-ease),
-    visibility 0s linear var(--sidebar-duration);
-}
-
-.notes__search {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  margin: 8px 8px 6px;
-  padding: 0 10px;
-  height: 32px;
-  border: 1px solid var(--control-border);
-  border-radius: 10px;
-  background: var(--control);
-  color: var(--ink-faint);
-}
-
-.notes__search input {
-  flex: 1;
-  min-width: 0;
-  border: none;
-  outline: none;
-  background: transparent;
-  color: var(--ink);
-  font: inherit;
-  font-size: 13px;
-  caret-color: var(--accent);
-}
-
-.notes__search input::placeholder {
-  color: var(--ink-faint);
-}
-
-.notes__list {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 2px 6px 6px;
-}
-
-.notes__list ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.notes__item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  width: 100%;
-  padding: 7px 10px;
-  border: 1px solid transparent;
-  border-radius: 10px;
-  background: none;
-  text-align: left;
-}
-
-.notes__item:hover {
-  background: var(--hover);
-}
-
-.notes__item[aria-current="true"] {
-  border-color: var(--selected-border);
-  background: var(--selected-pane);
-  box-shadow: var(--selected-shadow);
-}
-
-.notes__item-title {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 13.5px;
-  font-weight: 500;
-}
-
-.notes__item-meta {
-  display: flex;
-  gap: 6px;
-  min-width: 0;
-  color: var(--ink-muted);
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.notes__item-preview {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: var(--ink-faint);
-}
-
-.notes__none {
-  margin: 8px 10px;
-  color: var(--ink-muted);
-  font-size: 13px;
-}
-
-.notes__count {
-  padding: 8px 14px;
-  border-top: 1px solid var(--hairline);
-  color: var(--ink-faint);
-  font-size: 12px;
-}
-
-/* ── Editor ─────────────────────────────────────────────── */
+/* ── The note ────────────────────────────────────────────── */
 
 .notes__body {
-  grid-area: body;
+  flex: 1;
   min-height: 0;
   display: flex;
 }
@@ -286,52 +192,60 @@ button {
   overflow-y: auto;
 }
 
-/* The note reads like a document; each line is a paragraph, so they sit close together. */
+.notes__scroller[hidden] {
+  display: none;
+}
+
+/* It fills the window, and grows past it with a long note, its padding still below the last line. */
 .notes__editor {
-  flex: 1;
-  min-height: 100%;
-  padding: 18px 28px 24px;
+  flex: 1 0 auto;
+  padding: 11.5px 24px 18px;
   outline: none;
-  color: var(--ink);
-  font-size: 15px;
-  line-height: 1.6;
-  caret-color: var(--accent);
+  color: var(--n-text);
+  font-size: calc(15px * var(--note-zoom, 1));
+  line-height: 1.5;
+  caret-color: var(--n-strong);
   overflow-wrap: anywhere;
   user-select: text;
   cursor: text;
 }
 
-.notes__scroller[hidden] {
-  display: none;
+.notes__editor[contenteditable="false"] {
+  cursor: default;
 }
 
 /* A note the editor can't show is edited as the Markdown it is. */
 .notes__source {
-  flex: 1;
   width: 100%;
   border: none;
   resize: none;
   background: transparent;
   font-family: var(--font-mono);
-  font-size: 13.5px;
+  font-size: calc(13.5px * var(--note-zoom, 1));
   line-height: 1.65;
 }
 
 .notes__notice {
   max-width: 520px;
   margin: 0;
-  padding: 9px 14px;
-  border: 1px solid var(--glass-raised-border);
+  padding: 8px 14px;
   border-radius: 12px;
-  background: var(--glass-raised);
-  color: var(--ink-muted);
+  background: var(--n-control);
+  box-shadow: inset 0 0 0 1px var(--n-control-border);
+  color: var(--n-secondary);
   font-size: 12px;
   line-height: 1.4;
   text-align: center;
 }
 
-.notes__editor[contenteditable="false"] {
-  cursor: default;
+.notes__notice--floating {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  left: 12px;
+  margin: 0 auto;
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
 }
 
 .notes__editor > * + * {
@@ -342,35 +256,41 @@ button {
   margin: 0;
 }
 
-.notes__editor :is(h1, h2, h3) {
-  margin: 0.7em 0 0.25em;
+.notes__editor :is(h1, h2, h3, h4, h5, h6) {
+  margin: 0.6em 0 0.2em;
+  color: var(--n-strong);
   font-weight: 650;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.012em;
   line-height: 1.3;
 }
 
-.notes__editor > :is(h1, h2, h3):first-child {
+.notes__editor > :is(h1, h2, h3, h4, h5, h6):first-child {
   margin-top: 0;
 }
 
 .notes__editor h1 {
-  font-size: 24px;
+  font-size: 1.6em;
 }
 
 .notes__editor h2 {
-  font-size: 19px;
+  font-size: 1.3em;
 }
 
 .notes__editor h3 {
-  font-size: 16px;
+  font-size: 1.1em;
+}
+
+.notes__editor :is(h4, h5, h6) {
+  font-size: 1em;
 }
 
 .notes__editor strong {
+  color: var(--n-strong);
   font-weight: 650;
 }
 
 .notes__editor s {
-  color: var(--ink-muted);
+  color: var(--n-secondary);
 }
 
 .notes__editor a {
@@ -384,7 +304,7 @@ button {
 .notes__editor code {
   padding: 1px 5px;
   border-radius: 5px;
-  background: var(--keycap);
+  background: var(--n-code);
   font-family: var(--font-mono);
   font-size: 0.88em;
 }
@@ -392,11 +312,10 @@ button {
 .notes__editor pre {
   margin: 0.5em 0;
   padding: 10px 14px;
-  border: 1px solid var(--glass-raised-border);
   border-radius: 10px;
-  background: var(--glass-raised);
+  background: var(--n-code);
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 0.87em;
   line-height: 1.55;
   white-space: pre-wrap;
 }
@@ -408,14 +327,14 @@ button {
 }
 
 .notes__editor blockquote {
-  margin: 0.4em 0;
+  margin: 0.3em 0;
   padding: 0 0 0 14px;
-  border-left: 3px solid var(--track);
-  color: var(--ink-muted);
+  border-left: 3px solid var(--n-control-border);
+  color: var(--n-secondary);
 }
 
 .notes__editor :is(ul, ol) {
-  margin: 0.15em 0;
+  margin: 0.1em 0;
   padding-left: 1.5em;
 }
 
@@ -424,12 +343,12 @@ button {
 }
 
 .notes__editor li::marker {
-  color: var(--ink-faint);
+  color: var(--n-secondary);
 }
 
-/* Checklists: a box you can click, and a struck-through line once it's done. */
+/* Checklists: a box you can click (or ⌘↵), and a struck-through line once it's done. */
 .notes__editor ul[data-type="taskList"] {
-  padding-left: 0.2em;
+  padding-left: 0.1em;
   list-style: none;
 }
 
@@ -442,7 +361,7 @@ button {
 .notes__editor ul[data-type="taskList"] > li > label {
   flex: none;
   display: flex;
-  padding-top: 0.28em;
+  padding-top: 0.24em;
   user-select: none;
 }
 
@@ -454,11 +373,11 @@ button {
 .notes__editor ul[data-type="taskList"] > li input[type="checkbox"] {
   appearance: none;
   position: relative;
-  width: 16px;
-  height: 16px;
+  width: 1.07em;
+  height: 1.07em;
   margin: 0;
-  border: 1.5px solid var(--ink-faint);
-  border-radius: 5px;
+  border: 1.5px solid var(--n-placeholder);
+  border-radius: 0.3em;
   background: transparent;
   cursor: pointer;
 }
@@ -471,10 +390,10 @@ button {
 .notes__editor ul[data-type="taskList"] > li input[type="checkbox"]:checked::after {
   content: "";
   position: absolute;
-  left: 4.5px;
-  top: 1.5px;
-  width: 3.5px;
-  height: 8px;
+  left: 0.3em;
+  top: 0.1em;
+  width: 0.24em;
+  height: 0.52em;
   border: solid #fff;
   border-width: 0 1.75px 1.75px 0;
   transform: rotate(45deg);
@@ -486,56 +405,484 @@ button {
 }
 
 .notes__editor ul[data-type="taskList"] > li[data-checked="true"] > div {
-  color: var(--ink-muted);
+  color: var(--n-secondary);
   text-decoration: line-through;
-  text-decoration-color: var(--ink-faint);
+  text-decoration-color: var(--n-placeholder);
 }
 
 .notes__editor hr {
-  margin: 1em 0;
+  margin: 0.9em 0;
   border: none;
-  border-top: 1px solid var(--hairline);
+  border-top: 1px solid var(--n-separator);
 }
 
 .notes__editor .is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   float: left;
   height: 0;
-  color: var(--ink-faint);
+  color: var(--n-placeholder);
   pointer-events: none;
 }
 
 .notes__editor .ProseMirror-gapcursor::after {
-  border-top-color: var(--ink);
+  border-top-color: var(--n-text);
 }
 
-/* ── Footer and formatting toolbar ──────────────────────── */
+.find-match {
+  border-radius: 2px;
+  background: var(--n-match);
+}
+
+.find-match--current {
+  background: var(--n-match-current);
+  color: #000;
+}
+
+/* ── Popovers: Browse Notes, Actions, Recently Deleted ───── */
+
+/* Clicking anywhere else closes a popover. The title bar stays free to drag the window. */
+.notes__scrim {
+  position: absolute;
+  inset: 52px 0 0;
+  z-index: 29;
+}
+
+.popover {
+  position: absolute;
+  z-index: 30;
+  top: 100px;
+  right: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  width: 320px;
+  max-width: calc(100% - 16px);
+  max-height: min(420px, calc(100% - 108px));
+  margin: 0 auto;
+  overflow: hidden;
+  border: 1px solid var(--n-popover-border);
+  border-radius: 16px;
+  background: var(--n-popover);
+  -webkit-backdrop-filter: blur(40px) saturate(1.6);
+  backdrop-filter: blur(40px) saturate(1.6);
+  box-shadow: var(--n-popover-shadow);
+  color: var(--n-strong);
+  font-size: 14px;
+  animation: popover-in 110ms ease-out;
+}
+
+@keyframes popover-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+
+.popover__search {
+  flex: none;
+  display: flex;
+  align-items: center;
+  height: 39px;
+  padding: 0 16px 0 15px;
+  border-bottom: 1px solid var(--n-separator);
+}
+
+.popover__search input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--n-strong);
+  font: inherit;
+  font-size: 14px;
+  caret-color: var(--n-strong);
+}
+
+.popover__search input::placeholder {
+  color: var(--n-placeholder);
+}
+
+.popover__list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px;
+  /* Like Raycast's, the list shows no scrollbar; a cut-off last row says there's more. */
+  scrollbar-width: none;
+}
+
+.browse .popover__list {
+  padding-top: 0;
+}
+
+.popover__section {
+  padding: 17px 7px 6px;
+  color: var(--n-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+}
+
+/* Between groups of actions: a line that fades out at both ends. */
+.popover__separator {
+  height: 1px;
+  margin: 8px -8px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--n-separator) 32px,
+    var(--n-separator) calc(100% - 32px),
+    transparent
+  );
+}
+
+.popover__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 0 7px;
+  border-radius: 9px;
+  cursor: default;
+}
+
+.popover__item[aria-selected="true"] {
+  background: var(--n-selection);
+}
+
+.popover__item[aria-disabled="true"] {
+  opacity: 0.3;
+}
+
+.popover__empty {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 22px 12px 18px;
+  color: var(--n-secondary);
+  text-align: center;
+}
+
+.popover__empty-button {
+  height: 28px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 8px;
+  background: var(--n-control);
+  box-shadow: inset 0 0 0 1px var(--n-control-border);
+  color: var(--n-strong);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.popover__empty-button:hover {
+  background: var(--n-hover);
+}
+
+/* Raycast's keycaps: outlined, not filled. */
+.popover .keycaps {
+  flex: none;
+  gap: 3.5px;
+  margin-left: auto;
+}
+
+.popover .keycap {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border: 1px solid var(--n-keycap-border);
+  border-radius: 5px;
+  background: none;
+  color: var(--n-keycap-text);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+}
+
+/* Actions */
+
+.actions .popover__item {
+  height: 36px;
+}
+
+.actions__icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+}
+
+.actions__title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Browse Notes */
+
+.browse__count {
+  height: 18px;
+  padding: 0 4px;
+  overflow: hidden;
+  color: var(--n-secondary);
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.browse__item {
+  height: 58px;
+  padding: 9px 6px 9px 7px;
+}
+
+.browse__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.browse__title,
+.browse__meta {
+  overflow: hidden;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.browse__title {
+  color: var(--n-strong);
+  font-weight: 500;
+}
+
+.browse__title mark {
+  background: none;
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, currentColor 50%, transparent);
+  text-underline-offset: 2px;
+}
+
+.browse__meta {
+  color: var(--n-secondary);
+}
+
+.browse__dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin: 0 4px 0 0;
+  border-radius: 50%;
+  background: var(--n-current);
+  vertical-align: 0.2em;
+}
+
+.browse__buttons {
+  flex: none;
+  display: flex;
+  gap: 4px;
+}
+
+.browse__button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  color: var(--n-strong);
+}
+
+.browse__button:hover {
+  background: var(--n-hover);
+}
+
+/* While a popover is open, a glass button in the corner closes it. */
+.notes__dismiss {
+  position: absolute;
+  z-index: 31;
+  right: 9px;
+  bottom: 9px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--n-control);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  box-shadow: inset 0 0 0 1px var(--n-control-border);
+  color: var(--n-close);
+}
+
+.notes__dismiss:hover {
+  background: var(--n-hover);
+}
+
+.notes__toast {
+  position: absolute;
+  z-index: 40;
+  bottom: 14px;
+  left: 50%;
+  padding: 6px 12px;
+  border-radius: 14px;
+  background: var(--n-popover);
+  -webkit-backdrop-filter: blur(30px) saturate(1.6);
+  backdrop-filter: blur(30px) saturate(1.6);
+  box-shadow:
+    inset 0 0 0 1px var(--n-popover-border),
+    0 8px 24px rgb(0 0 0 / 0.25);
+  color: var(--n-strong);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateX(-50%);
+  animation: toast-in 140ms ease-out;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 4px);
+  }
+}
+
+/* ── Find in Note ────────────────────────────────────────── */
+
+.find {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 9px 2px;
+  padding: 5px 5px 5px 10px;
+  border-radius: 12px;
+  background: var(--n-control);
+  box-shadow: inset 0 0 0 1px var(--n-control-border);
+}
+
+.find__row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 26px;
+}
+
+.find__icon {
+  flex: none;
+  width: 14px;
+  margin-right: 6px;
+  color: var(--n-secondary);
+}
+
+.find__input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+  background: none;
+  color: var(--n-strong);
+  font: inherit;
+  font-size: 13px;
+  caret-color: var(--n-strong);
+}
+
+.find__input::placeholder {
+  color: var(--n-placeholder);
+}
+
+.find__count {
+  flex: none;
+  margin: 0 6px;
+  color: var(--n-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.find__button {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--n-strong);
+}
+
+.find__button:hover:not(:disabled),
+.find__button[aria-pressed="true"] {
+  background: var(--n-hover);
+}
+
+.find__button:disabled,
+.find__text-button:disabled {
+  opacity: 0.35;
+}
+
+.find__text-button {
+  height: 24px;
+  margin-left: 4px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 8px;
+  background: var(--n-control);
+  box-shadow: inset 0 0 0 1px var(--n-control-border);
+  color: var(--n-strong);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.find__text-button:hover:not(:disabled) {
+  background: var(--n-hover);
+}
+
+/* ── Format bar (⌥⌘,) ───────────────────────────────────── */
 
 .notes__footer {
-  grid-area: footer;
-  min-width: 0;
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 12px 10px;
+  min-width: 0;
+  height: 52px;
+  padding: 0 9px;
   user-select: none;
+}
+
+.format-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
 }
 
 .toolbar {
   display: flex;
   align-items: center;
-  gap: 2px;
-  height: 42px;
-  padding: 0 5px;
-  border: 1px solid var(--glass-raised-border);
-  border-radius: 14px;
-  background: var(--glass-raised);
-  box-shadow:
-    inset 0 1px 0 var(--glass-sheen),
-    0 6px 18px rgb(0 0 0 / 0.08);
-  color: var(--ink-muted);
-  /* In a narrow window the toolbar scrolls rather than pushing the window wider. */
-  max-width: 100%;
+  min-width: 0;
+  height: 36px;
+  padding: 0 4px;
+  border-radius: 18px;
+  background: var(--n-control);
+  box-shadow: inset 0 0 0 1px var(--n-control-border);
+  color: var(--n-strong);
+  /* In a narrow window the bar scrolls rather than pushing the window wider. */
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -550,110 +897,146 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  min-width: 32px;
-  height: 32px;
+  gap: 1px;
+  min-width: 28px;
+  height: 28px;
   padding: 0 6px;
-  border: 1px solid transparent;
-  border-radius: 9px;
+  border: none;
+  border-radius: 14px;
   background: none;
   color: inherit;
 }
 
 .toolbar__button--menu {
-  padding: 0 5px 0 7px;
+  padding: 0 4px 0 7px;
 }
 
 .toolbar__chevron {
-  opacity: 0.7;
+  opacity: 0.6;
 }
 
 .toolbar__button:hover:not(:disabled) {
-  background: var(--hover);
-  color: var(--ink);
-}
-
-.toolbar__button:is([aria-pressed="true"], [data-active], [aria-expanded="true"]) {
-  color: var(--ink);
+  background: var(--n-hover);
 }
 
 .toolbar__button:is([aria-pressed="true"], [aria-expanded="true"]) {
-  border-color: var(--selected-border);
-  background: var(--selected-pane);
+  background: var(--n-selection);
 }
 
 .toolbar__button:disabled {
-  opacity: 0.4;
+  opacity: 0.35;
 }
 
 .toolbar__button:focus-visible,
 .toolbar__item:focus-visible {
   outline: 2px solid color-mix(in oklab, var(--accent) 75%, transparent);
-  outline-offset: -1px;
+  outline-offset: -2px;
 }
 
 .toolbar__divider {
   flex: none;
   width: 1px;
-  height: 18px;
+  height: 16px;
   margin: 0 4px;
-  background: var(--hairline);
+  background: var(--n-separator);
 }
 
-/* Menus and the link field open above the toolbar, as their own sheet of glass. */
+.format-bar__count {
+  flex: none;
+  margin-left: auto;
+  padding: 4px 6px;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  color: var(--n-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.format-bar__count:hover {
+  background: var(--n-hover);
+}
+
+.notes[data-popover] .format-bar__count {
+  visibility: hidden;
+}
+
+/* The format bar's menus and the link field: small popovers of their own. */
 .toolbar__popover {
   position: fixed;
-  z-index: 10;
+  z-index: 35;
   max-width: calc(100vw - 16px);
-  border: 1px solid var(--glass-raised-border);
+  border: 1px solid var(--n-popover-border);
   border-radius: 12px;
-  background: var(--glass-panel);
-  -webkit-backdrop-filter: blur(28px) saturate(1.8);
-  backdrop-filter: blur(28px) saturate(1.8);
-  box-shadow:
-    inset 0 1px 0 var(--glass-sheen),
-    var(--shadow-popover);
-  animation: popover-in 120ms ease-out;
-}
-
-@keyframes popover-in {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
+  background: var(--n-popover);
+  -webkit-backdrop-filter: blur(40px) saturate(1.6);
+  backdrop-filter: blur(40px) saturate(1.6);
+  box-shadow: var(--n-popover-shadow);
+  color: var(--n-strong);
+  animation: popover-in 110ms ease-out;
 }
 
 .toolbar__list {
   display: flex;
   flex-direction: column;
   min-width: 240px;
-  padding: 5px;
+  padding: 6px;
 }
 
 .toolbar__item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  height: 34px;
-  padding: 0 8px;
+  gap: 8px;
+  height: 32px;
+  padding: 0 7px;
   border: none;
   border-radius: 8px;
   background: none;
-  color: var(--ink);
-  text-align: left;
+  color: var(--n-strong);
   font-size: 13.5px;
+  font-weight: 500;
+  text-align: left;
 }
 
 .toolbar__item:hover,
 .toolbar__item:focus-visible {
-  background: var(--hover);
+  background: var(--n-selection);
+}
+
+/* The / menu and the emoji picker: rows chosen with the arrow keys, like the popovers'.
+   In a short window they scroll rather than run off it. */
+.inline-menu {
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.inline-menu__item {
+  flex: none;
+  cursor: default;
+}
+
+.inline-menu__item[aria-selected="true"] {
+  background: var(--n-selection);
+}
+
+.inline-menu__emoji {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.inline-menu__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .toolbar__item-icon {
   display: grid;
   place-items: center;
-  width: 18px;
-  color: var(--ink-muted);
+  width: 16px;
 }
 
 .toolbar__item-label {
@@ -666,17 +1049,29 @@ button {
 }
 
 .toolbar__item .keycaps {
+  gap: 3px;
   margin-left: 6px;
+}
+
+.toolbar__item .keycap {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border: 1px solid var(--n-keycap-border);
+  border-radius: 5px;
+  background: none;
+  color: var(--n-keycap-text);
+  font-size: 11px;
+  line-height: 16px;
 }
 
 .link-field {
   display: flex;
   align-items: center;
   gap: 4px;
-  width: 340px;
-  height: 44px;
+  height: 40px;
   padding: 0 5px 0 12px;
-  color: var(--ink-muted);
+  color: var(--n-secondary);
 }
 
 .link-field__icon {
@@ -691,10 +1086,10 @@ button {
   border: none;
   outline: none;
   background: transparent;
-  color: var(--ink);
+  color: var(--n-strong);
   font: inherit;
-  font-size: 13.5px;
-  caret-color: var(--accent);
+  font-size: 14px;
+  caret-color: var(--n-strong);
 }
 
 .link-field__input[aria-invalid="true"] {
@@ -704,16 +1099,17 @@ button {
 }
 
 .link-field__input::placeholder {
-  color: var(--ink-faint);
+  color: var(--n-placeholder);
+}
+
+.link-field .toolbar__button {
+  color: var(--n-strong);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .toolbar__popover {
+  .popover,
+  .toolbar__popover,
+  .notes__toast {
     animation: none;
-  }
-
-  .notes[data-animate-sidebar],
-  .notes[data-animate-sidebar] .notes__sidebar {
-    transition: none;
   }
 }

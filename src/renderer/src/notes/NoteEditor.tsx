@@ -1,5 +1,5 @@
-import { EditorState } from '@tiptap/pm/state';
-import { type Editor, EditorContent, useEditor, useEditorState } from '@tiptap/react';
+import { EditorState, Selection } from '@tiptap/pm/state';
+import { type Editor, EditorContent, type EditorEvents, useEditor, useEditorState } from '@tiptap/react';
 import {
   Bold,
   Check,
@@ -36,7 +36,13 @@ import {
 } from 'react';
 import { isOpenableLink, normalizeLink } from '../../../shared/notes';
 import { Keycaps } from '../components/Keycaps';
+import { EmojiMenu } from './EmojiMenu';
+import { emojiState } from './emoji';
+import { findKey, findState } from './find';
+import type { MenuKeys } from './inline-menu';
 import { applyNoteStyle, noteExtensions, showsFaithfully } from './markdown';
+import { SlashMenu } from './SlashMenu';
+import { slashState } from './slash';
 
 const api = window.notes;
 const { platform } = api;
@@ -67,8 +73,8 @@ function keepEditorFocus(event: ReactMouseEvent) {
 type Align = 'start' | 'center' | 'end';
 
 /**
- * Places a popover just above its anchor, kept inside the window. It's positioned against
- * the window rather than the toolbar, so a toolbar squeezed into a narrow window can scroll
+ * Places a menu just above its anchor, kept inside the window. It's positioned against the
+ * window rather than the format bar, so a bar squeezed into a narrow window can scroll
  * without cutting its menus off.
  */
 function usePopoverPlacement(
@@ -105,7 +111,7 @@ interface MenuItem {
   run(): void;
 }
 
-/** A toolbar button that opens a short menu above it. */
+/** A format bar button that opens a short menu above it. */
 function Menu({
   label,
   icon,
@@ -140,6 +146,8 @@ function Menu({
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
+        // Esc closes the menu, not the window.
+        event.stopPropagation();
         // Back where you were: the menu's button if you came from the keyboard, else the note.
         const fromMenu = list.current?.contains(document.activeElement);
         setOpen(false);
@@ -207,7 +215,7 @@ function Menu({
         }}
       >
         {icon}
-        <ChevronDown className="toolbar__chevron" size={12} strokeWidth={2.5} aria-hidden="true" />
+        <ChevronDown className="toolbar__chevron" size={11} strokeWidth={2.5} aria-hidden="true" />
       </button>
       {open && (
         <div
@@ -265,22 +273,29 @@ function Menu({
   );
 }
 
-/** Edits the address of the link under the cursor, or links the selection. */
-function LinkField({
-  editor,
-  anchor,
-  onClose,
-}: {
-  editor: Editor;
-  anchor: RefObject<HTMLElement | null>;
-  onClose(refocus: boolean): void;
-}) {
+const LINK_FIELD_WIDTH = 340;
+
+/**
+ * Edits the address of the link under the cursor, or links the selection. It opens just
+ * below what it links, like Raycast's, whether you pressed ⌘L or used the format bar.
+ */
+function LinkField({ editor, onClose }: { editor: Editor; onClose(refocus: boolean): void }) {
   const current = editor.getAttributes('link').href as string | undefined;
   const [value, setValue] = useState(current ?? '');
   const [invalid, setInvalid] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   const wrapper = useRef<HTMLDivElement>(null);
-  const placement = usePopoverPlacement(anchor, wrapper, 'center', true);
+  const [placement] = useState<CSSProperties>(() => {
+    const { from, to } = editor.state.selection;
+    const start = editor.view.coordsAtPos(from);
+    const end = editor.view.coordsAtPos(to);
+    const width = Math.min(LINK_FIELD_WIDTH, window.innerWidth - 16);
+    const left = Math.max(8, Math.min(start.left - 12, window.innerWidth - width - 8));
+    // Below the line, unless that runs off the window.
+    return end.bottom + 56 < window.innerHeight
+      ? { left, top: end.bottom + 6, width }
+      : { left, bottom: window.innerHeight - start.top + 6, width };
+  });
 
   useEffect(() => {
     input.current?.focus();
@@ -289,13 +304,13 @@ function LinkField({
 
   useEffect(() => {
     const onMouseDown = (event: MouseEvent) => {
-      const target = event.target as Node;
-      // The Link button toggles the field itself.
-      if (!wrapper.current?.contains(target) && !anchor.current?.contains(target)) onClose(false);
+      const target = event.target as HTMLElement;
+      // The format bar's Link button toggles the field itself.
+      if (!wrapper.current?.contains(target) && !target.closest('[data-link-toggle]')) onClose(false);
     };
     document.addEventListener('mousedown', onMouseDown);
     return () => document.removeEventListener('mousedown', onMouseDown);
-  }, [anchor, onClose]);
+  }, [onClose]);
 
   const remove = () => {
     editor.chain().focus().extendMarkRange('link').unsetLink().run();
@@ -371,14 +386,19 @@ function LinkField({
   );
 }
 
-function Toolbar({
+/** The format bar at the bottom of the window (⌥⌘,), with the note's length beside it. */
+function FormatBar({
   editor,
   linkOpen,
   setLinkOpen,
+  length,
+  onToggleCount,
 }: {
   editor: Editor;
   linkOpen: boolean;
   setLinkOpen(open: boolean): void;
+  length: string;
+  onToggleCount(): void;
 }) {
   const state = useEditorState({
     editor,
@@ -402,7 +422,6 @@ function Toolbar({
     }),
   });
   const disabled = !state.editable;
-  const linkAnchor = useRef<HTMLDivElement>(null);
   const chain = () => editor.chain().focus();
   const refocus = () => editor.commands.focus();
 
@@ -486,67 +505,68 @@ function Toolbar({
   );
 
   return (
-    <div
-      className="toolbar"
-      role="toolbar"
-      aria-label="Formatting"
-      onMouseDown={keepEditorFocus}
-      onKeyDown={moveAlongToolbar}
-    >
-      <Menu
-        label="Heading"
-        icon={<Heading size={17} />}
-        active={state.heading > 0}
-        disabled={disabled}
-        kind="radio"
-        items={headings}
-        onDismiss={refocus}
-      />
-      <Menu
-        label="Text style"
-        icon={<TextCursor size={17} />}
-        active={state.bold || state.italic || state.strike}
-        disabled={disabled}
-        kind="checkbox"
-        items={styles}
-        onDismiss={refocus}
-      />
-      <div className="toolbar__menu" ref={linkAnchor}>
-        {toggle('Link', [MOD, 'K'], <Link size={17} />, state.link || linkOpen, () => {
-          setLinkOpen(!linkOpen);
-          // Closing the field from its button: back to the note, not nowhere.
-          if (linkOpen) refocus();
-        })}
-        {linkOpen && (
-          <LinkField
-            editor={editor}
-            anchor={linkAnchor}
-            onClose={(refocusEditor) => {
-              setLinkOpen(false);
-              if (refocusEditor) refocus();
-            }}
-          />
+    <div className="format-bar">
+      <div
+        className="toolbar"
+        role="toolbar"
+        aria-label="Formatting"
+        onMouseDown={keepEditorFocus}
+        onKeyDown={moveAlongToolbar}
+      >
+        <Menu
+          label="Heading"
+          icon={<Heading size={16} />}
+          active={state.heading > 0}
+          disabled={disabled}
+          kind="radio"
+          items={headings}
+          onDismiss={refocus}
+        />
+        <Menu
+          label="Text style"
+          icon={<TextCursor size={16} />}
+          active={state.bold || state.italic || state.strike}
+          disabled={disabled}
+          kind="checkbox"
+          items={styles}
+          onDismiss={refocus}
+        />
+        <span className="toolbar__menu" data-link-toggle="">
+          {toggle('Link', [MOD, 'L'], <Link size={16} />, state.link || linkOpen, () => {
+            setLinkOpen(!linkOpen);
+            // Closing the field from its button: back to the note, not nowhere.
+            if (linkOpen) refocus();
+          })}
+        </span>
+        {toggle('Inline code', [MOD, 'E'], <Code size={16} />, state.code, () => chain().toggleCode().run())}
+        <span className="toolbar__divider" aria-hidden="true" />
+        {toggle('Code block', [MOD, ALT, 'C'], <SquareCode size={16} />, state.codeBlock, () =>
+          chain().toggleCodeBlock().run(),
         )}
+        {toggle('Quote', [MOD, SHIFT, 'B'], <TextQuote size={16} />, state.blockquote, () =>
+          chain().toggleBlockquote().run(),
+        )}
+        <span className="toolbar__divider" aria-hidden="true" />
+        <Menu
+          label="List"
+          icon={<List size={16} />}
+          active={state.list !== ''}
+          disabled={disabled}
+          kind="radio"
+          align="end"
+          items={lists}
+          onDismiss={refocus}
+        />
       </div>
-      {toggle('Inline code', [MOD, 'E'], <Code size={17} />, state.code, () => chain().toggleCode().run())}
-      <span className="toolbar__divider" aria-hidden="true" />
-      {toggle('Code block', [MOD, ALT, 'C'], <SquareCode size={17} />, state.codeBlock, () =>
-        chain().toggleCodeBlock().run(),
-      )}
-      {toggle('Quote', [MOD, SHIFT, 'B'], <TextQuote size={17} />, state.blockquote, () =>
-        chain().toggleBlockquote().run(),
-      )}
-      <span className="toolbar__divider" aria-hidden="true" />
-      <Menu
-        label="List"
-        icon={<List size={17} />}
-        active={state.list !== ''}
-        disabled={disabled}
-        kind="radio"
-        align="end"
-        items={lists}
-        onDismiss={refocus}
-      />
+      <button
+        type="button"
+        className="format-bar__count"
+        onMouseDown={keepEditorFocus}
+        onClick={onToggleCount}
+        title="Switch between characters and words"
+      >
+        {length}
+      </button>
     </div>
   );
 }
@@ -558,26 +578,66 @@ export interface NoteEditorProps {
   text: string;
   /** Bump to put the cursor at the end of the note. */
   focusRequest: number;
-  onChange(markdown: string): void;
+  /** Bump to open the link field, as ⌘L does. */
+  linkRequest: number;
+  /**
+   * An edit, and the note it was made in: the one the editor was showing, which for a moment
+   * after you switch notes is still the one you left.
+   */
+  onChange(markdown: string, noteId: string | null): void;
+  /** Show the format bar at the bottom of the window. */
+  formatBar: boolean;
+  /** The note's length, like "12 characters", shown at the end of the format bar. */
+  length: string;
+  onToggleCount(): void;
+  /** The editor once it's ready, for the window's actions: find, copy, format. */
+  onEditor(editor: Editor | null): void;
+  /** Whether the note is shown as Markdown because the editor can't show all of it. */
+  onSourceChange(source: boolean): void;
+  /** The window height the note would like: everything around it plus all of its text. */
+  onHeightChange(height: number): void;
+  /** The note's text size, which changes its height. */
+  zoom: number;
 }
 
 /**
  * Rich editing over plain Markdown: you see headings, lists and checkboxes, and the file
  * on disk stays Markdown any app can read.
  */
-export function NoteEditor({ noteId, text, focusRequest, onChange }: NoteEditorProps) {
+export function NoteEditor({
+  noteId,
+  text,
+  focusRequest,
+  linkRequest,
+  onChange,
+  formatBar,
+  length,
+  onToggleCount,
+  onEditor,
+  onSourceChange,
+  onHeightChange,
+  zoom,
+}: NoteEditorProps) {
   const [linkOpen, setLinkOpen] = useState(false);
   /** The note has Markdown the editor can't show, so it's edited as plain text instead. */
   const [source, setSource] = useState(false);
   const sourceRef = useRef(false);
   const sourceArea = useRef<HTMLTextAreaElement>(null);
+  const scroller = useRef<HTMLDivElement>(null);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+  const onHeightRef = useRef(onHeightChange);
+  onHeightRef.current = onHeightChange;
   /** What the editor holds, as Markdown, so a re-render with the same text leaves it alone. */
   const shownText = useRef<string | null>(null);
   const shownNote = useRef<string | null>(null);
 
-  const extensions = useMemo(() => noteExtensions({ onLinkShortcut: () => setLinkOpen(true) }), []);
+  const slashKeys = useRef<MenuKeys | null>(null);
+  const emojiKeys = useRef<MenuKeys | null>(null);
+  const extensions = useMemo(
+    () => noteExtensions({ onLinkShortcut: () => setLinkOpen(true), slashKeys, emojiKeys }),
+    [],
+  );
   const editor = useEditor({
     extensions,
     editable: false,
@@ -604,12 +664,23 @@ export function NoteEditor({ noteId, text, focusRequest, onChange }: NoteEditorP
     onUpdate: ({ editor: changed }) => {
       const markdown = changed.getMarkdown();
       shownText.current = markdown;
-      onChangeRef.current(markdown);
+      onChangeRef.current(markdown, shownNote.current);
     },
   });
 
-  // Show another note, or edits made to this one elsewhere.
+  const slash = useEditorState({ editor, selector: ({ editor: e }) => (e ? slashState(e) : null) });
+  const emoji = useEditorState({ editor, selector: ({ editor: e }) => (e ? emojiState(e) : null) });
+
   useEffect(() => {
+    onEditor(editor);
+    return () => onEditor(null);
+  }, [editor, onEditor]);
+
+  useEffect(() => onSourceChange(source), [source, onSourceChange]);
+
+  // Show another note, or edits made to this one elsewhere. Before the window is drawn, so a
+  // note never shows under another's title, nor takes a keystroke meant for it.
+  useLayoutEffect(() => {
     if (!editor) return;
     const switched = shownNote.current !== noteId;
     if (switched || text !== shownText.current) {
@@ -618,6 +689,7 @@ export function NoteEditor({ noteId, text, focusRequest, onChange }: NoteEditorP
       const faithful = !editor.markdown || showsFaithfully(editor.markdown, text);
       sourceRef.current = !faithful;
       setSource(!faithful);
+      const { query } = findState(editor);
       // Loading a note isn't an edit: nothing gets autolinked, and the note gets its own undo
       // history, so undo never brings back another note or an older copy of this one.
       editor
@@ -627,23 +699,80 @@ export function NoteEditor({ noteId, text, focusRequest, onChange }: NoteEditorP
         .run();
       const { doc, plugins } = editor.state;
       editor.view.updateState(EditorState.create({ doc, plugins }));
-      editor.view.dispatch(editor.state.tr);
+      // Find in Note, if it's open, goes on looking in what's shown now.
+      editor.view.dispatch(query ? editor.state.tr.setMeta(findKey, { query, index: 0 }) : editor.state.tr);
       if (switched) setLinkOpen(false);
     }
     const editable = noteId !== null && !sourceRef.current;
     if (editor.isEditable !== editable) editor.setEditable(editable, false);
   }, [editor, noteId, text]);
 
+  // Each request puts the cursor in once, when there's a note to put it in. Another note
+  // showing doesn't take the keyboard from a popover.
+  const focused = useRef(0);
   useEffect(() => {
-    if (focusRequest === 0 || !noteId) return;
+    if (focusRequest === focused.current || !noteId) return;
     if (sourceRef.current) {
+      // The Markdown field appears a render after the note does.
       const area = sourceArea.current;
-      area?.focus();
-      area?.setSelectionRange(area.value.length, area.value.length);
-    } else {
-      editor?.commands.focus('end');
+      if (!source || !area) return;
+      focused.current = focusRequest;
+      area.focus();
+      area.setSelectionRange(area.value.length, area.value.length);
+    } else if (editor && !editor.isDestroyed) {
+      focused.current = focusRequest;
+      // Right away, not on the next frame as Tiptap's focus command does, so a popover opened
+      // straight after (⌘N then ⌘K) keeps the keyboard.
+      const { tr, doc } = editor.state;
+      editor.view.dispatch(tr.setSelection(Selection.atEnd(doc)).scrollIntoView());
+      editor.view.focus();
     }
-  }, [editor, focusRequest, noteId]);
+  }, [editor, focusRequest, noteId, source]);
+
+  useEffect(() => {
+    if (linkRequest > 0 && editor?.isEditable) setLinkOpen(true);
+  }, [editor, linkRequest]);
+
+  // How tall the window would need to be to show the whole note: what's around the note,
+  // plus the note's own height, measured to its last line so the window's height can't feed back in.
+  // The editor fills the window whatever it holds, so it's measured again whenever the note
+  // changes (typed, or another note shown) and at a new text size (zoom).
+  useLayoutEffect(() => {
+    const box = scroller.current;
+    if (!editor || !box) return;
+    let frame = 0;
+    const measure = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const around = window.innerHeight - box.clientHeight;
+        if (sourceRef.current) {
+          onHeightRef.current(around + box.clientHeight);
+          return;
+        }
+        const dom = editor.view.dom as HTMLElement;
+        const last = dom.lastElementChild as HTMLElement | null;
+        const style = getComputedStyle(dom);
+        const top = dom.getBoundingClientRect().top;
+        const bottom = last
+          ? last.getBoundingClientRect().bottom - top + Number.parseFloat(getComputedStyle(last).marginBottom)
+          : Number.parseFloat(style.paddingTop);
+        onHeightRef.current(Math.ceil(around + bottom + Number.parseFloat(style.paddingBottom)));
+      });
+    };
+    const onTransaction = ({ transaction }: EditorEvents['transaction']) => {
+      if (transaction.docChanged) measure();
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(box);
+    observer.observe(editor.view.dom);
+    editor.on('transaction', onTransaction);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+      editor.off('transaction', onTransaction);
+    };
+  }, [editor, zoom]);
 
   return (
     <>
@@ -655,23 +784,49 @@ export function NoteEditor({ noteId, text, focusRequest, onChange }: NoteEditorP
             value={text}
             onChange={(event) => {
               shownText.current = event.target.value;
-              onChangeRef.current(event.target.value);
+              onChangeRef.current(event.target.value, shownNote.current);
             }}
             aria-label="Note"
             disabled={!noteId}
           />
         )}
-        <EditorContent editor={editor} className="notes__scroller" hidden={source} />
+        <EditorContent editor={editor} className="notes__scroller" hidden={source} ref={scroller} />
       </main>
-      <footer className="notes__footer">
-        {source ? (
-          <p className="notes__notice" role="status">
-            Shown as Markdown: this note has things the editor can’t show yet, like a table or front matter.
-          </p>
-        ) : (
-          editor && <Toolbar editor={editor} linkOpen={linkOpen} setLinkOpen={setLinkOpen} />
-        )}
-      </footer>
+      {editor && slash && !linkOpen && <SlashMenu editor={editor} match={slash} keys={slashKeys} />}
+      {editor && emoji && !linkOpen && <EmojiMenu editor={editor} match={emoji} keys={emojiKeys} />}
+      {editor && linkOpen && (
+        <LinkField
+          editor={editor}
+          onClose={(refocus) => {
+            setLinkOpen(false);
+            if (refocus) editor.commands.focus();
+          }}
+        />
+      )}
+      {formatBar && (
+        <footer className="notes__footer">
+          {source ? (
+            <p className="notes__notice" role="status">
+              Shown as Markdown: this note has things the editor can’t show yet, like a table or front matter.
+            </p>
+          ) : (
+            editor && (
+              <FormatBar
+                editor={editor}
+                linkOpen={linkOpen}
+                setLinkOpen={setLinkOpen}
+                length={length}
+                onToggleCount={onToggleCount}
+              />
+            )
+          )}
+        </footer>
+      )}
+      {!formatBar && source && (
+        <p className="notes__notice notes__notice--floating" role="status">
+          Shown as Markdown: this note has things the editor can’t show yet, like a table or front matter.
+        </p>
+      )}
     </>
   );
 }
