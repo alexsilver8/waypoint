@@ -204,7 +204,7 @@ export function OnboardingApp() {
       case 'accessibility':
         return <AccessibilityStep status={accessibility} onOpen={() => api.openAccessibility()} />;
       case 'preferences':
-        return <PreferencesStep state={state} platform={platform} onUpdate={update} />;
+        return <PreferencesStep state={state} onUpdate={update} />;
       case 'ready':
         return <ReadyStep state={state} platform={platform} />;
     }

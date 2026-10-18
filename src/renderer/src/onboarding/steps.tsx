@@ -290,19 +290,15 @@ export function AccessibilityStep({ status, onOpen }: { status: AccessibilitySta
 
 export function PreferencesStep({
   state,
-  platform,
   onUpdate,
 }: {
   state: OnboardingState;
-  platform: Platform;
   onUpdate(patch: OnboardingPatch): void;
 }) {
   const { theme, clipboardHistory, launchAtLogin } = state.settings;
   const loginDescription = state.canLaunchAtLogin
     ? 'Start Waypoint when you log in, so your shortcut always works.'
-    : platform === 'linux'
-      ? 'Not available on Linux yet.'
-      : 'Works in the installed app, not when running from source.';
+    : 'Works in the installed app, not when running from source.';
   return (
     <>
       <ThemePicker showLegend value={theme} onChange={(next) => onUpdate({ theme: next })} />

@@ -153,9 +153,7 @@ function General({ state, update }: SectionProps) {
           description={
             info.canLaunchAtLogin
               ? 'Start Waypoint when you log in.'
-              : info.platform === 'linux'
-                ? 'Not available on Linux yet.'
-                : 'Works in the installed app, not when running from source.'
+              : 'Works in the installed app, not when running from source.'
           }
         >
           <Toggle

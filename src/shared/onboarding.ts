@@ -37,7 +37,7 @@ export interface OnboardingState {
   activeHotkey?: string;
   steps: OnboardingStep[];
   accessibility: AccessibilityStatus;
-  /** Launching at login works in the installed app on macOS and Windows. */
+  /** Only the installed app can open at login, not a copy run from source. */
   canLaunchAtLogin: boolean;
   /** A Wayland session, where global shortcuts may not reach the app. */
   wayland: boolean;

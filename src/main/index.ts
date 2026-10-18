@@ -19,6 +19,7 @@ import { hostServices } from './extensions/services';
 import { HotkeyManager } from './hotkey';
 import { handleIconProtocol, registerIconScheme } from './icon-protocol';
 import { registerIpc } from './ipc';
+import { canLaunchAtLogin, syncLoginItem } from './login-item';
 import { captureDeeplinks, deeplinkIn, handleDeeplinks, registerDeeplinkScheme } from './notes/deeplink';
 import { registerNotesIpc } from './notes/ipc';
 import { NotesStore } from './notes/store';
@@ -197,7 +198,7 @@ async function main(): Promise<void> {
     window: onboardingWindow,
     hotkeys,
     platform,
-    canLaunchAtLogin: platform !== 'linux' && app.isPackaged,
+    canLaunchAtLogin: canLaunchAtLogin(),
     onFinish: finishOnboarding,
   });
   registry.on('change', () => {
@@ -227,17 +228,6 @@ async function main(): Promise<void> {
     onReloadExtensions: () => void registry.loadUserExtensions(),
   });
 
-  // Only the installed app can register itself to open at login: in development macOS
-  // refuses ("Operation not permitted"), and it would register Electron itself anyway.
-  const syncLoginItem = (openAtLogin: boolean) => {
-    if (platform === 'linux' || !app.isPackaged) return;
-    try {
-      if (app.getLoginItemSettings().openAtLogin !== openAtLogin) app.setLoginItemSettings({ openAtLogin });
-    } catch (error) {
-      console.warn('[login item] Could not update:', error);
-    }
-  };
-
   const apply = (current: Settings, previous?: Settings) => {
     if (current.hotkey !== previous?.hotkey && !hotkeys.set(current.hotkey)) {
       const fallback = hotkeys.current ? ` Still using ${hotkeys.current}.` : '';
@@ -250,7 +240,7 @@ async function main(): Promise<void> {
     }
     tray.refresh();
     nativeTheme.themeSource = current.theme;
-    syncLoginItem(current.launchAtLogin);
+    syncLoginItem(platform, settings, current, previous);
     clipboardHistory.setMaxItems(current.clipboardHistory.maxItems);
     if (current.clipboardHistory.enabled) void clipboardHistory.start();
     else clipboardHistory.stop();

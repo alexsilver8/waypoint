@@ -30,7 +30,7 @@ export interface SettingsState {
     /** `settings.notesDirectory` resolved, or the default. */
     notesDirectory: string;
     clipboardEntries: number;
-    /** Launching at login isn't supported everywhere (e.g. Linux). */
+    /** Only the installed app can open at login, not a copy run from source. */
     canLaunchAtLogin: boolean;
     /** Running the installed app, rather than from source. */
     packaged: boolean;

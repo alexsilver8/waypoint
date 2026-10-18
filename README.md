@@ -188,13 +188,15 @@ Raycast's `@raycast.` headers are read the same way, so the scripts in [raycast/
 
 Open **Settings** with <kbd>⌘</kbd> <kbd>,</kbd> in the launcher, the **Open Settings** command, or **Settings…** in the tray menu. There you can record a new shortcut, pick light or dark, choose how much clipboard history to keep, move your notes folder and manage extensions.
 
+**Open at login** starts Waypoint quietly in the tray when you log in. On macOS and Windows it's added to the system's login items. On Linux, Waypoint writes `~/.config/autostart/dev.waypoint.app.desktop` (under `$XDG_CONFIG_HOME` if you set it), which GNOME, KDE, Xfce, Cinnamon and most other desktops follow, and turning it off removes the file. An AppImage is started from where the AppImage file is: if you move it, open it once from its new place and the entry follows. It works in the installed app, not when running from source.
+
 Everything is also saved in `settings.json` (**Settings → About → Edit settings.json**), and changes you make there apply as soon as you save:
 
 ```jsonc
 {
   "hotkey": "Alt+Space",              // any Electron accelerator, e.g. "CommandOrControl+Shift+Space"
   "hideOnBlur": true,                 // close when you click elsewhere
-  "launchAtLogin": false,             // macOS and Windows
+  "launchAtLogin": false,             // start in the tray when you log in (the installed app)
   "theme": "system",                  // "light" or "dark"
   "clipboardHistory": { "enabled": true, "maxItems": 200 },
   "extensionDirectories": [],         // more places to load extensions from

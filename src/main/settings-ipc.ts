@@ -10,6 +10,7 @@ import {
 import type { Platform } from '../shared/types';
 import type { ClipboardHistory } from './clipboard/history';
 import { changeHotkey, type HotkeyManager } from './hotkey';
+import { canLaunchAtLogin } from './login-item';
 import type { CommandRegistry } from './registry';
 import type { SettingsStore } from './settings';
 import type { SettingsWindow } from './settings-window';
@@ -66,7 +67,7 @@ export function registerSettingsIpc(options: SettingsIpcOptions): { notifyChange
         extensionsDirectory: paths.extensionsDirectory,
         notesDirectory: paths.notesDirectory(),
         clipboardEntries: clipboardHistory.entries().length,
-        canLaunchAtLogin: platform !== 'linux' && app.isPackaged,
+        canLaunchAtLogin: canLaunchAtLogin(),
         packaged: app.isPackaged,
       },
     };

@@ -4,7 +4,7 @@ export interface Settings {
   hotkey: string;
   /** Hide the launcher when it loses focus. */
   hideOnBlur: boolean;
-  /** Start Waypoint when you log in (macOS and Windows). */
+  /** Start Waypoint in the tray when you log in (the installed app, on every system). */
   launchAtLogin: boolean;
   theme: 'system' | 'light' | 'dark';
   clipboardHistory: {
