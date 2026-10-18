@@ -153,12 +153,16 @@ async function main(): Promise<void> {
     onboardingWindow.close();
     launcher.show();
   };
-  const onboardingWindow = new OnboardingWindow(() => {
-    // Closing it mid-recording mustn't leave the shortcut paused.
-    hotkeys.resume();
-    // Closed some other way than its buttons (⌘W, Alt+F4), it counts as skipped. Quitting
-    // halfway doesn't, so setup opens again next time.
-    if (!quitting && onboarding.pending) finishOnboarding('skipped');
+  const onboardingWindow = new OnboardingWindow({
+    onClosed: () => {
+      // Closing it mid-recording mustn't leave the shortcut paused.
+      hotkeys.resume();
+      // Closed some other way than its buttons (⌘W, Alt+F4), it counts as skipped. Quitting
+      // halfway doesn't, so setup opens again next time.
+      if (!quitting && onboarding.pending) finishOnboarding('skipped');
+    },
+    // Nor must its page going away mid-recording.
+    onPageGone: () => hotkeys.resume(),
   });
 
   // While setup is open the shortcut answers there instead, so you can try it.
@@ -198,7 +202,11 @@ async function main(): Promise<void> {
   app.on('second-instance', (_event, argv: readonly string[] | undefined) => {
     const link = deeplinkIn(argv);
     if (link) openDeeplink(link);
-    else if (onboardingWindow.isOpen || argv?.includes('--onboarding')) onboardingWindow.open();
+    else if (argv?.includes('--onboarding')) onboardingWindow.open();
+    // On Linux, running `waypoint` again is how a desktop shortcut opens Waypoint where global
+    // shortcuts don't arrive (Wayland), so during setup it counts as the shortcut being pressed.
+    else if (onboardingWindow.isOpen && platform === 'linux') onboardingWindow.hotkeyPressed();
+    else if (onboardingWindow.isOpen) onboardingWindow.open();
     else launcher.show();
   });
   handleDeeplinks(openDeeplink);

@@ -10,6 +10,13 @@ const HEIGHT = 620;
 
 const isMac = process.platform === 'darwin';
 
+export interface OnboardingWindowOptions {
+  /** The window closed, however that happened. */
+  onClosed(): void;
+  /** Its page went away (it crashed, say) and is loading again. */
+  onPageGone(): void;
+}
+
 /**
  * The setup window that opens on first launch. Like the launcher it's clear and the page draws
  * floating panes: the steps down the left, the step's name in a capsule along the top and the
@@ -18,8 +25,7 @@ const isMac = process.platform === 'darwin';
 export class OnboardingWindow {
   private window: BrowserWindow | undefined;
 
-  /** `onClosed` runs whenever the window closes, however that happened. */
-  constructor(private readonly onClosed: () => void) {}
+  constructor(private readonly options: OnboardingWindowOptions) {}
 
   get webContents(): Electron.WebContents | undefined {
     return this.window?.webContents;
@@ -78,11 +84,12 @@ export class OnboardingWindow {
     window.once('ready-to-show', () => this.open());
     window.webContents.on('render-process-gone', (_event, details) => {
       console.error(`[onboarding] Renderer gone: ${details.reason}`);
+      this.options.onPageGone();
       if (details.reason !== 'clean-exit') loadPage(window, 'onboarding', 'none');
     });
     window.on('closed', () => {
       this.window = undefined;
-      this.onClosed();
+      this.options.onClosed();
     });
     loadPage(window, 'onboarding', 'none');
     return window;

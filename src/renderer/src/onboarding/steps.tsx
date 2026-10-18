@@ -182,7 +182,11 @@ export function ShortcutStep({
             );
           })}
         </fieldset>
-        {pickError && <span className="hotkey__message">{pickError}</span>}
+        {pickError && (
+          <span className="hotkey__message" role="alert">
+            {pickError}
+          </span>
+        )}
       </div>
       <div aria-live="polite">
         {tried ? (

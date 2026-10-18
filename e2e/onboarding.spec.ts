@@ -76,6 +76,13 @@ test('opens on a fresh install and walks through to the launcher', async () => {
   await setup.keyboard.press('Escape');
   await expect(title).toHaveText('Welcome to Waypoint');
   await setup.keyboard.press('Enter');
+  await expect(title).toHaveText('Pick your shortcut');
+
+  // A recorded shortcut is saved, and ↵ afterwards carries on rather than recording again.
+  await setup.getByRole('button', { name: /^Shortcut:/ }).click();
+  await expect(setup.getByText('Press a shortcut…')).toBeVisible();
+  await setup.keyboard.press('Control+Shift+K');
+  await expect.poll(() => saved('settings.json').hotkey).toBe('Control+Shift+K');
   await setup.keyboard.press('Enter');
   if (mac) {
     await expect(title).toHaveText('Allow Accessibility');
@@ -91,15 +98,20 @@ test('opens on a fresh install and walks through to the launcher', async () => {
   await setup.keyboard.press('Enter');
 
   await expect(title).toHaveText('You’re all set');
-  await expect(setup.locator('.ready__keys')).toHaveText(mac ? '⌃Space' : 'CtrlSpace');
+  await expect(setup.locator('.ready__keys')).toHaveText(mac ? '⌃⇧K' : 'CtrlShiftK');
   // The dock goes back to any step you've been to.
   await setup.getByRole('button', { name: 'Welcome, done', exact: true }).click();
   await expect(title).toHaveText('Welcome to Waypoint');
   await setup.getByRole('button', { name: 'Ready', exact: true }).click();
   await expect(title).toHaveText('You’re all set');
 
-  // On the last step the shortcut opens the launcher, and setup is done.
-  await pressShortcut();
+  // On the last step the shortcut opens the launcher, and setup is done. On Linux, running
+  // `waypoint` again (what a desktop shortcut does on Wayland) counts as the shortcut.
+  if (process.platform === 'linux') {
+    await app.evaluate(({ app: electronApp }) => electronApp.emit('second-instance', {}, ['waypoint']));
+  } else {
+    await pressShortcut();
+  }
   await expect.poll(showing).toEqual(['index.html']);
   expect(saved('onboarding.json')).toMatchObject({ status: 'finished' });
 });

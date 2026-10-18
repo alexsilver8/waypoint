@@ -29,18 +29,36 @@ export function HotkeyRecorder({ value, active, platform, recorder, large }: Hot
   const field = useRef<HTMLButtonElement>(null);
   const recordingRef = useRef(false);
   recordingRef.current = recording;
+  /** What had the keyboard before a click started recording, to hand it back afterwards. */
+  const returnFocus = useRef<HTMLElement | null>(null);
+
+  /**
+   * Gives the keyboard back once recording ends, if the field only had it for recording. In
+   * setup, where clicks don't take focus, ↵ then continues instead of recording again.
+   */
+  const handBack = useCallback(() => {
+    const previous = returnFocus.current;
+    returnFocus.current = null;
+    if (previous?.isConnected && document.activeElement === field.current) previous.focus({ preventScroll: true });
+  }, []);
 
   const stop = useCallback(() => {
+    // Set now, not on the next render: handing the keyboard back blurs the field, and that mustn't stop it again.
+    recordingRef.current = false;
     setRecording(false);
     setHeld([]);
     recorder.pause(false);
-  }, [recorder]);
+    handBack();
+  }, [recorder, handBack]);
 
   const start = () => {
     setError(undefined);
+    recordingRef.current = true;
     setRecording(true);
     recorder.pause(true);
     // Windows that keep the keyboard on themselves when clicked (setup does) don't focus the field.
+    const previous = document.activeElement;
+    returnFocus.current = previous instanceof HTMLElement && previous !== field.current ? previous : null;
     field.current?.focus();
   };
 
@@ -76,8 +94,10 @@ export function HotkeyRecorder({ value, active, platform, recorder, large }: Hot
     } else if (result.kind === 'invalid') {
       setError(result.reason);
     } else {
+      recordingRef.current = false;
       setRecording(false);
       setHeld([]);
+      handBack();
       setError(await recorder.record(result.accelerator));
     }
   };
@@ -96,7 +116,7 @@ export function HotkeyRecorder({ value, active, platform, recorder, large }: Hot
         onKeyUp={(event) => {
           if (recording) setHeld(heldModifiers(event, platform));
         }}
-        onBlur={() => recording && stop()}
+        onBlur={() => recordingRef.current && stop()}
         aria-label={recording ? 'Press the new shortcut, or Escape to cancel' : `Shortcut: ${value}. Click to change`}
       >
         {recording ? (
@@ -114,9 +134,13 @@ export function HotkeyRecorder({ value, active, platform, recorder, large }: Hot
           {recording ? `Press the keys you want, or ${escapeKey} to cancel` : 'Click to record a different one'}
         </span>
       )}
-      {error && <span className="hotkey__message">{error}</span>}
+      {error && (
+        <span className="hotkey__message" role="alert">
+          {error}
+        </span>
+      )}
       {!error && notWorking && (
-        <span className="hotkey__message">
+        <span className="hotkey__message" role="status">
           {active
             ? `Couldn’t register this one, so ${active} is in use.`
             : 'This shortcut isn’t working. Pick another.'}
