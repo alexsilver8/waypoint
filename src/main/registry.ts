@@ -60,6 +60,8 @@ export interface RegistryOptions {
   rootSources?: Array<() => RootItem[] | Promise<RootItem[]>>;
   /** The global shortcut that runs a command, by `"<extension>/<command>"`, shown beside it. */
   commandHotkey?: (key: string) => string | undefined;
+  /** The alias that finds a command first, by `"<extension>/<command>"`, shown beside it. */
+  commandAlias?: (key: string) => string | undefined;
 }
 
 /** A command that's available on this computer. */
@@ -73,6 +75,8 @@ export interface CommandInfo {
 
 /** Opens Settings at a command's shortcut; its argument is the command's key. */
 const SET_SHORTCUT_REF: CommandRef = { extension: 'waypoint', command: 'settings' };
+/** Opens Settings at a command's alias; its argument is the command's key. */
+const SET_ALIAS_REF: CommandRef = { extension: 'waypoint', command: 'alias' };
 
 const REVEAL_LABEL: Record<Platform, string> = {
   darwin: 'Show in Finder',
@@ -249,6 +253,7 @@ export class CommandRegistry extends EventEmitter<{ change: [] }> {
         const ref = { extension: extension.manifest.name, command: command.name };
         const id = commandItemId(ref);
         const hotkey = this.options.commandHotkey?.(commandKey(ref));
+        const alias = this.options.commandAlias?.(commandKey(ref));
         const item: RootItem = {
           id,
           kind: 'command',
@@ -266,9 +271,17 @@ export class CommandRegistry extends EventEmitter<{ change: [] }> {
               // Not ⌘↵, which did nothing on a command, and not a use of the command.
               panelOnly: true,
             },
+            {
+              type: 'open-command',
+              ref: SET_ALIAS_REF,
+              argument: commandKey(ref),
+              title: alias ? 'Change Alias…' : 'Set Alias…',
+              panelOnly: true,
+            },
           ],
         };
         if (hotkey) item.hotkey = hotkey;
+        if (alias) item.alias = alias;
         const icon = command.icon ?? extension.manifest.icon;
         if (icon) item.icon = icon;
         if (command.keywords) item.keywords = command.keywords;

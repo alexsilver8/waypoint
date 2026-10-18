@@ -83,6 +83,14 @@ Pressing it runs the command as if you'd picked it in the launcher, so it rises 
 
 A shortcut a command can't use, because the launcher or another command has it or another app took it first, isn't lost quietly: the launcher says so, and Settings shows why beside it. While you record a shortcut, the others are paused, so pressing one records it rather than running it. The launcher's shortcut and the commands' show beside them in the results and at the top of <kbd>⌘</kbd> <kbd>K</kbd>.
 
+### Command aliases
+
+A command can also have an alias: a short word to type in the launcher, like `lh` for **Left Half**. Choose **Set Alias…** from <kbd>⌘</kbd> <kbd>K</kbd>, or type one beside the command under **Command shortcuts** in **Settings → Extensions**, and press <kbd>↵</kbd>. Empty the field or press the × to remove it.
+
+Typing the whole alias puts its command first, above anything else that matches; typing the start of one ranks it high too. The alias shows beside the command in the results. Aliases are one word, without spaces, and case doesn't matter, so `LH` is `lh`. Each belongs to one command: if another command has it, Settings says which and leaves both as they were.
+
+An alias comes before a snippet's keyword or a quicklink's name, since you gave it to that command on purpose: with `!sig` as an alias, typing `!sig` puts the command above the snippet, which is still the next result. Anything typed after it, like `gh waypoint`, still goes to a quicklink, and snippets still expand as you type in other apps.
+
 ## Notes
 
 <img src="docs/images/notes.png" width="531" alt="The Notes window with Browse Notes open over it and hanging below it, listing a pinned note and the rest by when they were last open">
@@ -261,7 +269,7 @@ Raycast's `@raycast.` headers are read the same way, so the scripts in [raycast/
 
 ## Settings
 
-Open **Settings** with <kbd>⌘</kbd> <kbd>,</kbd> in the launcher, the **Open Settings** command, or **Settings…** in the tray menu. There you can record a new shortcut, pick light or dark, choose how much clipboard history to keep, move your notes folder, make quicklinks and snippets, manage extensions and give any command a [shortcut of its own](#command-shortcuts).
+Open **Settings** with <kbd>⌘</kbd> <kbd>,</kbd> in the launcher, the **Open Settings** command, or **Settings…** in the tray menu. There you can record a new shortcut, pick light or dark, choose how much clipboard history to keep, move your notes folder, make quicklinks and snippets, manage extensions and give any command a [shortcut](#command-shortcuts) or an [alias](#command-aliases) of its own.
 
 **Open at login** starts Waypoint quietly in the tray when you log in. On macOS and Windows it's added to the system's login items. On Linux, Waypoint writes `~/.config/autostart/dev.waypoint.app.desktop` (under `$XDG_CONFIG_HOME` if you set it), which GNOME, KDE, Xfce, Cinnamon and most other desktops follow, and turning it off removes the file. An AppImage is started from where the AppImage file is: if you move it, open it once from its new place and the entry follows. It works in the installed app, not when running from source.
 
@@ -279,6 +287,9 @@ Everything is also saved in `settings.json` (**Settings → About → Edit setti
   "checkForUpdates": true,            // look for a new version every few hours (the installed app)
   "commandHotkeys": {                 // a shortcut for any command, by "<extension>/<command>"
     "window-management/left-half": "Control+Alt+Left"
+  },
+  "commandAliases": {                 // a word to type for any command, by "<extension>/<command>"
+    "window-management/left-half": "lh"
   }
 }
 ```

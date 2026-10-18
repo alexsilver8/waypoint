@@ -12,6 +12,8 @@ export interface DisplayItem extends ListItem {
   calculator?: { expression: string; result: string };
   /** For commands: the global shortcut that runs it, drawn beside it. */
   hotkey?: string;
+  /** For commands: the alias that finds it first, drawn beside it. */
+  alias?: string;
 }
 
 export interface DisplaySection {

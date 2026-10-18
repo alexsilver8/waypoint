@@ -1,4 +1,6 @@
 import { app, dialog, ipcMain, shell } from 'electron';
+import { withCommandAlias } from '../shared/command-aliases';
+import { commandKey, commandRefFromKey } from '../shared/command-hotkeys';
 import type { Settings } from '../shared/settings';
 import {
   SETTINGS_LINKS,
@@ -10,7 +12,7 @@ import {
 import type { SnippetExpansionStatus } from '../shared/snippets';
 import type { Platform } from '../shared/types';
 import type { ClipboardHistory } from './clipboard/history';
-import { type CommandHotkeys, changeCommandHotkey, commandShortcutList } from './command-hotkeys';
+import { type CommandHotkeys, changeCommandHotkey, commandShortcutList, commandTitles } from './command-hotkeys';
 import { changeHotkey, type HotkeyManager } from './hotkey';
 import { canLaunchAtLogin } from './login-item';
 import { ACCESSIBILITY_PANE } from './onboarding/ipc';
@@ -84,7 +86,12 @@ export function registerSettingsIpc(options: SettingsIpcOptions): { notifyChange
         ...(info.dir ? { dir: info.dir } : {}),
         ...(info.error ? { error: info.error } : {}),
       })),
-      commands: commandShortcutList(registry.listCommands(), store.get().commandHotkeys, commandHotkeys),
+      commands: commandShortcutList(
+        registry.listCommands(),
+        store.get().commandHotkeys,
+        commandHotkeys,
+        store.get().commandAliases,
+      ),
       quicklinks: entries.quicklinks.list(),
       snippets: entries.snippets.list(),
       info: {
@@ -187,6 +194,18 @@ export function registerSettingsIpc(options: SettingsIpcOptions): { notifyChange
     check(event);
     const error = changeCommandHotkey(hotkeys, commandHotkeys, store, key, accelerator);
     return error ? { state: state(), error } : { state: state() };
+  });
+
+  ipcMain.handle(SettingsChannel.setCommandAlias, (event, rawKey: unknown, alias: unknown) => {
+    check(event);
+    const ref = typeof rawKey === 'string' ? commandRefFromKey(rawKey) : undefined;
+    if (!ref) return { state: state(), error: 'That isn’t a command.' };
+    if (alias !== null && typeof alias !== 'string') return { state: state(), error: 'That isn’t an alias.' };
+    const titles = commandTitles(registry.listCommands());
+    const result = withCommandAlias(store.get().commandAliases, commandKey(ref), alias, titles);
+    if ('error' in result) return { state: state(), error: result.error };
+    store.update({ commandAliases: result.aliases });
+    return { state: state() };
   });
 
   ipcMain.on(SettingsChannel.openAccessibility, (event) => {

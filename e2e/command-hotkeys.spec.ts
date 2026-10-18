@@ -121,7 +121,7 @@ test('sets a command’s shortcut from Set Shortcut… and shows it beside the c
   );
   await page.keyboard.press(`${mod}+k`);
   await expect(panel.locator('.action-panel__hotkey .keycap')).toHaveCount(3);
-  await expect(panel.getByRole('option')).toHaveText([/^Run Command/, /^Change Shortcut…/]);
+  await expect(panel.getByRole('option')).toHaveText([/^Run Command/, /^Change Shortcut…/, /^Set Alias…/]);
 });
 
 test('refuses a clash in Settings, pauses command shortcuts while recording, and clears one', async () => {
@@ -146,6 +146,47 @@ test('refuses a clash in Settings, pauses command shortcuts while recording, and
   await expect.poll(() => settingsFile().commandHotkeys).toEqual({});
   await expect(settings.getByRole('button', { name: /^Shortcut for Left Half: none/ })).toBeVisible();
   expect(await registered('Control+Alt+L')).toBe(false);
+});
+
+test('sets a command’s alias from Set Alias…, finds the command first by it, and refuses one taken', async () => {
+  await page.keyboard.type('left half');
+  await expect(page.getByRole('option').first()).toContainText('Left Half');
+  await page.keyboard.press(`${mod}+k`);
+  await page.keyboard.type('set alias');
+  const panel = page.getByRole('dialog', { name: /Actions for Left Half/ });
+  await expect(panel.getByRole('option')).toHaveText([/^Set Alias…/]);
+  const [settings] = await Promise.all([app.waitForEvent('window'), page.keyboard.press('Enter')]);
+
+  // Settings opens at the command, ready to type it.
+  const field = settings.getByRole('textbox', { name: 'Alias for Left Half' });
+  await expect(field).toBeFocused();
+  await settings.keyboard.type('LH');
+  await settings.keyboard.press('Enter');
+  await expect.poll(() => settingsFile().commandAliases).toEqual({ [LEFT_HALF]: 'lh' });
+  await expect(field).toHaveValue('lh');
+
+  // Another command can't have it too.
+  const right = settings.getByRole('textbox', { name: 'Alias for Right Half' });
+  await right.fill('Lh');
+  await right.press('Enter');
+  await expect(settings.getByRole('alert')).toHaveText('Left Half already has that alias.');
+  expect(settingsFile().commandAliases).toEqual({ [LEFT_HALF]: 'lh' });
+
+  // Typed in the launcher, it puts the command first, with the alias beside it.
+  await startAgain();
+  await expect.poll(launcherVisible).toBe(true);
+  await page.keyboard.type('lh');
+  const row = page.getByRole('option').first();
+  await expect(row).toContainText('Left Half');
+  await expect(row.locator('.row__alias')).toHaveText('lh');
+  await page.keyboard.press(`${mod}+k`);
+  await expect(panel.locator('.action-panel__alias')).toHaveText('lh');
+  await expect(panel.getByRole('option')).toHaveText([/^Run Command/, /^Set Shortcut…/, /^Change Alias…/]);
+  await page.keyboard.press('Escape');
+
+  await settings.getByRole('button', { name: 'Remove the alias for Left Half' }).click();
+  await expect.poll(() => settingsFile().commandAliases).toEqual({});
+  await expect(field).toHaveValue('');
 });
 
 test('reports a shortcut written in settings.json that the launcher already uses', async () => {

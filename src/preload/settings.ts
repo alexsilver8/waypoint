@@ -16,6 +16,7 @@ const api: SettingsApi = {
   openOnboarding: () => ipcRenderer.send(SettingsChannel.openOnboarding),
   updateAction: () => ipcRenderer.send(SettingsChannel.updateAction),
   setCommandHotkey: (key, accelerator) => ipcRenderer.invoke(SettingsChannel.setCommandHotkey, key, accelerator),
+  setCommandAlias: (key, alias) => ipcRenderer.invoke(SettingsChannel.setCommandAlias, key, alias),
   saveQuicklink: (draft) => ipcRenderer.invoke(SettingsChannel.saveQuicklink, draft),
   deleteQuicklink: (id) => ipcRenderer.invoke(SettingsChannel.deleteQuicklink, id),
   saveSnippet: (draft) => ipcRenderer.invoke(SettingsChannel.saveSnippet, draft),
