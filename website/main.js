@@ -200,53 +200,6 @@ if ('IntersectionObserver' in window && !reduceMotion) {
   for (const el of revealables) el.classList.add('is-in');
 }
 
-// ── Included commands: rows that slide past ──────────────
-
-// Each row repeats its commands until half the track is wider than the screen, so sliding
-// it by half loops without a gap. The repeats are hidden from screen readers.
-const marquees = [...document.querySelectorAll('.marquee')];
-
-function fillMarquee(marquee) {
-  const track = marquee.querySelector('.marquee-track');
-  const list = track?.querySelector('.marquee-list');
-  if (!track || !list) return;
-  for (const copy of track.querySelectorAll('.marquee-copy')) copy.remove();
-  marquee.classList.add('is-moving');
-  const width = list.getBoundingClientRect().width;
-  if (!width) return;
-  const covers = Math.max(window.innerWidth, window.screen.width);
-  const perHalf = Math.ceil(covers / width);
-  for (let i = 1; i < perHalf * 2; i++) {
-    const copy = list.cloneNode(true);
-    copy.classList.add('marquee-copy');
-    copy.setAttribute('aria-hidden', 'true');
-    copy.removeAttribute('aria-label');
-    track.append(copy);
-  }
-  // data-speed is in pixels a second, so long and short rows move at the same pace.
-  const speed = Number(marquee.dataset.speed) || 40;
-  track.style.setProperty('--duration', `${(width * perHalf) / speed}s`);
-  marquee.dataset.covers = String(width * perHalf);
-}
-
-if (marquees.length && !reduceMotion) {
-  const fillAll = () => {
-    for (const marquee of marquees) fillMarquee(marquee);
-  };
-  fillAll();
-  // Measure again once the web font is in, since it changes how wide each command is.
-  document.fonts?.ready.then(fillAll);
-  let resizing;
-  window.addEventListener('resize', () => {
-    clearTimeout(resizing);
-    resizing = setTimeout(() => {
-      for (const marquee of marquees) {
-        if (window.innerWidth > Number(marquee.dataset.covers)) fillMarquee(marquee);
-      }
-    }, 200);
-  });
-}
-
 // ── Section rail: lights the dot of the chapter in view ──
 
 const rail = document.querySelector('.rail');
