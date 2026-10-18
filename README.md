@@ -304,10 +304,8 @@ Built-in commands implement the same interface as extensions, so anything a buil
 
 ## Roadmap
 
-- Form views and full Markdown detail views for extensions
-- An `@waypoint/api` package with types and helpers
-- Quicklinks and snippets
-- Keyboard shortcuts for any command, e.g. a key for Left Half
+- `@waypoint/api` on npm, so editors get its types without a copy of this repo
+- Snippets that expand as you type in any app
 - Code-signed, auto-updating releases
 
 Ideas and bug reports are welcome in [Issues](https://github.com/alexsilver8/waypoint/issues).
