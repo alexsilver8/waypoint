@@ -212,6 +212,12 @@ function Extensions({ state, update, setState, target }: SectionProps) {
       setReloading(false);
     }
   };
+  const [uninstallError, setUninstallError] = useState<string>();
+  const uninstall = async (name: string) => {
+    const { state: next, error } = await api.uninstallExtension(name);
+    setState(next);
+    setUninstallError(error);
+  };
 
   return (
     <>
@@ -223,6 +229,7 @@ function Extensions({ state, update, setState, target }: SectionProps) {
         </button>
       </p>
       <div className="button-row button-row--start">
+        <Button onClick={() => api.installExtension()}>Install Extension…</Button>
         <Button onClick={() => api.open('extensionsDirectory')}>Open Extensions Folder</Button>
         <Button onClick={() => void reload()} disabled={reloading}>
           {reloading ? 'Reloading…' : 'Reload Extensions'}
@@ -230,9 +237,15 @@ function Extensions({ state, update, setState, target }: SectionProps) {
       </div>
 
       <Group title="Installed">
+        {uninstallError && (
+          <p className="extension-list__error" role="alert">
+            {uninstallError}
+          </p>
+        )}
         {user.length === 0 ? (
           <p className="group__empty">
-            No extensions yet. Put an extension’s folder in the extensions folder, then reload.
+            No extensions yet. Install one from npm or a git repository, or put an extension’s folder in the extensions
+            folder, then reload.
           </p>
         ) : (
           <ul className="extension-list">
@@ -241,12 +254,20 @@ function Extensions({ state, update, setState, target }: SectionProps) {
                 key={`${extension.name}:${extension.dir}`}
                 className="extension"
                 data-failed={extension.error ? '' : undefined}
+                data-installed={extension.installed ? '' : undefined}
               >
-                <span className="extension__title">{extension.title}</span>
-                <span className="extension__meta">
-                  {extension.error ??
-                    `${extension.commands} command${extension.commands === 1 ? '' : 's'}, from ${extension.dir}`}
+                <span className="extension__text">
+                  <span className="extension__title">{extension.title}</span>
+                  <span className="extension__meta">
+                    {extension.error ??
+                      `${extension.commands} command${extension.commands === 1 ? '' : 's'}, ${extension.installed ?? `from ${extension.dir}`}`}
+                  </span>
                 </span>
+                {extension.installed && (
+                  <ConfirmButton confirm="Click again to uninstall" onConfirm={() => void uninstall(extension.name)}>
+                    Uninstall
+                  </ConfirmButton>
+                )}
               </li>
             ))}
           </ul>

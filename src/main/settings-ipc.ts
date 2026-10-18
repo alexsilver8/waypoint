@@ -1,3 +1,4 @@
+import { resolve } from 'node:path';
 import { app, dialog, ipcMain, shell } from 'electron';
 import type { Settings } from '../shared/settings';
 import {
@@ -8,9 +9,11 @@ import {
   type SettingsState,
 } from '../shared/settings-ipc';
 import type { SnippetExpansionStatus } from '../shared/snippets';
-import type { Platform } from '../shared/types';
+import type { CommandRef, Platform } from '../shared/types';
 import type { ClipboardHistory } from './clipboard/history';
 import { type CommandHotkeys, changeCommandHotkey, commandShortcutList } from './command-hotkeys';
+import { INSTALL_COMMAND, installedLabel } from './commands/extension-install';
+import type { ExtensionInstaller } from './extensions/installer';
 import { changeHotkey, type HotkeyManager } from './hotkey';
 import { canLaunchAtLogin } from './login-item';
 import { ACCESSIBILITY_PANE } from './onboarding/ipc';
@@ -36,6 +39,9 @@ export interface SettingsIpcOptions {
   /** Whether snippets expand as you type, and asking macOS for what that needs. */
   snippetExpansion: { readonly status: SnippetExpansionStatus; askForAccess(): void };
   updater: Updater;
+  installer: ExtensionInstaller;
+  /** Runs a command as if it was picked in the launcher. */
+  openCommand(ref: CommandRef): void;
 }
 
 const PATCHABLE: Array<keyof Settings> = [
@@ -65,6 +71,8 @@ export function registerSettingsIpc(options: SettingsIpcOptions): { notifyChange
     entries,
     snippetExpansion,
     updater,
+    installer,
+    openCommand,
   } = options;
 
   const check = (event: Electron.IpcMainInvokeEvent | Electron.IpcMainEvent) => {
@@ -73,17 +81,23 @@ export function registerSettingsIpc(options: SettingsIpcOptions): { notifyChange
 
   const state = (): SettingsState => {
     const activeHotkey = hotkeys.current;
+    const installed = new Map(installer.list().map((extension) => [resolve(extension.dir), extension]));
     return {
       settings: store.get(),
       ...(activeHotkey ? { activeHotkey } : {}),
-      extensions: registry.listExtensions().map((info) => ({
-        name: info.manifest?.name ?? info.dir ?? 'unknown',
-        title: info.manifest?.title ?? info.dir ?? 'Unknown extension',
-        source: info.source,
-        commands: info.manifest?.commands.length ?? 0,
-        ...(info.dir ? { dir: info.dir } : {}),
-        ...(info.error ? { error: info.error } : {}),
-      })),
+      extensions: registry.listExtensions().map((info) => {
+        const fromInstall = info.dir ? installed.get(resolve(info.dir)) : undefined;
+        return {
+          // An installed one that didn't load is still called by its folder, to uninstall it.
+          name: fromInstall?.name ?? info.manifest?.name ?? info.dir ?? 'unknown',
+          title: info.manifest?.title ?? fromInstall?.title ?? info.dir ?? 'Unknown extension',
+          source: info.source,
+          commands: info.manifest?.commands.length ?? 0,
+          ...(info.dir ? { dir: info.dir } : {}),
+          ...(info.error ? { error: info.error } : {}),
+          ...(fromInstall ? { installed: installedLabel(fromInstall) } : {}),
+        };
+      }),
       commands: commandShortcutList(registry.listCommands(), store.get().commandHotkeys, commandHotkeys),
       quicklinks: entries.quicklinks.list(),
       snippets: entries.snippets.list(),
@@ -165,6 +179,22 @@ export function registerSettingsIpc(options: SettingsIpcOptions): { notifyChange
     check(event);
     await registry.loadUserExtensions();
     return state();
+  });
+
+  ipcMain.on(SettingsChannel.installExtension, (event) => {
+    check(event);
+    openCommand(INSTALL_COMMAND);
+  });
+
+  ipcMain.handle(SettingsChannel.uninstallExtension, async (event, name: unknown) => {
+    check(event);
+    try {
+      installer.uninstall(typeof name === 'string' ? name : '');
+    } catch (error) {
+      return { state: state(), error: error instanceof Error ? error.message : String(error) };
+    }
+    await registry.loadUserExtensions();
+    return { state: state() };
   });
 
   ipcMain.on(SettingsChannel.openOnboarding, (event) => {
