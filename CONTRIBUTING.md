@@ -68,7 +68,7 @@ The version comes from the commit subjects since the last release: `feat:` makes
 
 The tag starts `.github/workflows/release.yml`, which runs the checks again, makes the GitHub release with that version's notes from the changelog, builds the installers on macOS, Windows and Linux, attaches them, and then publishes the release. It also attaches the `latest*.yml` files and `.blockmap`s that installed copies check for updates (see `publish` in `electron-builder.yml` and `src/main/updater.ts`), so a release reaches everyone without anything else to do.
 
-The Windows installer is signed when the repository has a code-signing certificate in the `WIN_CSC_LINK` secret (the `.pfx`, base64-encoded) and its password in `WIN_CSC_KEY_PASSWORD`; without them it's built unsigned. The Mac build isn't signed until there's an Apple Developer ID, so on macOS Waypoint only says when a new version is out.
+The builds aren't code-signed yet. Updates install by themselves on Windows anyway; macOS only installs them to apps signed with an Apple Developer ID, so there Waypoint just says when a new version is out.
 
 Pushing the release commit straight to `main` needs a repository admin, whom `main`'s ruleset lets through.
 

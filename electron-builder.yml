@@ -43,8 +43,6 @@ mac:
     # A launcher lives in the menu bar, not the Dock.
     LSUIElement: true
 
-# Signed when the release workflow has a certificate (the WIN_CSC_LINK and WIN_CSC_KEY_PASSWORD
-# secrets), and unsigned otherwise; updates install either way.
 win:
   target: [nsis]
   artifactName: ${name}-${version}-win-${arch}.${ext}

@@ -92,12 +92,8 @@ jobs:
       - name: Build installers
         run: pnpm run dist
         env:
-          # No Apple Developer ID yet, so the Mac build isn't signed; see README "Install".
+          # No signing certificates yet; see README "Install".
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-          # The Windows installer is signed once these secrets hold a code-signing certificate (a .pfx,
-          # base64-encoded) and its password. Without them it's built unsigned, as before.
-          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
-          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
       - name: Attach to the release
         shell: bash
         env:
