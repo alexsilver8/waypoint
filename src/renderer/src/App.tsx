@@ -1,5 +1,6 @@
 import { ChevronLeft } from 'lucide-react';
 import { type KeyboardEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { commandItemId } from '../../shared/command-hotkeys';
 import type { CommandRequest } from '../../shared/ipc';
 import type { Action, ActionContext, ActionResult, CommandRef, RootItem, View } from '../../shared/types';
@@ -122,14 +123,23 @@ export function App() {
     setToast({ id: Date.now(), text, style });
   }, []);
 
-  const focusInput = useCallback((select = false) => {
-    requestAnimationFrame(() => {
-      // A form keeps the keyboard in its fields, unless it has none.
-      if (formHandle.current?.focus()) return;
-      input.current?.focus();
-      if (select) input.current?.select();
-    });
+  /** Gives the keyboard to the search field (or the open form), selecting what's typed if `select`. */
+  const takeKeyboard = useCallback((select = false) => {
+    // A form keeps the keyboard in its fields, unless it has none.
+    if (formHandle.current?.focus()) return;
+    input.current?.focus();
+    if (select) input.current?.select();
   }, []);
+
+  // The keyboard goes back to the search field once the change that asks for it has rendered, not
+  // on the next frame, which on a busy machine comes after the next keys: it would take the
+  // keyboard from an action panel they opened, and Esc would close the command instead of the
+  // panel. The action panel keeps the keyboard while it's open, and gives it back when it closes.
+  const [keyboardWanted, setKeyboardWanted] = useState(0);
+  const focusInput = useCallback(() => setKeyboardWanted((count) => count + 1), []);
+  useLayoutEffect(() => {
+    if (keyboardWanted > 0 && !panelOpenRef.current) takeKeyboard();
+  }, [keyboardWanted, takeKeyboard]);
 
   useEffect(() => {
     if (!toast) return;
@@ -158,26 +168,48 @@ export function App() {
     load();
     const offChanged = palette.onRootItemsChanged(load);
     const offToast = palette.onToast((message) => showToast(message.text, message.style));
+
+    // It opens with no action panel and what's in the search field selected, so typing replaces
+    // it. The keys typed as it opens can reach the page before the message that it opened does,
+    // and the first frame after it can come later still. So it's made ready as it hides, while
+    // nothing can be typed, and once a key is pressed the message changes nothing.
+    let pressedSinceAway = false;
+    const pressed = () => {
+      pressedSinceAway = true;
+    };
+    const away = () => {
+      pressedSinceAway = false;
+    };
+    window.addEventListener('keydown', pressed, true);
+    window.addEventListener('blur', away);
     const offHidden = palette.onHidden(() => {
       onScreen.current = false;
+      away();
+      flushSync(() => setPanelOpen(false));
+      takeKeyboard(true);
     });
     const offShown = palette.onShown(({ reset }) => {
       onScreen.current = true;
       load();
-      setPanelOpen(false);
-      if (reset) {
-        searchRequest.current++;
-        setStack([ROOT]);
-      }
-      focusInput(true);
+      if (pressedSinceAway) return;
+      flushSync(() => {
+        setPanelOpen(false);
+        if (reset) {
+          searchRequest.current++;
+          setStack([ROOT]);
+        }
+      });
+      takeKeyboard(true);
     });
     return () => {
       offChanged();
       offToast();
+      window.removeEventListener('keydown', pressed, true);
+      window.removeEventListener('blur', away);
       offHidden();
       offShown();
     };
-  }, [focusInput, showToast]);
+  }, [takeKeyboard, showToast]);
 
   const filter: RootFilter = isRoot ? (frame.filter ?? 'all') : 'all';
   const sections: DisplaySection[] = useMemo(() => {
@@ -386,7 +418,8 @@ export function App() {
         if (missing.length > 0) {
           setPanelOpen(false);
           updateTop({ form: { values: submitted, showMissing: true } });
-          requestAnimationFrame(() => formHandle.current?.focusField(missing[0] as string));
+          // Right away, like the search field: the form and its fields are already there.
+          formHandle.current?.focusField(missing[0] as string);
           return;
         }
         perform = { ...action, payload: submitted };

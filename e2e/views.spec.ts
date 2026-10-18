@@ -300,3 +300,55 @@ test('goes back to the list a form was opened from, with what it added', async (
   await expect(row).toHaveAttribute('aria-selected', 'true');
   await expect(page.locator('.detail__markdown strong')).toHaveText('ferns');
 });
+
+/** The page's own requestAnimationFrame, and the callbacks held back from it. */
+interface Frames {
+  requestAnimationFrame(callback: (time: number) => void): number;
+  next?: Frames['requestAnimationFrame'];
+  held?: Array<(time: number) => void>;
+}
+
+/** Holds back the page's animation frames, as a busy machine does, until `releaseFrames()`. */
+const holdFrames = () =>
+  page.evaluate(() => {
+    const frames = globalThis as unknown as Frames;
+    frames.next ??= frames.requestAnimationFrame.bind(frames);
+    const held: Array<(time: number) => void> = [];
+    frames.held = held;
+    frames.requestAnimationFrame = (callback) => held.push(callback);
+  });
+const releaseFrames = () =>
+  page.evaluate(() => {
+    const frames = globalThis as unknown as Frames;
+    if (frames.next) frames.requestAnimationFrame = frames.next;
+    for (const callback of frames.held?.splice(0) ?? []) callback(performance.now());
+  });
+
+test('keeps the keys pressed before the screen catches up', async () => {
+  // On a busy machine the next frame comes long after the next keys; nothing that waits for it
+  // may undo them.
+
+  // ⌘K straight after an action: Esc closes the action panel, and only that.
+  await open('Show Release Notes', 'Release Notes');
+  await holdFrames();
+  await page.keyboard.press(`${mod}+Enter`);
+  await expect(page.locator('.toast')).toHaveText('Starred');
+  await page.keyboard.press(`${mod}+k`);
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await releaseFrames();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.locator('.search__crumb')).toHaveText('Release Notes');
+
+  // Typing as soon as the launcher opens: every key lands, the first ones too.
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
+  await expect.poll(launcherVisible).toBe(false);
+  await holdFrames();
+  await app.evaluate(({ app: electronApp }) => electronApp.emit('second-instance'));
+  await expect.poll(launcherVisible).toBe(true);
+  await page.keyboard.type('Show');
+  await releaseFrames();
+  await page.keyboard.type(' Release Notes');
+  await expect(page.getByRole('combobox')).toHaveValue('Show Release Notes');
+});
