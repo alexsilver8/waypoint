@@ -1,0 +1,617 @@
+/*
+ * Detail views and forms: pages that fill the results sheet in place of a list, and the
+ * Markdown that detail views (and Markdown previews) are written in.
+ */
+
+/* ── Header ─────────────────────────────────────────────── */
+
+/* Nothing to type in a page: the field takes its keys out of sight, and the title sits by the back button. */
+.search[data-page] .search__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.search[data-page] .search__crumb {
+  flex: 1;
+  max-width: none;
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* ── Detail view ────────────────────────────────────────── */
+
+.page {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+}
+
+.page__scroll {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 22px 28px 28px;
+}
+
+.page__scroll::-webkit-scrollbar-track,
+.page__meta::-webkit-scrollbar-track,
+.form::-webkit-scrollbar-track {
+  margin-block: 14px;
+}
+
+.page__loading {
+  margin: 0;
+  color: var(--ink-muted);
+}
+
+/* Short facts in a column beside the text, a label over each value. */
+.page__meta {
+  flex: 0 0 220px;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 22px 20px;
+  border-left: 1px solid var(--hairline);
+}
+
+.page__meta dl {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 0;
+}
+
+.page__meta dt {
+  margin-bottom: 3px;
+  color: var(--ink-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.page__meta dd {
+  margin: 0;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+/* ── Markdown ───────────────────────────────────────────── */
+
+.markdown {
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.markdown > :first-child {
+  margin-top: 0;
+}
+
+.markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.markdown h1,
+.markdown h2,
+.markdown h3,
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  margin: 1.2em 0 0.45em;
+  font-weight: 650;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.markdown h1 {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.markdown h2 {
+  font-size: 18px;
+}
+
+.markdown h3 {
+  font-size: 15.5px;
+}
+
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  font-size: 14px;
+}
+
+.markdown h6 {
+  color: var(--ink-muted);
+}
+
+.markdown p,
+.markdown ul,
+.markdown ol,
+.markdown blockquote,
+.markdown pre,
+.markdown__table {
+  margin: 0 0 0.85em;
+}
+
+.markdown ul,
+.markdown ol {
+  padding-left: 1.5em;
+}
+
+.markdown li + li {
+  margin-top: 0.2em;
+}
+
+.markdown li > ul,
+.markdown li > ol {
+  margin: 0.2em 0 0;
+}
+
+.markdown li::marker {
+  color: var(--ink-faint);
+}
+
+/* A task's box stands where its bullet would. */
+.markdown__task {
+  list-style: none;
+}
+
+.markdown__box {
+  position: relative;
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin: 0 7px 0 -21px;
+  vertical-align: -2px;
+  border: 1.5px solid var(--ink-faint);
+  border-radius: 4px;
+}
+
+.markdown__box[data-checked] {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.markdown__box[data-checked]::after {
+  content: "";
+  position: absolute;
+  left: 3.5px;
+  top: 0.5px;
+  width: 3px;
+  height: 7px;
+  border: solid #fff;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+}
+
+.markdown blockquote {
+  padding-left: 14px;
+  border-left: 3px solid var(--track);
+  color: var(--ink-muted);
+}
+
+.markdown a {
+  color: var(--accent-ink);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, var(--accent-ink) 40%, transparent);
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.markdown a:hover {
+  text-decoration-color: currentColor;
+}
+
+.markdown code {
+  padding: 0.12em 0.38em;
+  border-radius: 5px;
+  background: var(--keycap);
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+}
+
+.markdown pre {
+  padding: 12px 14px;
+  overflow-x: auto;
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  background: var(--keycap);
+  line-height: 1.5;
+}
+
+.markdown pre code {
+  padding: 0;
+  background: none;
+  font-size: 12.5px;
+  white-space: pre;
+}
+
+.markdown del {
+  color: var(--ink-muted);
+}
+
+.markdown hr {
+  height: 1px;
+  margin: 1.4em 0;
+  border: none;
+  background: var(--hairline);
+}
+
+.markdown img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  vertical-align: middle;
+}
+
+/* An image that can't be shown says what it was. */
+.markdown__alt {
+  color: var(--ink-muted);
+  font-style: italic;
+}
+
+/* HTML in the text is shown as written, like code. */
+.markdown__html {
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  white-space: pre-wrap;
+}
+
+.markdown__table {
+  overflow-x: auto;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+}
+
+.markdown table {
+  min-width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.markdown th,
+.markdown td {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--hairline);
+  text-align: left;
+  overflow-wrap: normal;
+}
+
+.markdown th {
+  background: var(--hover);
+  font-weight: 600;
+}
+
+.markdown th + th,
+.markdown td + td {
+  border-left: 1px solid var(--hairline);
+}
+
+.markdown tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* In the preview beside a list, a size smaller. */
+.detail__markdown {
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+
+.detail__markdown h1 {
+  font-size: 17px;
+}
+
+.detail__markdown h2 {
+  font-size: 15.5px;
+}
+
+.detail__markdown h3,
+.detail__markdown h4,
+.detail__markdown h5,
+.detail__markdown h6 {
+  font-size: 14px;
+}
+
+/* ── Form ───────────────────────────────────────────────── */
+
+.form {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 22px 28px 28px;
+}
+
+.form__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* The label beside its field, like Raycast's forms. */
+.form__row {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  column-gap: 16px;
+  align-items: start;
+}
+
+.form__label {
+  padding-top: 8px;
+  color: var(--ink-muted);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.form__row--description .form__label {
+  padding-top: 0;
+}
+
+.form__row[data-type="checkbox"] .form__label {
+  padding-top: 3px;
+}
+
+.form__control {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.form__input {
+  width: 100%;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--control-border);
+  border-radius: 10px;
+  outline: none;
+  background: var(--control);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13.5px;
+  caret-color: var(--accent);
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.form__input::placeholder {
+  color: var(--ink-faint);
+}
+
+.form__input:is(input, textarea):focus,
+.dropdown__button:focus-visible,
+.dropdown__button[aria-expanded="true"] {
+  border-color: color-mix(in oklab, var(--accent) 70%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 22%, transparent);
+}
+
+.form__input[aria-invalid="true"] {
+  border-color: color-mix(in oklab, var(--pigment-red) 75%, transparent);
+}
+
+.form__input[aria-invalid="true"]:focus {
+  border-color: color-mix(in oklab, var(--pigment-red) 75%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--pigment-red) 20%, transparent);
+}
+
+.form__input--area {
+  display: block;
+  height: auto;
+  min-height: 88px;
+  padding: 8px 12px;
+  line-height: 1.45;
+  resize: vertical;
+}
+
+.form__check {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 24px;
+  font-size: 13.5px;
+}
+
+.form__checkbox {
+  appearance: none;
+  display: grid;
+  place-content: center;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  border: 1.5px solid var(--ink-faint);
+  border-radius: 5px;
+  outline: none;
+  background: var(--control);
+}
+
+.form__checkbox:checked {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.form__checkbox:checked::after {
+  content: "";
+  width: 4px;
+  height: 8px;
+  margin-top: -2px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.form__checkbox:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 30%, transparent);
+}
+
+.form__error,
+.form__info {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.form__error {
+  color: var(--pigment-red);
+}
+
+.form__info {
+  color: var(--ink-faint);
+}
+
+.form__description {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.form__separator {
+  height: 1px;
+  margin: 4px 0;
+  border: none;
+  background: var(--hairline);
+}
+
+/* ── Dropdown ───────────────────────────────────────────── */
+
+.dropdown__button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+}
+
+.dropdown__button .icon,
+.dropdown__option .icon {
+  width: 18px;
+  height: 18px;
+}
+
+.dropdown__button .icon--tile svg,
+.dropdown__option .icon--tile svg {
+  width: 11px;
+  height: 11px;
+}
+
+.dropdown__button .icon--emoji,
+.dropdown__option .icon--emoji {
+  font-size: 15px;
+}
+
+.dropdown__value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dropdown__chevron {
+  flex: none;
+  color: var(--ink-faint);
+}
+
+/* Its own sheet of glass, like the action panel. */
+.dropdown__popover {
+  position: fixed;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid var(--pane-border);
+  border-radius: 14px;
+  background: var(--glass-panel);
+  -webkit-backdrop-filter: blur(40px) saturate(1.8);
+  backdrop-filter: blur(40px) saturate(1.8);
+  box-shadow:
+    inset 0 1px 0 var(--pane-sheen),
+    var(--shadow-popover);
+  overflow: hidden;
+  animation: dropdown-in 120ms ease-out;
+}
+
+@keyframes dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+}
+
+.dropdown__filter {
+  flex: none;
+  height: 36px;
+  padding: 0 12px;
+  border: none;
+  border-bottom: 1px solid var(--hairline);
+  outline: none;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  caret-color: var(--accent);
+}
+
+.dropdown__filter::placeholder {
+  color: var(--ink-faint);
+}
+
+.dropdown__list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.dropdown__option {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  font-size: 13.5px;
+  white-space: nowrap;
+}
+
+.dropdown__label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dropdown__option[aria-selected="true"] {
+  border-color: var(--selected-border);
+  background: var(--selected-pane);
+}
+
+.dropdown__check {
+  flex: none;
+  color: var(--accent-ink);
+}
+
+.dropdown__none {
+  padding: 8px;
+  color: var(--ink-muted);
+  font-size: 13px;
+}

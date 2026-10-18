@@ -8,6 +8,7 @@
  */
 
 @import "./base.css";
+@import "./views.css";
 
 * {
   box-sizing: border-box;

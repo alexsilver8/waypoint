@@ -9,6 +9,8 @@ import { Keycaps } from './Keycaps';
 interface ActionPanelProps {
   item: DisplayItem;
   platform: Platform;
+  /** The keys shown beside each action, when they aren't a list's (↵ for the first, ⌘↵ for the second). */
+  keysFor?(action: Action, index: number): string[] | undefined;
   onRun(action: Action): void;
   onClose(): void;
 }
@@ -22,7 +24,7 @@ export function keysForAction(action: Action, index: number, platform: Platform)
   return action.shortcut ? shortcutKeys(action.shortcut, platform) : undefined;
 }
 
-export function ActionPanel({ item, platform, onRun, onClose }: ActionPanelProps) {
+export function ActionPanel({ item, platform, keysFor, onRun, onClose }: ActionPanelProps) {
   const [filter, setFilter] = useState('');
   const [index, setIndex] = useState(0);
   const input = useRef<HTMLInputElement>(null);
@@ -68,7 +70,7 @@ export function ActionPanel({ item, platform, onRun, onClose }: ActionPanelProps
         </div>
         <ul className="action-panel__list" role="listbox" aria-label="Actions">
           {actions.map(({ action, position, title }, i) => {
-            const keys = keysForAction(action, position, platform);
+            const keys = keysFor ? keysFor(action, position) : keysForAction(action, position, platform);
             return (
               <li
                 key={`${position}:${title}`}

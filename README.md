@@ -23,7 +23,7 @@ Website: [waypoint.alexsilver.dev](https://waypoint.alexsilver.dev/)
 - **Snaps windows** — halves, thirds, quarters, maximize, centre and the next display for the window you were using, and **Restore** to put it back. See [Windows](#windows).
 - **Runs your computer** — lock, sleep, restart, shut down, log out, empty the Trash, eject disks and turn Wi-Fi on or off, with a check before anything you can't undo. See [System](#system).
 - **Comes with extensions** — file search, your downloads and browser bookmarks, what's taking up space on your disk, your own scripts and Shortcuts, Keep Awake, translation and a dictionary, developer tools like Port Manager, Docker and GitHub, plus Media Controls and System Info, described [below](#included-extensions).
-- **Runs extensions** — commands written in JavaScript, each extension in a separate process. See [Writing extensions](docs/extensions.md).
+- **Runs extensions** — commands written in JavaScript, each extension in a separate process. They show lists, pages of Markdown and forms. See [Writing extensions](docs/extensions.md).
 - **Everything has actions** — <kbd>⌘</kbd> <kbd>K</kbd> lists what you can do with the selected item.
 - **Gives any command its own shortcut** — press it anywhere to snap a window, search your files or keep your computer awake, without opening the launcher first. See [Command shortcuts](#command-shortcuts).
 - **Looks at home on your desktop** — the launcher is three panes floating on your desktop with nothing around them: the scope dock, the search field, and the results with their preview and action bar. Light or dark. Drag it anywhere that isn't a control to move it: like Raycast, guide lines show the screen's center, its middle and where the launcher opens, and it snaps to them. It opens again where you left it on that display. Settings floats the same way on macOS. The Notes window is liquid glass that blurs what's behind them on macOS and Windows 11; Linux gets the same design on a solid background, since it has no system blur.
@@ -51,6 +51,8 @@ The first time it starts, Waypoint opens a short setup in place of the launcher:
 | <kbd>⌫</kbd> | Go back one step, when nothing is typed (so does the arrow before the search field) |
 | <kbd>⌘</kbd> <kbd>,</kbd> | Open settings (the gear at the bottom of the dock shows it while you hold <kbd>⌘</kbd> or point at it) |
 | A command's own shortcut | Run that command from anywhere; see [Command shortcuts](#command-shortcuts) |
+
+On a page of text that a command shows, <kbd>↑</kbd> <kbd>↓</kbd>, <kbd>Page Up</kbd> <kbd>Page Down</kbd> and <kbd>Space</kbd> scroll it. In a form, <kbd>⇥</kbd> moves between the fields and <kbd>⌘</kbd> <kbd>↵</kbd> submits it; <kbd>⌫</kbd> and the arrows stay with the field you're typing in.
 
 The Notes window has its own shortcuts, listed in the [Notes](#notes) section.
 

@@ -1,5 +1,19 @@
 import { describe, expect, it } from 'vitest';
+import type { FormView, ListView } from '../../shared/types';
 import { parseExtensionPackage, sanitizeAction, sanitizeActionResult, sanitizeIcon, sanitizeView } from './validate';
+
+/** A view that must have come back as a list. */
+function list(value: unknown): ListView {
+  const view = sanitizeView(value);
+  if (view.type !== 'list') throw new Error(`Expected a list, got ${view.type}`);
+  return view;
+}
+
+function form(value: Record<string, unknown>): FormView {
+  const view = sanitizeView({ type: 'form', submit: { id: 'save' }, ...value });
+  if (view.type !== 'form') throw new Error(`Expected a form, got ${view.type}`);
+  return view;
+}
 
 const validPackage = {
   name: 'hello-world',
@@ -135,7 +149,7 @@ describe('sanitizeView', () => {
   });
 
   it('keeps a valid detail and drops broken metadata', () => {
-    const view = sanitizeView({
+    const view = list({
       type: 'list',
       items: [
         {
@@ -158,18 +172,246 @@ describe('sanitizeView', () => {
   });
 
   it('keeps a list that is still loading, and nothing that only looks like it', () => {
-    expect(sanitizeView({ type: 'list', items: [], loading: true }).loading).toBe(true);
+    expect(list({ type: 'list', items: [], loading: true }).loading).toBe(true);
     expect(sanitizeView({ type: 'list', items: [], loading: 'yes' })).not.toHaveProperty('loading');
   });
 
   it('makes item ids unique', () => {
-    const view = sanitizeView({ type: 'list', items: [{ title: 'A' }, { title: 'A' }, { id: 'A', title: 'B' }] });
+    const view = list({ type: 'list', items: [{ title: 'A' }, { title: 'A' }, { id: 'A', title: 'B' }] });
     expect(view.sections[0]?.items.map((i) => i.id)).toEqual(['A', 'A#2', 'A#3']);
   });
 
-  it('rejects things that are not list views', () => {
-    expect(() => sanitizeView({ type: 'form' })).toThrow();
+  it('keeps a preview in Markdown, and needs a body or Markdown', () => {
+    const view = list({
+      type: 'list',
+      items: [
+        { title: 'Readme', detail: { markdown: '# Hello\n\n**there**' } },
+        { title: 'Both', detail: { body: 'plain', markdown: 7 } },
+        { title: 'Neither', detail: { title: 'x', markdown: null } },
+      ],
+    });
+    const [readme, both, neither] = view.sections[0]?.items ?? [];
+    expect(readme?.detail).toEqual({ markdown: '# Hello\n\n**there**' });
+    expect(both?.detail).toEqual({ body: 'plain' });
+    expect(neither?.detail).toBeUndefined();
+  });
+
+  it('rejects things that are not views', () => {
+    expect(() => sanitizeView({ type: 'grid' })).toThrow('"list", "detail" or "form"');
     expect(() => sanitizeView(null)).toThrow();
+  });
+});
+
+describe('sanitizeView with a detail view', () => {
+  it('keeps the text, metadata, actions and loading', () => {
+    expect(
+      sanitizeView({
+        type: 'detail',
+        title: 'README',
+        markdown: '# Waypoint\n\n<b>raw</b>',
+        metadata: [{ label: 'Version', value: '1.2.0' }, { label: 'Broken' }],
+        actions: [{ type: 'copy', text: 'x' }, { type: 'nope' }],
+        loading: true,
+        evil: true,
+      }),
+    ).toEqual({
+      type: 'detail',
+      title: 'README',
+      markdown: '# Waypoint\n\n<b>raw</b>',
+      metadata: [{ label: 'Version', value: '1.2.0' }],
+      actions: [{ type: 'copy', text: 'x' }],
+      loading: true,
+    });
+  });
+
+  it('shows an empty page for missing text, and cuts very long text', () => {
+    expect(sanitizeView({ type: 'detail', loading: true })).toEqual({ type: 'detail', markdown: '', loading: true });
+    const view = sanitizeView({ type: 'detail', markdown: 'x'.repeat(200_000), loading: 'yes' });
+    expect(view).toEqual({ type: 'detail', markdown: 'x'.repeat(100_000) });
+  });
+
+  it('keeps at most 24 metadata entries and 50 actions', () => {
+    const view = sanitizeView({
+      type: 'detail',
+      markdown: '',
+      metadata: Array.from({ length: 30 }, (_, i) => ({ label: `L${i}`, value: 'v' })),
+      actions: Array.from({ length: 60 }, (_, i) => ({ type: 'copy', text: String(i) })),
+    });
+    expect(view.type === 'detail' && view.metadata).toHaveLength(24);
+    expect(view.type === 'detail' && view.actions).toHaveLength(50);
+  });
+});
+
+describe('sanitizeView with a form', () => {
+  it('keeps every kind of field', () => {
+    const view = form({
+      title: 'New Quicklink',
+      submit: { id: 'create', title: 'Create Quicklink' },
+      actions: [{ type: 'open-url', url: 'https://example.com', title: 'Help' }],
+      fields: [
+        { type: 'text', id: 'name', title: 'Name', placeholder: 'GitHub', required: true, info: 'Shown in search' },
+        { type: 'password', id: 'token', title: 'Token', defaultValue: 'abc' },
+        { type: 'textarea', id: 'notes', title: 'Notes' },
+        { type: 'separator' },
+        { type: 'checkbox', id: 'pinned', title: 'Pinned', label: 'Keep at the top', defaultValue: true },
+        {
+          type: 'dropdown',
+          id: 'browser',
+          title: 'Open with',
+          defaultValue: 'firefox',
+          options: [
+            { value: 'default', title: 'Default Browser', icon: { builtin: 'globe' } },
+            { value: 'firefox', title: 'Firefox' },
+          ],
+        },
+        { type: 'description', title: 'Tip', text: 'Use {query} for what you type.' },
+      ],
+    });
+    expect(view).toEqual({
+      type: 'form',
+      title: 'New Quicklink',
+      submit: { id: 'create', title: 'Create Quicklink' },
+      actions: [{ type: 'open-url', url: 'https://example.com', title: 'Help' }],
+      fields: [
+        { type: 'text', id: 'name', title: 'Name', placeholder: 'GitHub', required: true, info: 'Shown in search' },
+        { type: 'password', id: 'token', title: 'Token', defaultValue: 'abc' },
+        { type: 'textarea', id: 'notes', title: 'Notes' },
+        { type: 'separator' },
+        { type: 'checkbox', id: 'pinned', title: 'Pinned', label: 'Keep at the top', defaultValue: true },
+        {
+          type: 'dropdown',
+          id: 'browser',
+          title: 'Open with',
+          defaultValue: 'firefox',
+          options: [
+            { value: 'default', title: 'Default Browser', icon: { builtin: 'globe' } },
+            { value: 'firefox', title: 'Firefox' },
+          ],
+        },
+        { type: 'description', title: 'Tip', text: 'Use {query} for what you type.' },
+      ],
+    });
+  });
+
+  it('needs a submit action with an id', () => {
+    expect(() => sanitizeView({ type: 'form', fields: [] })).toThrow('submit');
+    expect(() => sanitizeView({ type: 'form', fields: [], submit: { title: 'Save' } })).toThrow('submit');
+    expect(form({ fields: 'nope' })).toEqual({ type: 'form', fields: [], submit: { id: 'save' } });
+  });
+
+  it('drops fields without a usable id, and later fields with the same id', () => {
+    const view = form({
+      fields: [
+        { type: 'text', id: 'name', title: 'Name' },
+        { type: 'text', id: 'name', title: 'Name again' },
+        { type: 'checkbox', id: 'name', title: 'Also name' },
+        { type: 'text', title: 'No id' },
+        { type: 'text', id: 42, title: 'Number id' },
+        { type: 'text', id: '__proto__', title: 'Prototype' },
+        { type: 'text', id: 'x'.repeat(101), title: 'Too long' },
+        { type: 'color', id: 'tint', title: 'Unknown type' },
+        'junk',
+      ],
+    });
+    expect(view.fields).toEqual([{ type: 'text', id: 'name', title: 'Name' }]);
+  });
+
+  it('leaves out default values of the wrong kind', () => {
+    const view = form({
+      fields: [
+        { type: 'text', id: 'a', title: 'A', defaultValue: 42, required: 'yes' },
+        { type: 'checkbox', id: 'b', title: 'B', defaultValue: 'true' },
+        { type: 'dropdown', id: 'c', title: 'C', defaultValue: 'missing', options: [{ value: 'x', title: 'X' }] },
+      ],
+    });
+    expect(view.fields).toEqual([
+      { type: 'text', id: 'a', title: 'A' },
+      { type: 'checkbox', id: 'b', title: 'B' },
+      { type: 'dropdown', id: 'c', title: 'C', options: [{ value: 'x', title: 'X' }] },
+    ]);
+  });
+
+  it('drops dropdowns with nothing to pick, and options that repeat or are broken', () => {
+    const view = form({
+      fields: [
+        { type: 'dropdown', id: 'empty', title: 'Empty', options: [] },
+        { type: 'dropdown', id: 'none', title: 'None' },
+        {
+          type: 'dropdown',
+          id: 'some',
+          title: 'Some',
+          options: [
+            { value: 'a', title: 'A' },
+            { value: 'a', title: 'A again' },
+            { title: 'No value' },
+            { value: 'b' },
+          ],
+        },
+      ],
+    });
+    expect(view.fields).toEqual([
+      {
+        type: 'dropdown',
+        id: 'some',
+        title: 'Some',
+        options: [
+          { value: 'a', title: 'A' },
+          { value: 'b', title: 'b' },
+        ],
+      },
+    ]);
+  });
+
+  it('drops descriptions without text and keeps a title-less field', () => {
+    const view = form({
+      fields: [
+        { type: 'description', title: 'Empty' },
+        { type: 'text', id: 'q' },
+        { type: 'separator', id: 'x' },
+      ],
+    });
+    expect(view.fields).toEqual([{ type: 'text', id: 'q', title: '' }, { type: 'separator' }]);
+  });
+
+  it('caps the fields, the options and the text', () => {
+    const view = form({
+      submit: { id: 'save', title: 'S'.repeat(300) },
+      fields: [
+        {
+          type: 'dropdown',
+          id: 'many',
+          title: 'Many',
+          options: Array.from({ length: 600 }, (_, i) => ({ value: String(i), title: `Option ${i}` })),
+        },
+        { type: 'text', id: 'long', title: 'T'.repeat(300), defaultValue: 'x'.repeat(20_000) },
+        { type: 'textarea', id: 'page', title: 'Page', defaultValue: 'x'.repeat(200_000) },
+        ...Array.from({ length: 60 }, (_, i) => ({ type: 'checkbox', id: `c${i}`, title: `C${i}` })),
+      ],
+    });
+    expect(view.fields).toHaveLength(50);
+    expect(view.submit.title).toHaveLength(100);
+    const [many, long, page] = view.fields;
+    expect(many?.type === 'dropdown' && many.options).toHaveLength(500);
+    expect(long?.type === 'text' && long.title).toHaveLength(100);
+    expect(long?.type === 'text' && long.defaultValue).toHaveLength(10_000);
+    expect(page?.type === 'textarea' && page.defaultValue).toHaveLength(100_000);
+  });
+
+  it('resolves dropdown icons relative to the extension', () => {
+    const view = sanitizeView(
+      {
+        type: 'form',
+        submit: { id: 'save' },
+        fields: [{ type: 'dropdown', id: 'd', title: 'D', options: [{ value: 'a', title: 'A', icon: 'a.png' }] }],
+      },
+      '/ext/me',
+    );
+    expect(view.type === 'form' && view.fields[0]).toEqual({
+      type: 'dropdown',
+      id: 'd',
+      title: 'D',
+      options: [{ value: 'a', title: 'A', icon: { path: '/ext/me/a.png' } }],
+    });
   });
 });
 
@@ -177,6 +419,17 @@ describe('sanitizeActionResult', () => {
   it('passes through known fields only', () => {
     expect(sanitizeActionResult({ hide: true, toast: 'Done', evil: 1 })).toEqual({ hide: true, toast: 'Done' });
     expect(sanitizeActionResult(undefined)).toBeUndefined();
+  });
+
+  it('opens a detail view or a form, and throws for a broken one', () => {
+    expect(sanitizeActionResult({ push: { type: 'detail', markdown: '# Hi' }, pop: true })).toEqual({
+      push: { type: 'detail', markdown: '# Hi' },
+      pop: true,
+    });
+    expect(sanitizeActionResult({ replace: { type: 'form', submit: { id: 'go' }, fields: [] } })).toEqual({
+      replace: { type: 'form', submit: { id: 'go' }, fields: [] },
+    });
+    expect(() => sanitizeActionResult({ push: { type: 'form', fields: [] } })).toThrow();
   });
 
   it('lets a command copy or paste text', () => {

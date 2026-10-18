@@ -2,7 +2,7 @@
   "name": "developer-utilities",
   "version": "1.0.0",
   "private": true,
-  "description": "Example extension: UUIDs, npm search and a to-do list.",
+  "description": "Example extension: UUIDs, npm search, a to-do list with a form, and a page about itself.",
   "type": "module",
   "main": "index.js",
   "waypoint": {
@@ -41,6 +41,29 @@
           "todo",
           "tasks",
           "checklist"
+        ]
+      },
+      {
+        "name": "new-todo",
+        "title": "New To-do",
+        "mode": "view",
+        "icon": "📝",
+        "keywords": [
+          "todo",
+          "task",
+          "add",
+          "form"
+        ]
+      },
+      {
+        "name": "about",
+        "title": "About Developer Utilities",
+        "mode": "view",
+        "icon": "📖",
+        "keywords": [
+          "readme",
+          "detail",
+          "markdown"
         ]
       }
     ]

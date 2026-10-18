@@ -1,17 +1,20 @@
 import { ChevronLeft } from 'lucide-react';
-import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type KeyboardEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { commandItemId } from '../../shared/command-hotkeys';
 import type { CommandRequest } from '../../shared/ipc';
 import type { Action, ActionContext, ActionResult, CommandRef, RootItem, View } from '../../shared/types';
 import { ActionPanel } from './components/ActionPanel';
 import { DetailPane } from './components/DetailPane';
+import { DetailView, scrollPage } from './components/DetailView';
 import { Footer, type Toast } from './components/Footer';
+import { type FormHandle, FormView } from './components/FormView';
 import { Keycaps } from './components/Keycaps';
 import { optionId, QUICK_KEY_COUNT, ResultList } from './components/ResultList';
 import { ScopeDock } from './components/ScopeDock';
 import { useWindowDrag } from './drag';
-import { isModKey, matchesShortcut } from './keys';
-import { type DisplayItem, type DisplaySection, filterView } from './model';
+import { type FormState, formValues, isSubmitAction, missingFields } from './form';
+import { isModKey, matchesShortcut, shortcutKeys } from './keys';
+import { type DisplayItem, type DisplaySection, filterView, pageItem } from './model';
 import { buildRootSections, countRootMatches, ROOT_FILTERS, type RootFilter } from './root-search';
 
 const palette = window.palette;
@@ -33,6 +36,8 @@ interface Frame {
   selectedId?: string;
   /** Root only: which kind of thing the search shows. */
   filter?: RootFilter;
+  /** A form's values, once something was typed or picked. */
+  form?: FormState;
 }
 
 const ROOT: Frame = { id: 0, query: '' };
@@ -58,6 +63,14 @@ const EMPTY_TABS: Record<RootFilter, string> = {
 
 const MOD_KEY = platform === 'darwin' ? 'Meta' : 'Control';
 const MOD_LABEL = platform === 'darwin' ? '⌘' : 'Ctrl';
+const ENTER_LABEL = platform === 'darwin' ? '↵' : 'Enter';
+
+/** In a form, ⌘↵ submits (↵ is the fields'), and the other actions have only their own shortcuts. */
+function formActionKeys(action: Action, index: number): string[] | undefined {
+  if (index === 0) return [MOD_LABEL, ENTER_LABEL];
+  return action.shortcut ? shortcutKeys(action.shortcut, platform) : undefined;
+}
+
 let nextFrameId = 1;
 
 function cleanError(error: unknown): string {
@@ -67,6 +80,7 @@ function cleanError(error: unknown): string {
 
 /** The nth row of a view as it would show for `query`. */
 function nthItem(view: View, query: string, index: number): DisplayItem | undefined {
+  if (view.type !== 'list') return undefined;
   return filterView(view, query).flatMap((section) => section.items)[index];
 }
 
@@ -82,6 +96,10 @@ export function App() {
   const [firstInView, setFirstInView] = useState(0);
   const input = useRef<HTMLInputElement>(null);
   const launcher = useRef<HTMLDivElement>(null);
+  /** The open form, which has the keyboard in place of the search field. */
+  const formHandle = useRef<FormHandle>(null);
+  /** The text of an open detail view, which the arrow and page keys scroll. */
+  const page = useRef<HTMLDivElement>(null);
   const searchRequest = useRef(0);
   const busy = useRef(false);
   /** Whether the window is on screen, for lists that are still loading to wait while it isn't. */
@@ -106,6 +124,8 @@ export function App() {
 
   const focusInput = useCallback((select = false) => {
     requestAnimationFrame(() => {
+      // A form keeps the keyboard in its fields, unless it has none.
+      if (formHandle.current?.focus()) return;
       input.current?.focus();
       if (select) input.current?.select();
     });
@@ -117,11 +137,13 @@ export function App() {
     return () => clearTimeout(timer);
   }, [toast]);
 
-  // Clicks anywhere but a text field leave the keyboard with the search field, where every
-  // shortcut lives. Buttons and rows still get their click.
+  // Clicks anywhere but a text field leave the keyboard with the search field (or the form's
+  // field), where every shortcut lives. Buttons and rows still get their click.
   useEffect(() => {
     const keepFocus = (event: MouseEvent) => {
-      if (!(event.target instanceof HTMLInputElement)) event.preventDefault();
+      if (!(event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement)) {
+        event.preventDefault();
+      }
     };
     document.addEventListener('mousedown', keepFocus);
     return () => document.removeEventListener('mousedown', keepFocus);
@@ -160,7 +182,7 @@ export function App() {
   const filter: RootFilter = isRoot ? (frame.filter ?? 'all') : 'all';
   const sections: DisplaySection[] = useMemo(() => {
     if (isRoot || !frame.view) return buildRootSections(rootItems, frame.query, filter);
-    return filterView(frame.view, frame.query);
+    return frame.view.type === 'list' ? filterView(frame.view, frame.query) : [];
   }, [isRoot, rootItems, frame.view, frame.query, filter]);
   const counts = useMemo(
     () => (isRoot && frame.query.trim() ? countRootMatches(rootItems, frame.query) : null),
@@ -182,17 +204,35 @@ export function App() {
     };
   }, []);
 
+  // A detail view or a form fills the sheet in place of a list; its actions are those of one item.
+  const pageView = !isRoot && frame.view?.type !== 'list' ? frame.view : undefined;
+  // Without a title of its own, a page is called after its command.
+  const commandId =
+    pageView && !pageView.title && frame.ref ? `command:${frame.ref.extension}/${frame.ref.command}` : '';
+  const commandTitle = useMemo(
+    () => (commandId ? rootItems.find((item) => item.id === commandId)?.title : undefined),
+    [commandId, rootItems],
+  );
+  const pageTitle = pageView?.title ?? commandTitle ?? '';
+  const pageEntry = useMemo(() => pageView && pageItem(pageView, pageTitle), [pageView, pageTitle]);
+  const formView = pageView?.type === 'form' ? pageView : undefined;
+  const values = useMemo(() => formView && formValues(formView, frame.form?.values), [formView, frame.form]);
+  // A form that closes takes the keyboard with it, whenever it closes: the search field has it back.
+  useLayoutEffect(() => {
+    if (!formView && (document.activeElement === document.body || !document.activeElement)) input.current?.focus();
+  }, [formView]);
+
   const items = useMemo(() => sections.flatMap((section) => section.items), [sections]);
   const showDetail = useMemo(() => items.some((item) => item.detail), [items]);
   const selectedIndex = Math.max(
     0,
     items.findIndex((item) => item.id === frame.selectedId),
   );
-  const selected: DisplayItem | undefined = items[selectedIndex];
+  const selected: DisplayItem | undefined = pageEntry ?? items[selectedIndex];
 
   /**
    * Asks a self-filtering command for its view of `query`, and shows it if that view is
-   * still on top and no newer request was made. Returns the view when it was applied. The
+   * still open and no newer request was made. Returns the view when it was applied. The
    * selection goes back to the first row, as for new results, unless `keepSelection`.
    */
   const refreshView = useCallback(
@@ -202,14 +242,16 @@ export function App() {
       if (inflight.current?.key === key) return inflight.current.promise;
 
       const request = ++searchRequest.current;
-      const isCurrent = () =>
-        request === searchRequest.current && stackRef.current[stackRef.current.length - 1]?.id === frameId;
+      // Any step since (a search, going back or on) makes a newer request. The view needn't be on
+      // top yet: going back by an action's result asks for the one below as the one above closes.
+      const isCurrent = () => request === searchRequest.current && stackRef.current.some((f) => f.id === frameId);
       setLoading(true);
       const promise = (async () => {
         try {
           const view = await palette.searchView(ref, query);
           if (!isCurrent()) return undefined;
-          updateTop({ view, viewQuery: query, ...(keepSelection ? {} : { selectedId: undefined }) });
+          const patch = { view, viewQuery: query, ...(keepSelection ? {} : { selectedId: undefined }) };
+          setStack((current) => current.map((f) => (f.id === frameId ? { ...f, ...patch } : f)));
           return view;
         } catch (error) {
           if (isCurrent()) showToast(cleanError(error), 'failure');
@@ -222,11 +264,11 @@ export function App() {
       inflight.current = { key, promise };
       return promise;
     },
-    [updateTop, showToast],
+    [showToast],
   );
 
   // Commands that filter by themselves get asked again as the query changes.
-  const selfFiltering = !isRoot && frame.view?.filtering === false;
+  const selfFiltering = !isRoot && frame.view?.type === 'list' && frame.view.filtering === false;
   const stale = selfFiltering && frame.query !== frame.viewQuery;
   const { id: frameId, ref: frameRef, query: frameQuery } = frame;
   useEffect(() => {
@@ -238,7 +280,7 @@ export function App() {
   // A list that's still loading is asked for again every second until it's done. A row picked
   // with the arrows or the pointer stays picked as the rows move; otherwise the first row is.
   // Nothing changes under an open action panel or while an action runs.
-  const listLoading = !isRoot && frame.view?.loading === true;
+  const listLoading = !isRoot && frame.view?.type !== 'form' && frame.view?.loading === true;
   const refreshing = listLoading && !stale && !panelOpen;
   panelOpenRef.current = panelOpen;
   useEffect(() => {
@@ -270,6 +312,26 @@ export function App() {
     return () => clearInterval(timer);
   }, [refreshing, frameId, frameRef, frameQuery, updateTop, showToast]);
 
+  /**
+   * Back in a list that builds itself from the search, from something its own extension opened:
+   * what was done there may have changed it, like a file moved to the Trash from a folder in Disk
+   * Usage or a to-do added in a form, so it's asked for again, for `query` if its search changes.
+   */
+  const refreshBelow = useCallback(
+    (current: Frame[], query?: string) => {
+      const [below, top] = current.slice(-2);
+      if (
+        below?.ref &&
+        below.view?.type === 'list' &&
+        below.view.filtering === false &&
+        below.ref.extension === top?.ref?.extension
+      ) {
+        void refreshView(below.id, below.ref, query ?? below.query, true);
+      }
+    },
+    [refreshView],
+  );
+
   const applyResult = useCallback(
     (result: ActionResult, action: Action, from: Frame) => {
       if (result.hide) {
@@ -292,7 +354,8 @@ export function App() {
           const query = search ?? top.query;
           next = [
             ...next.slice(0, -1),
-            { ...top, query, ...(result.replace ? { view: result.replace, viewQuery: query } : {}) },
+            // A form put in its place starts from its own defaults.
+            { ...top, query, ...(result.replace ? { view: result.replace, viewQuery: query, form: undefined } : {}) },
           ];
         }
         if (result.push) {
@@ -303,15 +366,31 @@ export function App() {
         }
         return next;
       });
+      // Gone back by the result, as with ⌫.
+      const current = stackRef.current;
+      if (result.pop && !result.replace && current[current.length - 1]?.id === from.id) refreshBelow(current, search);
       if (result.toast) showToast(result.toast, result.toastStyle ?? 'success');
     },
-    [showToast],
+    [showToast, refreshBelow],
   );
 
   const run = useCallback(
     async (item: DisplayItem | undefined, action: Action | undefined, from: Frame = frame) => {
       // One action at a time: a double ↵ must not push twice or delete twice.
       if (!item || !action || busy.current) return;
+      let perform = action;
+      if (isSubmitAction(action) && action.type === 'callback' && from.view?.type === 'form') {
+        // A form is sent with its values, once every required field is filled in.
+        const submitted = formValues(from.view, from.form?.values);
+        const missing = missingFields(from.view, submitted);
+        if (missing.length > 0) {
+          setPanelOpen(false);
+          updateTop({ form: { values: submitted, showMissing: true } });
+          requestAnimationFrame(() => formHandle.current?.focusField(missing[0] as string));
+          return;
+        }
+        perform = { ...action, payload: submitted };
+      }
       busy.current = true;
       setPanelOpen(false);
       const context: ActionContext = { query: from.query };
@@ -319,7 +398,7 @@ export function App() {
       if (item.rootItemId) context.rootItemId = item.rootItemId;
       setLoading(true);
       try {
-        applyResult(await palette.runAction(action, context), action, from);
+        applyResult(await palette.runAction(perform, context), perform, from);
       } catch (error) {
         showToast(cleanError(error), 'failure');
       } finally {
@@ -328,7 +407,13 @@ export function App() {
         focusInput();
       }
     },
-    [frame, applyResult, showToast, focusInput],
+    [frame, applyResult, showToast, focusInput, updateTop],
+  );
+
+  /** Links in Markdown open the way an open-url action does, from the main process. */
+  const openLink = useCallback(
+    (url: string) => void run(selected ?? { id: 'link', title: url, actions: [] }, { type: 'open-url', url }),
+    [run, selected],
   );
 
   /**
@@ -384,15 +469,9 @@ export function App() {
     setLoading(false);
     setPanelOpen(false);
     setStack((stack) => (stack.length > 1 ? stack.slice(0, -1) : stack));
-    // Back in a list that builds itself from the search, from something its own extension opened:
-    // what was done there may have changed it, like a file moved to the Trash from a folder in
-    // Disk Usage, so it's asked for again.
-    const [below, top] = current.slice(-2);
-    if (below?.ref && below.view?.filtering === false && below.ref.extension === top?.ref?.extension) {
-      void refreshView(below.id, below.ref, below.query, true);
-    }
+    refreshBelow(current);
     focusInput();
-  }, [focusInput, refreshView]);
+  }, [focusInput, refreshBelow]);
 
   /** Leaves every view a command opened, however deep, for the root search as `root` has it. */
   const showRoot = (root: Frame) => {
@@ -421,6 +500,8 @@ export function App() {
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     // Keys that pick or confirm an input-method candidate aren't ours.
     if (event.nativeEvent.isComposing) return;
+    // A form without fields leaves the keyboard here; its keys are still a form's.
+    if (formView) return onFormKeyDown(event);
     // A held ↵ repeats: that mustn't run the next view's first item too, like Restart Now.
     if (event.key === 'Enter' && event.repeat) {
       event.preventDefault();
@@ -448,6 +529,12 @@ export function App() {
       event.preventDefault();
       // Like ↵, waits for a list that builds itself from the search to catch up first.
       void activate(byShortcut);
+    } else if (pageView?.type === 'detail' && scrollPage(page.current, event, platform)) {
+      // The arrows, Page Up and Down, Home and End scroll the text of a detail view.
+      event.preventDefault();
+    } else if (pageView && (quickKey > 0 || key === 'Tab')) {
+      // Nothing to pick by number in a page, and the keyboard stays here.
+      event.preventDefault();
     } else if (quickKey > 0 && quickKey <= QUICK_KEY_COUNT) {
       event.preventDefault();
       // Counted from the first row in view, like the numbers drawn beside the rows.
@@ -486,18 +573,50 @@ export function App() {
     }
   };
 
+  /**
+   * Keys pressed in a form's fields, which keep everything that types, moves the caret or deletes:
+   * the launcher only takes ⌘↵ to submit, ⌘K, ⌘, and Esc, and the actions' shortcuts that use ⌘ or
+   * Ctrl.
+   */
+  const onFormKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    const mod = isModKey(event, platform);
+    const plain = !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey;
+    const shortcutAction = selected?.actions.find(
+      (action) =>
+        action.shortcut?.modifiers?.some((m) => m === 'mod' || m === 'ctrl') &&
+        matchesShortcut(event, action.shortcut, platform),
+    );
+    if (event.key === 'Enter' && mod && !event.shiftKey && !event.altKey) {
+      event.preventDefault();
+      if (!event.repeat) void run(selected, selected?.actions[0]);
+    } else if (shortcutAction) {
+      event.preventDefault();
+      void run(selected, shortcutAction);
+    } else if (mod && event.key.toLowerCase() === 'k') {
+      event.preventDefault();
+      setPanelOpen((open) => !open);
+    } else if (mod && event.key === ',') {
+      event.preventDefault();
+      openSettings();
+    } else if (event.key === 'Escape' && plain) {
+      event.preventDefault();
+      showRoot(ROOT);
+    }
+  };
+
   // A held ⌘ shows Settings' ⌘, as it shows the rows' quick keys, but not over the action panel, where ⌘, does nothing.
   const showSettingsShortcut = modHeld && !panelOpen;
   const scopeLabel = ROOT_FILTERS.find((f) => f.id === filter)?.label;
   const scopeMatches = counts?.[filter] ?? 0;
-  const placeholder = isRoot ? PLACEHOLDERS[filter] : (frame.view?.searchPlaceholder ?? 'Search…');
+  const listView = frame.view?.type === 'list' ? frame.view : undefined;
+  const placeholder = isRoot ? PLACEHOLDERS[filter] : (listView?.searchPlaceholder ?? 'Search…');
   const emptyText = isRoot
     ? frame.query
       ? `Nothing matches “${frame.query}”.`
       : EMPTY_TABS[filter]
     : loading
       ? undefined
-      : (frame.view?.emptyText ?? (frame.query ? `Nothing matches “${frame.query}”.` : 'Nothing here yet.'));
+      : (listView?.emptyText ?? (frame.query ? `Nothing matches “${frame.query}”.` : 'Nothing here yet.'));
 
   return (
     <div ref={launcher} className="launcher">
@@ -512,7 +631,7 @@ export function App() {
       />
 
       <div className="launcher__main">
-        <header className="search" data-loading={loading || listLoading || undefined}>
+        <header className="search" data-loading={loading || listLoading || undefined} data-page={pageView?.type}>
           {isRoot && (
             <svg className="search__icon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M11 4a7 7 0 1 0 0 14a7 7 0 1 0 0-14z M20 20l-4.2-4.2" />
@@ -531,17 +650,24 @@ export function App() {
             placeholder={placeholder}
             onChange={(event) => updateTop({ query: event.target.value, selectedId: undefined })}
             onKeyDown={onKeyDown}
-            role="combobox"
-            aria-label={placeholder}
-            aria-expanded="true"
-            aria-controls="results"
-            aria-activedescendant={selected ? optionId(selectedIndex) : undefined}
-            aria-autocomplete="list"
+            {...(pageView
+              ? // Nothing to type in a detail view or a form: the field only takes their keys, out of sight.
+                { readOnly: true, tabIndex: -1, 'aria-label': `${pageTitle || 'Details'}, ${MOD_LABEL} K for actions` }
+              : {
+                  role: 'combobox',
+                  'aria-label': placeholder,
+                  'aria-expanded': true,
+                  'aria-controls': 'results',
+                  'aria-activedescendant': selected ? optionId(selectedIndex) : undefined,
+                  'aria-autocomplete': 'list' as const,
+                })}
             spellCheck={false}
             autoComplete="off"
             autoFocus
           />
-          {!isRoot && frame.view?.title && <span className="search__crumb">{frame.view.title}</span>}
+          {pageView
+            ? pageTitle && <span className="search__crumb">{pageTitle}</span>
+            : !isRoot && frame.view?.title && <span className="search__crumb">{frame.view.title}</span>}
           {isRoot && !frame.query && (
             <span className="search__hint">
               <Keycaps keys={[platform === 'darwin' ? '⇥' : 'Tab']} />
@@ -557,7 +683,21 @@ export function App() {
 
         <section className="sheet">
           <main className="content" data-detail={showDetail || undefined}>
-            <div className="content__list">
+            {pageView?.type === 'detail' && <DetailView view={pageView} scrollRef={page} onOpenLink={openLink} />}
+            {formView && values && (
+              <FormView
+                ref={formHandle}
+                view={formView}
+                values={values}
+                missing={frame.form?.showMissing ? missingFields(formView, values) : []}
+                onChange={(id, value) =>
+                  updateTop({ form: { showMissing: false, ...frame.form, values: { ...values, [id]: value } } })
+                }
+                onSubmit={() => void run(selected, selected?.actions[0])}
+                onKeyDown={onFormKeyDown}
+              />
+            )}
+            <div className="content__list" hidden={Boolean(pageView)}>
               <ResultList
                 sections={sections}
                 selectedId={selected?.id}
@@ -573,15 +713,16 @@ export function App() {
                 onActivate={(item) => void run(item, item.actions[0])}
               />
             </div>
-            {showDetail && <DetailPane item={selected} />}
+            {showDetail && <DetailPane item={selected} onOpenLink={openLink} />}
           </main>
 
           <Footer
             platform={platform}
-            context={isRoot ? 'Waypoint' : (frame.view?.title ?? 'Waypoint')}
+            context={isRoot ? 'Waypoint' : frame.view?.title || pageTitle || 'Waypoint'}
             onOpenSettings={isRoot ? openSettings : undefined}
             toast={toast}
             primary={selected?.actions[0]}
+            primaryKeys={formView ? [MOD_LABEL, ENTER_LABEL] : undefined}
             hasActions={Boolean(selected && selected.actions.length > 0)}
             onPrimary={() => void run(selected, selected?.actions[0])}
             onToggleActions={() => setPanelOpen((open) => !open)}
@@ -593,6 +734,7 @@ export function App() {
         <ActionPanel
           item={selected}
           platform={platform}
+          keysFor={formView ? formActionKeys : undefined}
           onRun={(action) => void run(selected, action)}
           onClose={() => {
             setPanelOpen(false);

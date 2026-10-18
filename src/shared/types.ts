@@ -134,7 +134,9 @@ export interface ItemDetail {
    * Plain text. Lines starting with "# " are drawn as headings, "- " as bullets and
    * "- [ ] " / "- [x] " as checkboxes; everything else as written.
    */
-  body: string;
+  body?: string;
+  /** Markdown, drawn like a detail view's, in place of `body`. One of the two is needed. */
+  markdown?: string;
   /** Short facts under the body, e.g. "Edited" → "2 min ago". */
   metadata?: Array<{ label: string; value: string }>;
 }
@@ -180,8 +182,77 @@ export interface ListView {
   loading?: boolean;
 }
 
-/** Only lists for now; a detail (markdown) view and forms are on the roadmap. */
-export type View = ListView;
+/** A page of Markdown: a README, an article, the result of a command. */
+export interface DetailView {
+  type: 'detail';
+  /** Shown next to the search field while the view is open. */
+  title?: string;
+  /** CommonMark with GitHub's tables, task lists and strikethrough. Raw HTML is shown as text. */
+  markdown: string;
+  /** Short facts shown beside the text, e.g. "Version" → "1.2.0". */
+  metadata?: Array<{ label: string; value: string }>;
+  /** ↵ runs the first, ⌘↵ the second, and ⌘K lists them all, as for a list item. */
+  actions?: Action[];
+  /**
+   * Still loading: the launcher shows that it's busy and calls `view()` again about once a
+   * second, until a view comes back without `loading`.
+   */
+  loading?: boolean;
+}
+
+interface FormFieldBase {
+  /** Key of the field's value in the submitted values; unique within the form. */
+  id: string;
+  /** Label shown beside the field. */
+  title: string;
+  /** A hint shown under the field. */
+  info?: string;
+}
+
+export type FormField =
+  | (FormFieldBase & {
+      type: 'text' | 'password' | 'textarea';
+      placeholder?: string;
+      defaultValue?: string;
+      /** The form can't be submitted while this is empty. */
+      required?: boolean;
+    })
+  | (FormFieldBase & { type: 'checkbox'; label?: string; defaultValue?: boolean })
+  | (FormFieldBase & {
+      type: 'dropdown';
+      options: Array<{ value: string; title: string; icon?: Icon }>;
+      /** The first option when omitted. */
+      defaultValue?: string;
+    })
+  /** Text between fields, not a field: it has no value. */
+  | { type: 'description'; title?: string; text: string }
+  | { type: 'separator' };
+
+/** What a form submits: each field's `id` to its value (a string, or a boolean for checkboxes). */
+export type FormValues = Record<string, string | boolean>;
+
+/**
+ * A form to fill in. Submitting it (⌘↵, or its submit button) calls the command's
+ * `onAction(submit.id, values, ctx)` with the form's `FormValues` as the payload. Put what the
+ * form is about in the id (`save:<id>`) when one command has several forms. Whatever
+ * `onAction` returns is applied as usual: `pop: true` to go back, a failure toast to stay.
+ */
+export interface FormView {
+  type: 'form';
+  /** Shown next to the search field while the view is open. */
+  title?: string;
+  fields: FormField[];
+  submit: {
+    /** Passed to `onAction` as its `id`. */
+    id: string;
+    /** Defaults to "Submit". */
+    title?: string;
+  };
+  /** More actions for the action panel (⌘K), after the submit action. */
+  actions?: Action[];
+}
+
+export type View = ListView | DetailView | FormView;
 
 /** What should happen in the launcher after a command ran or an action was performed. */
 export interface ActionResult {
@@ -213,7 +284,7 @@ export interface CommandManifest {
   subtitle?: string;
   icon?: Icon;
   keywords?: string[];
-  /** `view` commands show a list; `no-view` commands just do something. */
+  /** `view` commands show a list, a detail view or a form; `no-view` commands just do something. */
   mode: 'view' | 'no-view';
   /**
    * Fallback commands are offered under "Use “…” with" when the search text matches

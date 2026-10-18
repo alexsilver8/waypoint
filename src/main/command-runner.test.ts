@@ -127,8 +127,9 @@ describe('CommandRunner', () => {
     expect(env.runAction).not.toHaveBeenCalled();
     expect(env.events).toEqual(['show']);
     const [request] = env.requests;
-    expect(request?.result?.push?.title).toBe('Left Half');
-    expect(request?.result?.push?.sections[0]?.items[0]?.actions).toEqual([
+    const push = request?.result?.push;
+    expect(push?.title).toBe('Left Half');
+    expect(push?.type === 'list' && push.sections[0]?.items[0]?.actions).toEqual([
       { type: 'open-command', ref: LEFT_HALF, title: 'Run Command' },
     ]);
     await env.runner.run(SEARCH_FILES, { ask: true });

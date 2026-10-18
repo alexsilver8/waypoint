@@ -10,12 +10,16 @@ import type {
   ActionResult,
   BuiltinIconName,
   CommandManifest,
+  DetailView,
   ExtensionManifest,
+  FormField,
+  FormView,
   Icon,
   ItemDetail,
   Json,
   ListItem,
   ListSection,
+  ListView,
   Platform,
   Shortcut,
   Tint,
@@ -96,6 +100,14 @@ const BUILTIN_ICONS = Object.keys(BUILTIN_ICON_NAMES) as BuiltinIconName[];
 const MAX_ITEMS = 2000;
 const MAX_TEXT = 1000;
 const MAX_DETAIL = 20_000;
+/** A detail view is a whole page, like a README. */
+const MAX_MARKDOWN = 100_000;
+/** Actions of a detail view or a form; a list item's are counted with its list. */
+const MAX_VIEW_ACTIONS = 50;
+const MAX_FIELDS = 50;
+const MAX_OPTIONS = 500;
+/** A one-line field holds up to a long URL; a text area as much as a page. */
+const MAX_FIELD_TEXT = 10_000;
 /** Text an action may copy or paste: plenty for any snippet, but not unbounded. */
 const MAX_CLIPBOARD_TEXT = 1_000_000;
 
@@ -221,21 +233,36 @@ export function sanitizeAction(value: unknown): Action | undefined {
   }
 }
 
+function sanitizeMetadata(value: unknown, max: number): Array<{ label: string; value: string }> | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const metadata = value
+    .filter(isRecord)
+    .map((entry) => ({ label: text(entry.label, 60), value: text(entry.value, 200) }))
+    .filter((entry): entry is { label: string; value: string } => Boolean(entry.label && entry.value))
+    .slice(0, max);
+  return metadata.length > 0 ? metadata : undefined;
+}
+
+function sanitizeActions(value: unknown, max = Number.POSITIVE_INFINITY): Action[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map(sanitizeAction)
+    .filter((a): a is Action => a !== undefined)
+    .slice(0, max);
+}
+
 export function sanitizeDetail(value: unknown): ItemDetail | undefined {
   if (!isRecord(value)) return undefined;
   const body = typeof value.body === 'string' ? value.body.slice(0, MAX_DETAIL) : undefined;
-  if (body === undefined) return undefined;
-  const detail: ItemDetail = { body };
+  const markdown = typeof value.markdown === 'string' ? value.markdown.slice(0, MAX_DETAIL) : undefined;
+  if (body === undefined && markdown === undefined) return undefined;
+  const detail: ItemDetail = {};
+  if (body !== undefined) detail.body = body;
+  if (markdown !== undefined) detail.markdown = markdown;
   const title = text(value.title, 200);
   if (title) detail.title = title;
-  if (Array.isArray(value.metadata)) {
-    const metadata = value.metadata
-      .filter(isRecord)
-      .map((entry) => ({ label: text(entry.label, 60), value: text(entry.value, 200) }))
-      .filter((entry): entry is { label: string; value: string } => Boolean(entry.label && entry.value))
-      .slice(0, 12);
-    if (metadata.length > 0) detail.metadata = metadata;
-  }
+  const metadata = sanitizeMetadata(value.metadata, 12);
+  if (metadata) detail.metadata = metadata;
   return detail;
 }
 
@@ -247,10 +274,7 @@ function sanitizeItem(value: unknown, baseDir: string | undefined, seen: Set<str
   for (let n = 2; seen.has(id); n++) id = `${text(value.id, 200) ?? title}#${n}`;
   seen.add(id);
 
-  const actions = Array.isArray(value.actions)
-    ? value.actions.map(sanitizeAction).filter((a): a is Action => a !== undefined)
-    : [];
-  const item: ListItem = { id, title, actions };
+  const item: ListItem = { id, title, actions: sanitizeActions(value.actions) };
   const subtitle = text(value.subtitle);
   const accessory = text(value.accessory, 100);
   const keywords = stringList(value.keywords);
@@ -264,11 +288,18 @@ function sanitizeItem(value: unknown, baseDir: string | undefined, seen: Set<str
   return item;
 }
 
-/** Validates a view returned by a command. `items` is accepted as shorthand for one section. */
+/** Validates a view returned by a command: a list, a detail view or a form. */
 export function sanitizeView(value: unknown, baseDir?: string): View {
-  if (!isRecord(value) || value.type !== 'list')
-    throw new ValidationError('A view must be an object with type "list".');
+  if (isRecord(value)) {
+    if (value.type === 'list') return sanitizeListView(value, baseDir);
+    if (value.type === 'detail') return sanitizeDetailView(value);
+    if (value.type === 'form') return sanitizeFormView(value, baseDir);
+  }
+  throw new ValidationError('A view must be an object with type "list", "detail" or "form".');
+}
 
+/** `items` is accepted as shorthand for one section. */
+function sanitizeListView(value: Record<string, unknown>, baseDir: string | undefined): ListView {
   const rawSections: unknown[] = Array.isArray(value.sections)
     ? value.sections
     : Array.isArray(value.items)
@@ -288,7 +319,7 @@ export function sanitizeView(value: unknown, baseDir?: string): View {
     sections.push(title ? { title, items } : { items });
   }
 
-  const view: View = { type: 'list', sections };
+  const view: ListView = { type: 'list', sections };
   const title = text(value.title, 100);
   const searchPlaceholder = text(value.searchPlaceholder, 100);
   const emptyText = text(value.emptyText, 200);
@@ -297,6 +328,111 @@ export function sanitizeView(value: unknown, baseDir?: string): View {
   if (emptyText) view.emptyText = emptyText;
   if (value.filtering === false) view.filtering = false;
   if (value.loading === true) view.loading = true;
+  return view;
+}
+
+/** Text that isn't a string shows as an empty page, so a view that's still loading needn't have any yet. */
+function sanitizeDetailView(value: Record<string, unknown>): DetailView {
+  const markdown = typeof value.markdown === 'string' ? value.markdown.slice(0, MAX_MARKDOWN) : '';
+  const view: DetailView = { type: 'detail', markdown };
+  const title = text(value.title, 100);
+  const metadata = sanitizeMetadata(value.metadata, 24);
+  const actions = sanitizeActions(value.actions, MAX_VIEW_ACTIONS);
+  if (title) view.title = title;
+  if (metadata) view.metadata = metadata;
+  if (actions.length > 0) view.actions = actions;
+  if (value.loading === true) view.loading = true;
+  return view;
+}
+
+/**
+ * A form's fields, with the ones that can't be shown dropped: an unknown type, a missing or
+ * repeated id, a dropdown with nothing to pick. A default value of the wrong kind is left out.
+ */
+function sanitizeFormField(value: unknown, baseDir: string | undefined, ids: Set<string>): FormField | undefined {
+  if (!isRecord(value)) return undefined;
+  if (value.type === 'separator') return { type: 'separator' };
+  if (value.type === 'description') {
+    const body = text(value.text, 2000);
+    if (!body) return undefined;
+    const title = text(value.title, 100);
+    return title ? { type: 'description', title, text: body } : { type: 'description', text: body };
+  }
+
+  // The id is the key of the field's value; `__proto__` couldn't be one.
+  const id = typeof value.id === 'string' && value.id.length <= 100 ? value.id : undefined;
+  if (!id || id === '__proto__' || ids.has(id)) return undefined;
+  const base = { id, title: text(value.title, 100) ?? '' };
+  const info = text(value.info, 300);
+  const withInfo = <T extends object>(field: T): T => (info ? { ...field, info } : field);
+
+  switch (value.type) {
+    case 'text':
+    case 'password':
+    case 'textarea': {
+      const field: Extract<FormField, { type: 'text' | 'password' | 'textarea' }> = { ...base, type: value.type };
+      const placeholder = text(value.placeholder, 200);
+      const max = value.type === 'textarea' ? MAX_MARKDOWN : MAX_FIELD_TEXT;
+      if (placeholder) field.placeholder = placeholder;
+      if (typeof value.defaultValue === 'string') field.defaultValue = value.defaultValue.slice(0, max);
+      if (value.required === true) field.required = true;
+      ids.add(id);
+      return withInfo(field);
+    }
+    case 'checkbox': {
+      const field: Extract<FormField, { type: 'checkbox' }> = { ...base, type: 'checkbox' };
+      const label = text(value.label, 200);
+      if (label) field.label = label;
+      if (typeof value.defaultValue === 'boolean') field.defaultValue = value.defaultValue;
+      ids.add(id);
+      return withInfo(field);
+    }
+    case 'dropdown': {
+      if (!Array.isArray(value.options)) return undefined;
+      const values = new Set<string>();
+      const options: Extract<FormField, { type: 'dropdown' }>['options'] = [];
+      for (const raw of value.options) {
+        if (options.length >= MAX_OPTIONS) break;
+        if (!isRecord(raw) || typeof raw.value !== 'string' || raw.value.length > MAX_TEXT) continue;
+        if (values.has(raw.value)) continue;
+        const title = text(raw.title, 200) || raw.value;
+        if (!title) continue;
+        const icon = sanitizeIcon(raw.icon, baseDir);
+        values.add(raw.value);
+        options.push(icon ? { value: raw.value, title, icon } : { value: raw.value, title });
+      }
+      if (options.length === 0) return undefined;
+      const field: Extract<FormField, { type: 'dropdown' }> = { ...base, type: 'dropdown', options };
+      if (typeof value.defaultValue === 'string' && values.has(value.defaultValue)) {
+        field.defaultValue = value.defaultValue;
+      }
+      ids.add(id);
+      return withInfo(field);
+    }
+    default:
+      return undefined;
+  }
+}
+
+function sanitizeFormView(value: Record<string, unknown>, baseDir: string | undefined): FormView {
+  const submit = isRecord(value.submit) ? value.submit : undefined;
+  const submitId = text(submit?.id, 200);
+  if (!submitId) throw new ValidationError('A form needs a submit action: `submit: { id }`.');
+  const submitTitle = text(submit?.title, 100);
+
+  const ids = new Set<string>();
+  const fields = (Array.isArray(value.fields) ? value.fields.slice(0, MAX_FIELDS) : [])
+    .map((field) => sanitizeFormField(field, baseDir, ids))
+    .filter((field): field is FormField => field !== undefined);
+  const view: FormView = {
+    type: 'form',
+    fields,
+    submit: submitTitle ? { id: submitId, title: submitTitle } : { id: submitId },
+  };
+  const title = text(value.title, 100);
+  const actions = sanitizeActions(value.actions, MAX_VIEW_ACTIONS);
+  if (title) view.title = title;
+  if (actions.length > 0) view.actions = actions;
   return view;
 }
 

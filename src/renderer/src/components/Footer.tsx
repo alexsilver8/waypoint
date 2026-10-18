@@ -17,6 +17,8 @@ interface FooterProps {
   onOpenSettings?(): void;
   toast: Toast | null;
   primary: Action | undefined;
+  /** The keys that run `primary`: ↵, unless they're others (⌘↵ for a form). */
+  primaryKeys?: string[];
   hasActions: boolean;
   onPrimary(): void;
   onToggleActions(): void;
@@ -28,6 +30,7 @@ export function Footer({
   onOpenSettings,
   toast,
   primary,
+  primaryKeys,
   hasActions,
   onPrimary,
   onToggleActions,
@@ -62,7 +65,7 @@ export function Footer({
         {primary && (
           <button type="button" className="footer__button footer__button--primary" onClick={onPrimary}>
             {actionTitle(primary)}
-            <Keycaps keys={[mac ? '↵' : 'Enter']} />
+            <Keycaps keys={primaryKeys ?? [mac ? '↵' : 'Enter']} />
           </button>
         )}
         {hasActions && (
