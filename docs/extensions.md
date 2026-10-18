@@ -2,7 +2,7 @@
 
 An extension adds commands to Waypoint. It's a folder with a `package.json` and a JavaScript module, and it runs in its own process (Electron's [utility process](https://www.electronjs.org/docs/latest/api/utility-process)), so a slow or crashing extension can't freeze the launcher.
 
-The quickest way to start is to copy [`examples/extensions/developer-utilities`](../examples/extensions/developer-utilities) into your extensions folder and change it. The extensions that come with Waypoint, in [`extensions/`](../extensions), use the same API and make good examples too: [Port Manager](../extensions/port-manager) runs system tools, [Emoji](../extensions/emoji) searches a big list itself and remembers what you used, [Conventional Commits](../extensions/conventional-commits) builds its list from what you type, [MDN](../extensions/mdn) searches a web API as you type, [GitHub](../extensions/github) signs in with a token pasted into its own search field, [Colors](../extensions/colors) draws its icons as SVG files in `supportPath`, and [Media Controls](../extensions/media-controls) runs a different script on each system. Run **Open Extensions Folder** from the launcher to find that folder, then **Reload Extensions** after each change.
+The quickest way to start is to copy [`examples/extensions/developer-utilities`](../examples/extensions/developer-utilities) into your extensions folder and change it. The extensions that come with Waypoint, in [`extensions/`](../extensions), use the same API and make good examples too: [Port Manager](../extensions/port-manager) runs system tools, [Emoji](../extensions/emoji) searches a big list itself and remembers what you used, [Conventional Commits](../extensions/conventional-commits) builds its list from what you type, [MDN](../extensions/mdn) searches a web API as you type, [GitHub](../extensions/github) signs in with a token pasted into its own search field, [Colors](../extensions/colors) draws its icons as SVG files in `supportPath`, [Media Controls](../extensions/media-controls) runs a different script on each system, and [Disk Usage](../extensions/disk-usage) scans in the background while its lists fill in. Run **Open Extensions Folder** from the launcher to find that folder, then **Reload Extensions** after each change.
 
 > Extensions have full Node.js access, like a package you `npm install`. Only install extensions you trust.
 
@@ -142,7 +142,7 @@ A list with `filtering: false` is also asked for again when someone goes back to
 
 ### Lists that fill in
 
-Work that takes longer than a call may (10 seconds), like a scan, can carry on in the background after `view()` returns. Return what you have so far with `loading: true`: the launcher shows it's busy and calls `view()` again about once a second, with the same `ctx.query`, until a list comes back without it. A row picked with the arrows or the pointer stays picked as rows move, nothing changes while the action panel is open, and it waits while the launcher is closed.
+Work that takes longer than a call may (10 seconds), like a scan, can carry on in the background after `view()` returns. Return what you have so far with `loading: true`: the launcher shows it's busy and calls `view()` again about once a second, with the same `ctx.query`, until a list comes back without it. A row picked with the arrows or the pointer stays picked as rows move, nothing changes while the action panel is open, and it waits while the launcher is closed. [Disk Usage](../extensions/disk-usage) adds up folders this way.
 
 ### Previews
 

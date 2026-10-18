@@ -1,4 +1,5 @@
 import { type ChildProcess, spawn } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -212,4 +213,36 @@ test('holds an extension’s wake lock in Waypoint itself, so it lasts when the 
   await run('Let Go of the Wake Lock');
   await expect(page.locator('.toast')).toHaveText('Let go');
   expect(await blocking()).toBe(false);
+});
+
+test('shows what takes up space in a folder, and opens the folders in it', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'waypoint-disk-'));
+  mkdirSync(join(root, 'Videos'));
+  writeFileSync(join(root, 'Videos', 'trip.mov'), randomBytes(3_000_000));
+  writeFileSync(join(root, 'backup.zip'), randomBytes(2_000_000));
+  writeFileSync(join(root, 'notes.txt'), 'small');
+
+  await open('Disk Usage');
+  // A folder typed outside your home folder is scanned when asked, not on the way to another.
+  await page.keyboard.type(`${root}/`);
+  const rows = page.getByRole('option');
+  await expect(rows).toHaveText([/^Scan \/.*waypoint-disk-/]);
+  await page.keyboard.press('Enter');
+  await expect(rows.first()).toContainText(/Videos.*3\.\d MB/);
+  await expect(rows.nth(1)).toContainText(/backup\.zip.*ZIP archive.*2\.\d MB/);
+  await expect(page.getByRole('option', { name: /^1 smaller item/ })).toBeVisible();
+  await expect(page.getByRole('option', { name: /^Scanned just now/ })).toBeVisible();
+
+  // ↵ opens the folder, with its path in the search field.
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('combobox')).toHaveValue(`${root}/Videos/`);
+  await expect(rows.first()).toContainText('trip.mov');
+
+  // Scan Again counts what's new, and going back shows the folder it's in grown too.
+  writeFileSync(join(root, 'Videos', 'more.mov'), randomBytes(4_000_000));
+  await page.keyboard.press(`${mod}+r`);
+  await expect(rows.first()).toContainText('more.mov');
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('combobox')).toHaveValue(`${root}/`);
+  await expect(rows.first()).toContainText(/Videos.*7\.\d MB/);
 });

@@ -1,8 +1,8 @@
 name: platforms
 
 # Runs the commands that talk to the operating system (moving windows, media, Wi-Fi, disks,
-# system info, file search, Keep Awake, Shortcuts, script commands) on real macOS, Windows and
-# Linux machines.
+# system info, file search, disk usage, Keep Awake, Shortcuts, script commands) on real macOS,
+# Windows and Linux machines.
 # CI's other checks run on Linux only, and the scripts for the other systems can't be tried there.
 on:
   pull_request:
@@ -13,6 +13,7 @@ on:
       - extensions/media-controls/**
       - extensions/system-info/**
       - extensions/files/**
+      - extensions/disk-usage/**
       - extensions/keep-awake/**
       - extensions/script-commands/**
       - extensions/shortcuts/**

@@ -1,0 +1,68 @@
+{
+  "name": "disk-usage",
+  "version": "1.0.0",
+  "private": true,
+  "description": "See what's taking up space: your biggest folders, files, archives and installers, and move what you don't need to the Trash.",
+  "type": "module",
+  "main": "index.js",
+  "license": "MIT",
+  "waypoint": {
+    "title": "Disk Usage",
+    "icon": "💽",
+    "commands": [
+      {
+        "name": "usage",
+        "title": "Disk Usage",
+        "mode": "view",
+        "icon": "💽",
+        "keywords": [
+          "disk space",
+          "storage",
+          "folder size",
+          "big folders",
+          "free up space",
+          "clean up",
+          "what's taking up space",
+          "du",
+          "ncdu",
+          "daisydisk"
+        ]
+      },
+      {
+        "name": "largest-files",
+        "title": "Largest Files",
+        "mode": "view",
+        "icon": "💽",
+        "keywords": [
+          "big files",
+          "large files",
+          "file size",
+          "disk space",
+          "storage",
+          "videos",
+          "free up space"
+        ]
+      },
+      {
+        "name": "archives",
+        "title": "Archives and Installers",
+        "mode": "view",
+        "icon": "📦",
+        "keywords": [
+          "zip",
+          "zips",
+          "archive",
+          "rar",
+          "7z",
+          "tar",
+          "dmg",
+          "iso",
+          "disk image",
+          "pkg",
+          "installer",
+          "free up space"
+        ]
+      }
+    ]
+  }
+}
