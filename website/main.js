@@ -203,7 +203,8 @@ if ('IntersectionObserver' in window && !reduceMotion) {
 // ── Section rail: lights the dot of the chapter in view ──
 
 const rail = document.querySelector('.rail');
-const chapters = ['find', 'write', 'extend'].map((id) => document.getElementById(id)).filter(Boolean);
+// Snippets is the second half of Write, so it lights Write's dot (its data-rail).
+const chapters = ['find', 'write', 'snippets', 'extend'].map((id) => document.getElementById(id)).filter(Boolean);
 
 if (rail && chapters.length && 'IntersectionObserver' in window) {
   const railLinks = [...rail.querySelectorAll('a')];
@@ -217,7 +218,7 @@ if (rail && chapters.length && 'IntersectionObserver' in window) {
       const current = chapters.find((chapter) => inView.has(chapter.id));
       rail.classList.toggle('is-on', Boolean(current));
       for (const a of railLinks) {
-        if (current && a.hash === `#${current.id}`) a.setAttribute('aria-current', 'true');
+        if (current && a.hash === `#${current.dataset.rail ?? current.id}`) a.setAttribute('aria-current', 'true');
         else a.removeAttribute('aria-current');
       }
     },

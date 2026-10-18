@@ -2080,6 +2080,232 @@ h2 {
 
 /* Extension code */
 
+/* Snippets: an email in another app, where typing !sig swaps it for the signature, the keys lit
+   as they're pressed. One 7s loop, started when the window comes into view so every part keeps
+   time. Without script, or with reduced motion, it shows the signature already swapped in. */
+.h2-code {
+  color: var(--pink-ink);
+  font-family: var(--mono);
+  font-size: 0.84em;
+  letter-spacing: -0.03em;
+}
+
+.body-code {
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: rgb(255 255 255 / 0.08);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 0.84em;
+  white-space: nowrap;
+}
+
+.visual-snippets {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 20px;
+}
+
+.mail {
+  width: min(500px, 100%);
+}
+
+.mail-fields {
+  padding: 0 24px;
+  border-bottom: 1px solid var(--n-separator);
+  font-size: 14px;
+}
+
+.mail-fields p {
+  display: flex;
+  gap: 12px;
+  padding: 9px 0;
+  border-top: 1px solid var(--n-separator);
+}
+
+.mail-label {
+  width: 58px;
+  color: var(--n-secondary);
+}
+
+.mail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 24px 28px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.sx-line {
+  position: relative;
+  min-height: 3em;
+}
+
+.sx-typing,
+.sx-sig {
+  position: absolute;
+  inset: 0 auto auto 0;
+}
+
+.sx-typing {
+  opacity: 0;
+}
+
+.sx-keyword {
+  display: inline-block;
+  width: 4ch;
+  overflow: hidden;
+  color: var(--pink-ink);
+  font-family: var(--mono);
+  vertical-align: bottom;
+  white-space: nowrap;
+}
+
+.sx-keys {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sx-key {
+  display: grid;
+  place-items: center;
+  min-width: 38px;
+  height: 38px;
+  padding: 0 10px;
+  border-radius: 9px;
+  background: rgb(255 255 255 / 0.06);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.12),
+    0 2px 0 rgb(255 255 255 / 0.06);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 16px;
+}
+
+.sx-arrow {
+  display: grid;
+  margin: 0 4px;
+  color: var(--ink-3);
+}
+
+.sx-arrow .i {
+  width: 16px;
+  height: 16px;
+}
+
+.sx-result {
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: rgb(236 91 155 / 0.14);
+  box-shadow: inset 0 0 0 1px rgb(236 91 155 / 0.3);
+  color: var(--pink-ink);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.js .visual-snippets:has(.mail.is-in) .sx-typing {
+  animation: sx-typing 7s infinite;
+}
+
+.js .visual-snippets:has(.mail.is-in) .sx-keyword {
+  animation: sx-type 7s infinite;
+}
+
+.js .visual-snippets:has(.mail.is-in) .sx-sig {
+  animation: sx-sig 7s infinite;
+}
+
+.js .visual-snippets:has(.mail.is-in) .sx-key {
+  animation: sx-press 7s calc(var(--k) * 0.35s) infinite;
+}
+
+.js .visual-snippets:has(.mail.is-in) .sx-result {
+  animation: sx-result 7s infinite;
+}
+
+/* 0–10% an empty line; 10–30% !sig typed, a key every 5%; at 36% swapped; by 96% faded for the next go. */
+@keyframes sx-typing {
+  0%,
+  35.9% {
+    opacity: 1;
+  }
+
+  36%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes sx-type {
+  0% {
+    width: 0;
+  }
+
+  10% {
+    width: 0;
+    animation-timing-function: steps(4, jump-start);
+  }
+
+  30%,
+  100% {
+    width: 4ch;
+  }
+}
+
+@keyframes sx-sig {
+  0%,
+  35.9% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  40%,
+  90% {
+    opacity: 1;
+    transform: none;
+  }
+
+  96%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes sx-press {
+  0%,
+  9.9%,
+  14%,
+  100% {
+    background: rgb(255 255 255 / 0.06);
+    color: var(--ink);
+    transform: none;
+  }
+
+  10%,
+  12% {
+    background: rgb(236 91 155 / 0.32);
+    color: #fff;
+    transform: translateY(2px);
+  }
+}
+
+@keyframes sx-result {
+  0%,
+  35.9%,
+  96%,
+  100% {
+    opacity: 0.35;
+  }
+
+  40%,
+  90% {
+    opacity: 1;
+  }
+}
+
 .visual-extend {
   min-height: 500px;
 }
