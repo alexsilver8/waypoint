@@ -28,14 +28,14 @@ import {
   usage,
 } from './scripts.js';
 
-/** @typedef {import('../../src/shared/extension-api').Extension} Extension */
-/** @typedef {import('../../src/shared/extension-api').ExtensionContext} Context */
-/** @typedef {import('../../src/shared/extension-api').ListItem} ListItem */
-/** @typedef {import('../../src/shared/extension-api').ListSection} ListSection */
-/** @typedef {import('../../src/shared/extension-api').ListView} ListView */
-/** @typedef {import('../../src/shared/extension-api').Action} Action */
-/** @typedef {import('../../src/shared/extension-api').ActionResult} ActionResult */
-/** @typedef {import('../../src/shared/extension-api').Icon} Icon */
+/** @typedef {import('@waypoint/api').Extension} Extension */
+/** @typedef {import('@waypoint/api').ExtensionContext} Context */
+/** @typedef {import('@waypoint/api').ListItem} ListItem */
+/** @typedef {import('@waypoint/api').ListSection} ListSection */
+/** @typedef {import('@waypoint/api').ListView} ListView */
+/** @typedef {import('@waypoint/api').Action} Action */
+/** @typedef {import('@waypoint/api').ActionResult} ActionResult */
+/** @typedef {import('@waypoint/api').Icon} Icon */
 /** @typedef {import('./scripts.js').Script} Script */
 
 /**

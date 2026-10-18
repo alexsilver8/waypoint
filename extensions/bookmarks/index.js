@@ -18,11 +18,11 @@ import {
   when,
 } from './bookmarks.js';
 
-/** @typedef {import('../../src/shared/extension-api').Extension} Extension */
-/** @typedef {import('../../src/shared/extension-api').ExtensionContext} Context */
-/** @typedef {import('../../src/shared/extension-api').ListItem} ListItem */
-/** @typedef {import('../../src/shared/extension-api').ListView} ListView */
-/** @typedef {import('../../src/shared/extension-api').Icon} Icon */
+/** @typedef {import('@waypoint/api').Extension} Extension */
+/** @typedef {import('@waypoint/api').ExtensionContext} Context */
+/** @typedef {import('@waypoint/api').ListItem} ListItem */
+/** @typedef {import('@waypoint/api').ListView} ListView */
+/** @typedef {import('@waypoint/api').Icon} Icon */
 /** @typedef {import('./bookmarks.js').Browser} Browser */
 /** @typedef {import('./bookmarks.js').Bookmark} Bookmark */
 

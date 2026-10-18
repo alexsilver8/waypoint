@@ -36,6 +36,8 @@ jobs:
         run: pnpm run test
       - name: Build
         run: pnpm run build
+      - name: Build @waypoint/api
+        run: pnpm run build:api
 
   e2e:
     name: end-to-end
@@ -72,7 +74,7 @@ jobs:
           persist-credentials: false
       - uses: alexsilver8/cleaner@v1
         with:
-          paths: src
+          paths: src packages/api/src packages/api/scripts
 
   # One stable check name for the branch ruleset to require.
   # Add any new job to `needs` and it becomes required automatically.

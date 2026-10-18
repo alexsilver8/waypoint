@@ -13,9 +13,7 @@ const more = join(root, 'more');
 /** @type {Map<string, any>} */
 const data = new Map();
 
-const search = /** @type {import('../../src/shared/extension-api').CommandImplementation<any>} */ (
-  extension.commands.search
-);
+const search = /** @type {import('@waypoint/api').CommandImplementation<any>} */ (extension.commands.search);
 
 /** @param {string} query */
 const ctx = (query) => ({
@@ -46,7 +44,7 @@ async function items(query) {
 
 /**
  * What an item's first action hands back when it's picked.
- * @param {import('../../src/shared/extension-api').ListItem | undefined} item
+ * @param {import('@waypoint/api').ListItem | undefined} item
  */
 const payloadOf = (item) => /** @type {any} */ (item?.actions[0])?.payload;
 

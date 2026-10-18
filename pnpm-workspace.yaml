@@ -1,4 +1,8 @@
-# pnpm settings (this repo is a single package, not a workspace).
+# pnpm settings. The repo is a workspace: the app at the root, and in packages/ what's
+# published to npm on its own (@waypoint/api, the types and helpers for extensions).
+packages:
+  - packages/*
+
 # Electron downloads its binary on first run, so it needs no install script.
 allowBuilds:
   esbuild: true

@@ -2,7 +2,7 @@ import { type ChildProcess, spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { type ElectronApplication, _electron as electron, expect, type Page, test } from '@playwright/test';
 
 // The extensions that ship with Waypoint, driven through the launcher.
@@ -45,14 +45,76 @@ function addWakeLockExtension(userData: string) {
   );
 }
 
+/**
+ * Extensions of the test's own that use @waypoint/api without installing it, as an ES module and
+ * as CommonJS, and one that brings its own copy.
+ */
+function addApiExtensions(userData: string) {
+  const add = (name: string, title: string, files: Record<string, string>, type = 'module') => {
+    const dir = join(userData, 'extensions', name);
+    for (const [file, text] of Object.entries(files)) {
+      mkdirSync(dirname(join(dir, file)), { recursive: true });
+      writeFileSync(join(dir, file), text);
+    }
+    writeFileSync(
+      join(dir, 'package.json'),
+      JSON.stringify({ name, type, waypoint: { title, commands: [{ name: 'show', title, mode: 'view' }] } }),
+    );
+  };
+  add('api-helpers', 'Try API Helpers', {
+    'index.js': `import { Action, Icon, defineExtension, item, list } from '@waypoint/api';
+      export default defineExtension({
+        commands: {
+          show: {
+            view: () => list({
+              title: 'Helpers',
+              items: [
+                item({
+                  title: 'Built with helpers',
+                  icon: Icon.builtin('sparkles', 'purple'),
+                  actions: [Action.copy('from @waypoint/api', { title: 'Copy Text', shortcut: 'mod+shift+c' })],
+                }),
+              ],
+            }),
+          },
+        },
+      });`,
+  });
+  add(
+    'api-commonjs',
+    'Try API from CommonJS',
+    {
+      'index.js': `const { defineExtension, item, list } = require('@waypoint/api');
+        module.exports = defineExtension({ commands: { show: { view: () => list({ title: 'CommonJS', items: [item({ title: 'Required from CommonJS' })] }) } } });`,
+    },
+    'commonjs',
+  );
+  add('api-own-copy', 'Try Own API Copy', {
+    'index.js': `import { list } from '@waypoint/api';
+      export default { commands: { show: { view: () => list() } } };`,
+    'node_modules/@waypoint/api/package.json': JSON.stringify({
+      name: '@waypoint/api',
+      type: 'module',
+      exports: './index.js',
+    }),
+    'node_modules/@waypoint/api/index.js': `export const list = () => ({
+      type: 'list',
+      title: 'Own copy',
+      sections: [{ items: [{ id: 'own', title: 'Its own copy', actions: [] }] }],
+    });`,
+  });
+}
+
 test.beforeEach(async () => {
   const userData = mkdtempSync(join(tmpdir(), 'waypoint-ext-'));
   // Copy rather than paste, so the tests never type into whatever app is in front.
   writeFileSync(join(userData, 'settings.json'), JSON.stringify({ hideOnBlur: false, pasteIntoApps: false }));
   addWakeLockExtension(userData);
+  addApiExtensions(userData);
   app = await electron.launch({
     args: [join(import.meta.dirname, '..'), '--show', ...(process.platform === 'linux' ? ['--no-sandbox'] : [])],
-    env: { ...process.env, WAYPOINT_USER_DATA: userData },
+    // Without pnpm's NODE_PATH, through which `require` would find this repo's packages/api.
+    env: { ...process.env, WAYPOINT_USER_DATA: userData, NODE_PATH: '' },
   });
   page = await app.firstWindow();
   await expect(page.getByRole('combobox')).toBeFocused();
@@ -213,6 +275,23 @@ test('holds an extension’s wake lock in Waypoint itself, so it lasts when the 
   await run('Let Go of the Wake Lock');
   await expect(page.locator('.toast')).toHaveText('Let go');
   expect(await blocking()).toBe(false);
+});
+
+test('gives extensions @waypoint/api when they use it without installing it', async () => {
+  await open('Try API from CommonJS');
+  await expect(page.getByRole('option', { name: /Required from CommonJS/ })).toBeVisible();
+
+  // A copy the extension installed itself comes first.
+  await page.keyboard.press('Escape');
+  await open('Try Own API Copy');
+  await expect(page.getByRole('option', { name: /Its own copy/ })).toBeVisible();
+
+  await page.keyboard.press('Escape');
+  await open('Try API Helpers');
+  await expect(page.getByRole('option', { name: /Built with helpers/ })).toBeVisible();
+  // The action the helpers built works like any other, shortcut and all.
+  await page.keyboard.press(`${mod}+Shift+c`);
+  await expect.poll(clipboardText).toBe('from @waypoint/api');
 });
 
 test('shows what takes up space in a folder, and opens the folders in it', async () => {

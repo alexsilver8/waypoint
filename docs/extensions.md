@@ -6,6 +6,40 @@ The quickest way to start is to copy [`examples/extensions/developer-utilities`]
 
 > Extensions have full Node.js access, like a package you `npm install`. Only install extensions you trust.
 
+## Quick start
+
+Run **Open Extensions Folder**, and make a folder there called `hello`, with a `package.json`:
+
+```json
+{
+  "name": "hello",
+  "type": "module",
+  "waypoint": {
+    "title": "Hello",
+    "commands": [{ "name": "greet", "title": "Say Hello", "mode": "view" }]
+  }
+}
+```
+
+and an `index.js`:
+
+```js
+import { Action, defineExtension, item, list } from '@waypoint/api';
+
+export default defineExtension({
+  commands: {
+    greet: {
+      view: () =>
+        list({
+          items: [item({ title: 'Hello, world!', actions: [Action.copy('Hello, world!', { title: 'Copy Greeting' })] })],
+        }),
+    },
+  },
+});
+```
+
+Run **Reload Extensions**, then search for **Say Hello**: <kbd>↵</kbd> on the greeting copies it. `@waypoint/api` comes with Waypoint, so there's nothing to install; to have your editor complete and check it too, see [Types and helpers](#types-and-helpers).
+
 ## Where extensions are loaded from
 
 - The `extensions` folder inside Waypoint's data folder (run **Open Extensions Folder**).
@@ -70,7 +104,7 @@ export default {
 };
 ```
 
-Types for editors live in [`src/shared/extension-api.ts`](../src/shared/extension-api.ts); the example shows how to use them from plain JavaScript with JSDoc.
+Wrap the object in `defineExtension()` from `@waypoint/api` to have your editor know `ctx` and check what each function returns; it returns the object as it is. `module.exports = { commands }` works too, in CommonJS.
 
 A command can implement:
 
@@ -294,9 +328,61 @@ When it can't, the text stays on the clipboard and a notification says how to pa
 
 Don't give a `paste` action a shortcut with <kbd>⇧</kbd> or <kbd>⌥</kbd>: if the key is still held when the paste is typed, the app sees ⌘⇧V (often "paste and match style") instead.
 
-## Types
+## Types and helpers
 
-The types in [`src/shared/extension-api.ts`](../src/shared/extension-api.ts) work in plain JavaScript through JSDoc, as in the examples. `pnpm typecheck` checks the bundled and example extensions that way, so a mistake in a view's shape shows up before you run it.
+[`@waypoint/api`](../packages/api) has the types of everything on this page, and small helpers that build the same plain objects with less to type. Waypoint gives it to extensions as they run, so `import … from '@waypoint/api'` and `require('@waypoint/api')` work with nothing installed. For your editor, install it as a dev dependency in your extension's folder:
+
+```sh
+npm install --save-dev @waypoint/api   # or: pnpm add -D @waypoint/api
+```
+
+Then the copy in your `node_modules` is the one your extension gets, instead of Waypoint's. In plain JavaScript, put `// @ts-check` at the top of a file to have your editor check it, and name types with JSDoc: `/** @param {import('@waypoint/api').ExtensionContext} ctx */`. TypeScript works too: compile it to JavaScript, and point `main` at the result.
+
+The helpers are optional, and mix with object literals: each returns the plain object.
+
+```js
+import { Action, Icon, item } from '@waypoint/api';
+
+// The same item twice: as an object…
+const plain = {
+  id: pkg.name,
+  title: pkg.name,
+  icon: { emoji: '📦' },
+  actions: [
+    { type: 'open-url', url: pkg.npm, title: 'Open on npmjs.com' },
+    ...(pkg.repository ? [{ type: 'open-url', url: pkg.repository, title: 'Open Repository' }] : []),
+    { type: 'copy', text: pkg.name, title: 'Copy Name', shortcut: { key: 'c', modifiers: ['mod', 'shift'] } },
+  ],
+};
+
+// …and with the helpers.
+const built = item({
+  title: pkg.name,
+  icon: Icon.emoji('📦'),
+  actions: [
+    Action.openUrl(pkg.npm, { title: 'Open on npmjs.com' }),
+    pkg.repository && Action.openUrl(pkg.repository, { title: 'Open Repository' }),
+    Action.copy(pkg.name, { title: 'Copy Name', shortcut: 'mod+shift+c' }),
+  ],
+});
+```
+
+| Helper | Builds |
+| --- | --- |
+| `defineExtension({ commands })`, `defineCommand({ view, run, onAction })` | Your module's export, or one command, typed. Each returns what it's given. |
+| `list({ title, items, … })`, `list({ sections, … })` | A [list](#lists). `items` is one untitled section. |
+| `item({ title, subtitle, icon, actions, … })` | A list item. Its `id` is its title unless you give one. |
+| `detail(markdown, { title, metadata, actions })` | A [detail view](#detail-views). |
+| `form({ title, fields, submit: 'save' })` | A [form](#forms). `formValues(payload)` reads what it submitted in `onAction`. |
+| `field.text(id, title, options)`, `field.password`, `field.textarea`, `field.checkbox`, `field.dropdown(id, title, choices)`, `field.description(text)`, `field.separator()` | A form's fields. |
+| `Action.copy(text)`, `Action.paste(text)`, `Action.openUrl(url)`, `Action.openPath(path)`, `Action.revealPath(path)`, `Action.openCommand({ extension, command })`, `Action.callback(id, title)` | [Actions](#actions). Each takes its `title`, `shortcut` and other options last. |
+| `Icon.builtin('globe', 'blue')`, `Icon.emoji('🎲')`, `Icon.path(path)` | Icons. |
+| `shortcut('mod+shift+c')` | `{ key: 'c', modifiers: ['mod', 'shift'] }`: <kbd>⌘</kbd><kbd>⇧</kbd><kbd>C</kbd> on macOS, <kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>C</kbd> on Windows and Linux. Actions take the string too. |
+| `metadata({ Port: 3000, User: user })` | Label–value pairs for a preview or a detail view, leaving out empty values. |
+
+Lists of items, sections, actions, fields and keywords skip `false`, `0`, `''`, `null` and `undefined`, so `condition && Action.copy(text)` adds the action only when the condition holds.
+
+`pnpm typecheck` checks the bundled and example extensions against these types, so a mistake in a view's shape shows up before you run it.
 
 ## Debugging
 

@@ -4,6 +4,7 @@
  * or crashing extension can't take the launcher down with it.
  */
 import { mkdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { Extension, ExtensionContext, ExtensionPower } from '../shared/extension-api';
 import type {
@@ -18,7 +19,11 @@ import type {
   MainResponse,
 } from '../shared/extension-protocol';
 import type { CommandImplementation } from '../shared/types';
+import { provideApi } from './api';
 import { createStorage } from './storage';
+
+// Built beside this file from packages/api; see electron.vite.config.ts.
+provideApi(pathToFileURL(join(import.meta.dirname, 'waypoint-api.js')).href);
 
 /** How long the main process may take to answer; it does nothing slow. */
 const MAIN_TIMEOUT_MS = 5000;

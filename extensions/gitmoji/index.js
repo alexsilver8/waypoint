@@ -3,10 +3,10 @@
 import { readFileSync } from 'node:fs';
 import { asTitle, searchGitmojis } from './search.js';
 
-/** @typedef {import('../../src/shared/extension-api').Extension} Extension */
-/** @typedef {import('../../src/shared/extension-api').ExtensionContext} Context */
-/** @typedef {import('../../src/shared/extension-api').ListItem} ListItem */
-/** @typedef {import('../../src/shared/extension-api').ListView} ListView */
+/** @typedef {import('@waypoint/api').Extension} Extension */
+/** @typedef {import('@waypoint/api').ExtensionContext} Context */
+/** @typedef {import('@waypoint/api').ListItem} ListItem */
+/** @typedef {import('@waypoint/api').ListView} ListView */
 /** @typedef {import('./search.js').Gitmoji} Gitmoji */
 
 /** @type {{ gitmojis: Gitmoji[] }} */

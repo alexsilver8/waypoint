@@ -1,11 +1,20 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
+    "composite": true,
     "allowJs": true,
     "checkJs": true,
     "lib": ["ES2023"],
-    "types": ["node"]
+    "types": ["node"],
+    // The package's source, so the types are checked without building it first.
+    "paths": { "@waypoint/api": ["./packages/api/src/index.ts"] }
   },
-  "include": ["extensions/**/*.js", "examples/extensions/**/*.js", "src/shared/extension-api.ts"],
-  "exclude": ["extensions/**/*.test.js"]
+  "include": [
+    "extensions/**/*.js",
+    "examples/extensions/**/*.js",
+    "packages/api/src/**/*.ts",
+    "src/shared/extension-api.ts",
+    "src/shared/types.ts"
+  ],
+  "exclude": ["extensions/**/*.test.js", "packages/api/src/**/*.test.ts"]
 }

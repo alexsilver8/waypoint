@@ -4,17 +4,20 @@
 // Each command named in package.json is implemented here. `view` commands return a list, a
 // detail view or a form, `no-view` commands just do something, and `onAction` handles the
 // "callback" actions that a command's items offer, and its forms when they're submitted.
+//
+// The helpers come from @waypoint/api. Waypoint provides it when the extension runs, so there's
+// nothing to install; `npm install --save-dev @waypoint/api` gives your editor its types too.
+// Every helper returns a plain object, so `Action.copy(text)` and `{ type: 'copy', text }` are
+// the same, and you can mix the two.
 import { randomUUID } from 'node:crypto';
+import { Action, defineExtension, detail, field, form, formValues, Icon, item, list, metadata } from '@waypoint/api';
 
-/** @typedef {import('../../../src/shared/extension-api').Extension} Extension */
-/** @typedef {import('../../../src/shared/extension-api').ExtensionContext} Context */
-/** @typedef {import('../../../src/shared/extension-api').ListItem} ListItem */
-/** @typedef {import('../../../src/shared/extension-api').ListView} ListView */
-/** @typedef {import('../../../src/shared/extension-api').DetailView} DetailView */
-/** @typedef {import('../../../src/shared/extension-api').FormView} FormView */
-/** @typedef {import('../../../src/shared/extension-api').Action} Action */
-/** @typedef {import('../../../src/shared/extension-api').ActionResult} ActionResult */
-/** @typedef {import('../../../src/shared/extension-api').Json} Json */
+/** @typedef {import('@waypoint/api').ExtensionContext} Context */
+/** @typedef {import('@waypoint/api').ListView} ListView */
+/** @typedef {import('@waypoint/api').DetailView} DetailView */
+/** @typedef {import('@waypoint/api').FormView} FormView */
+/** @typedef {import('@waypoint/api').ActionResult} ActionResult */
+/** @typedef {import('@waypoint/api').Json} Json */
 /** @typedef {{ id: string, text: string, done: boolean, notes?: string, priority?: string }} Todo */
 
 /**
@@ -25,8 +28,7 @@ function uuidView(ctx) {
   const uuids = Array.from({ length: 5 }, () =>
     ctx.query.toLowerCase().includes('upper') ? randomUUID().toUpperCase() : randomUUID(),
   );
-  return {
-    type: 'list',
+  return list({
     title: 'Generate UUID',
     searchPlaceholder: 'Type "upper" for uppercase…',
     // The list is generated from the query, so don't let the launcher filter it.
@@ -34,23 +36,19 @@ function uuidView(ctx) {
     sections: [
       {
         title: 'Fresh UUIDs',
-        items: uuids.map((uuid) => ({
-          id: uuid,
-          title: uuid,
-          icon: { emoji: '🎲' },
-          actions: [
-            { type: 'copy', text: uuid, title: 'Copy UUID' },
-            {
-              type: 'callback',
-              id: 'regenerate',
-              title: 'Generate New Ones',
-              shortcut: { key: 'r', modifiers: ['mod'] },
-            },
-          ],
-        })),
+        items: uuids.map((uuid) =>
+          item({
+            title: uuid,
+            icon: Icon.emoji('🎲'),
+            actions: [
+              Action.copy(uuid, { title: 'Copy UUID' }),
+              Action.callback('regenerate', 'Generate New Ones', { shortcut: 'mod+r' }),
+            ],
+          }),
+        ),
       },
     ],
-  };
+  });
 }
 
 /**
@@ -60,14 +58,12 @@ function uuidView(ctx) {
 async function npmView(ctx) {
   const query = (ctx.query || ctx.argument || '').trim();
   if (!query) {
-    return {
-      type: 'list',
+    return list({
       title: 'npm',
       filtering: false,
       searchPlaceholder: 'Search npm packages…',
-      sections: [],
       emptyText: 'Type to search the npm registry.',
-    };
+    });
   }
   const response = await fetch(`https://registry.npmjs.org/-/v1/search?size=20&text=${encodeURIComponent(query)}`);
   if (!response.ok) throw new Error(`npm responded with ${response.status}`);
@@ -75,32 +71,32 @@ async function npmView(ctx) {
     /** @type {{ objects: Array<{ package: { name: string, version: string, description?: string, links: { npm: string, repository?: string } } }> }} */ (
       await response.json()
     );
-  return {
-    type: 'list',
+  return list({
     title: 'npm',
     searchPlaceholder: 'Search npm packages…',
     filtering: false,
     sections: [
       {
         title: `Results for “${query}”`,
-        items: objects.map(({ package: pkg }) => ({
-          id: pkg.name,
-          title: pkg.name,
-          subtitle: pkg.description,
-          accessory: `v${pkg.version}`,
-          icon: { emoji: '📦' },
-          actions: [
-            { type: 'open-url', url: pkg.links.npm, title: 'Open on npmjs.com' },
-            { type: 'copy', text: `npm install ${pkg.name}`, title: 'Copy Install Command' },
-            .../** @type {Action[]} */ (
-              pkg.links.repository ? [{ type: 'open-url', url: pkg.links.repository, title: 'Open Repository' }] : []
-            ),
-          ],
-        })),
+        items: objects.map(({ package: pkg }) =>
+          item({
+            id: pkg.name,
+            title: pkg.name,
+            subtitle: pkg.description,
+            accessory: `v${pkg.version}`,
+            icon: Icon.emoji('📦'),
+            actions: [
+              Action.openUrl(pkg.links.npm, { title: 'Open on npmjs.com' }),
+              Action.copy(`npm install ${pkg.name}`, { title: 'Copy Install Command' }),
+              // Left out when there's no repository.
+              pkg.links.repository && Action.openUrl(pkg.links.repository, { title: 'Open Repository' }),
+            ],
+          }),
+        ),
       },
     ],
     emptyText: 'No packages found.',
-  };
+  });
 }
 
 /**
@@ -112,9 +108,9 @@ function readTodos(ctx) {
 }
 
 const PRIORITIES = [
-  { value: 'normal', title: 'Normal', icon: { emoji: '🟢' } },
-  { value: 'high', title: 'High', icon: { emoji: '🔴' } },
-  { value: 'low', title: 'Low', icon: { emoji: '⚪️' } },
+  { value: 'normal', title: 'Normal', icon: Icon.emoji('🟢') },
+  { value: 'high', title: 'High', icon: Icon.emoji('🔴') },
+  { value: 'low', title: 'Low', icon: Icon.emoji('⚪️') },
 ];
 
 /**
@@ -124,19 +120,35 @@ const PRIORITIES = [
  * @returns {FormView}
  */
 function newTodoForm(text = '') {
-  return {
-    type: 'form',
+  return form({
     title: 'New To-do',
     submit: { id: 'create', title: 'Add To-do' },
     fields: [
-      { type: 'text', id: 'text', title: 'To-do', placeholder: 'Water the plants', defaultValue: text, required: true },
-      { type: 'textarea', id: 'notes', title: 'Notes', info: 'Markdown, shown beside the list.' },
-      { type: 'dropdown', id: 'priority', title: 'Priority', options: PRIORITIES },
-      { type: 'separator' },
-      { type: 'checkbox', id: 'done', title: 'Status', label: 'Already done' },
+      field.text('text', 'To-do', { placeholder: 'Water the plants', defaultValue: text, required: true }),
+      field.textarea('notes', 'Notes', { info: 'Markdown, shown beside the list.' }),
+      field.dropdown('priority', 'Priority', PRIORITIES),
+      field.separator(),
+      field.checkbox('done', 'Status', { label: 'Already done' }),
     ],
-  };
+  });
 }
+
+/** @param {Todo} todo */
+const todoItem = (todo) =>
+  item({
+    id: todo.id,
+    title: todo.text,
+    icon: Icon.emoji(todo.done ? '✅' : '⬜️'),
+    accessory: PRIORITIES.find((p) => p.value === todo.priority && p.value !== 'normal')?.title,
+    // A preview beside the list, in Markdown.
+    detail: todo.notes ? { title: todo.text, markdown: todo.notes } : undefined,
+    actions: [
+      Action.callback('toggle', todo.done ? 'Mark as Not Done' : 'Mark as Done', { payload: todo.id }),
+      Action.copy(todo.text, { title: 'Copy Text' }),
+      Action.callback('delete', 'Delete To-do', { payload: todo.id, style: 'destructive', shortcut: 'mod+Backspace' }),
+      Action.callback('new', 'New To-do…', { shortcut: 'mod+n' }),
+    ],
+  });
 
 /**
  * @param {Context} ctx
@@ -146,66 +158,41 @@ function todosView(ctx) {
   const todos = readTodos(ctx);
   const query = ctx.query.trim();
   const matching = todos.filter((todo) => todo.text.toLowerCase().includes(query.toLowerCase()));
-  /** @param {Todo} todo @returns {ListItem} */
-  const toItem = (todo) => ({
-    id: todo.id,
-    title: todo.text,
-    icon: { emoji: todo.done ? '✅' : '⬜️' },
-    accessory: PRIORITIES.find((p) => p.value === todo.priority && p.value !== 'normal')?.title,
-    // A preview beside the list, in Markdown.
-    detail: todo.notes ? { title: todo.text, markdown: todo.notes } : undefined,
-    actions: [
-      { type: 'callback', id: 'toggle', title: todo.done ? 'Mark as Not Done' : 'Mark as Done', payload: todo.id },
-      { type: 'copy', text: todo.text, title: 'Copy Text' },
-      {
-        type: 'callback',
-        id: 'delete',
-        title: 'Delete To-do',
-        payload: todo.id,
-        style: 'destructive',
-        shortcut: { key: 'Backspace', modifiers: ['mod'] },
-      },
-      { type: 'callback', id: 'new', title: 'New To-do…', shortcut: { key: 'n', modifiers: ['mod'] } },
-    ],
-  });
-  return {
-    type: 'list',
+  return list({
     title: 'To-dos',
     searchPlaceholder: 'Type to search, or to add a to-do…',
     // The "Add" row depends on the search text, so this command filters by itself.
     filtering: false,
     sections: [
       {
-        items: query
-          ? [
-              {
+        items: [
+          query
+            ? item({
                 id: 'add',
                 title: `Add “${query}”`,
-                icon: { emoji: '➕' },
+                icon: Icon.emoji('➕'),
                 actions: [
-                  { type: 'callback', id: 'add', title: 'Add To-do', payload: query },
-                  { type: 'callback', id: 'new', title: 'Add with Notes…', payload: query },
+                  Action.callback('add', 'Add To-do', { payload: query }),
+                  Action.callback('new', 'Add with Notes…', { payload: query }),
                 ],
-              },
-            ]
-          : [
-              {
+              })
+            : item({
                 id: 'new',
                 title: 'New To-do…',
-                icon: { emoji: '📝' },
-                actions: [{ type: 'callback', id: 'new', title: 'New To-do…' }],
-              },
-            ],
+                icon: Icon.emoji('📝'),
+                actions: [Action.callback('new', 'New To-do…')],
+              }),
+        ],
       },
-      { title: 'To do', items: matching.filter((todo) => !todo.done).map(toItem) },
-      { title: 'Done', items: matching.filter((todo) => todo.done).map(toItem) },
+      { title: 'To do', items: matching.filter((todo) => !todo.done).map(todoItem) },
+      { title: 'Done', items: matching.filter((todo) => todo.done).map(todoItem) },
     ],
     emptyText: 'Nothing to do. Type something and press ↵ to add it.',
-  };
+  });
 }
 
 /**
- * Handles the to-do list's actions and the New To-do form, for both commands that show them.
+ * Handles the to-do list's actions and the New To-do form, for every command that shows them.
  *
  * @param {string} id
  * @param {Json | undefined} payload
@@ -221,9 +208,9 @@ function todoAction(id, payload, ctx) {
   if (id === 'new') {
     return { push: newTodoForm(typeof payload === 'string' ? payload : '') };
   }
-  if (id === 'create' && payload && typeof payload === 'object' && !Array.isArray(payload)) {
+  if (id === 'create') {
     // A form's values: a string for each field, and a boolean for the checkbox.
-    const { text, notes, priority, done } = payload;
+    const { text, notes, priority, done } = formValues(payload);
     /** @type {Todo} */
     const todo = { id: randomUUID(), text: String(text).trim(), done: done === true, priority: String(priority) };
     if (typeof notes === 'string' && notes.trim()) todo.notes = notes;
@@ -259,8 +246,7 @@ function aboutView(ctx) {
     Object.entries(process.versions).filter(([name]) => ['node', 'v8', 'electron', 'chrome', 'uv'].includes(name))
   );
   const todos = readTodos(ctx);
-  return {
-    type: 'detail',
+  return detail({
     title: 'Developer Utilities',
     markdown: [
       '# Developer Utilities',
@@ -283,34 +269,24 @@ function aboutView(ctx) {
       '> Raw HTML like <b>this</b> is shown as text, never run.',
       '',
       '```js',
-      "return { type: 'detail', markdown: '# Hello' };",
+      "return detail('# Hello');",
       '```',
     ].join('\n'),
-    metadata: [
-      { label: 'Commands', value: '5' },
-      { label: 'To-dos', value: String(todos.length) },
-      { label: 'Platform', value: ctx.platform },
-      { label: 'Folder', value: ctx.extension.path },
-    ],
+    metadata: metadata({ Commands: 5, 'To-dos': todos.length, Platform: ctx.platform, Folder: ctx.extension.path }),
     actions: [
-      { type: 'callback', id: 'new', title: 'New To-do…' },
-      {
-        type: 'open-url',
-        url: 'https://github.com/alexsilver8/waypoint/blob/main/docs/extensions.md',
+      Action.callback('new', 'New To-do…'),
+      Action.openUrl('https://github.com/alexsilver8/waypoint/blob/main/docs/extensions.md', {
         title: 'Read the Docs',
-      },
-      {
-        type: 'copy',
-        text: JSON.stringify(Object.fromEntries(versions), null, 2),
+      }),
+      Action.copy(JSON.stringify(Object.fromEntries(versions), null, 2), {
         title: 'Copy Versions',
-        shortcut: { key: 'c', modifiers: ['mod', 'shift'] },
-      },
+        shortcut: 'mod+shift+c',
+      }),
     ],
-  };
+  });
 }
 
-/** @type {Extension} */
-export default {
+export default defineExtension({
   commands: {
     uuid: {
       view: uuidView,
@@ -321,4 +297,4 @@ export default {
     'new-todo': { view: () => newTodoForm(), onAction: todoAction },
     about: { view: aboutView, onAction: todoAction },
   },
-};
+});

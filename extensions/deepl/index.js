@@ -19,12 +19,12 @@ import {
   webUrl,
 } from './deepl.js';
 
-/** @typedef {import('../../src/shared/extension-api').Extension} Extension */
-/** @typedef {import('../../src/shared/extension-api').ExtensionContext} Context */
-/** @typedef {import('../../src/shared/extension-api').ListItem} ListItem */
-/** @typedef {import('../../src/shared/extension-api').ListSection} ListSection */
-/** @typedef {import('../../src/shared/extension-api').ListView} ListView */
-/** @typedef {import('../../src/shared/extension-api').ActionResult} ActionResult */
+/** @typedef {import('@waypoint/api').Extension} Extension */
+/** @typedef {import('@waypoint/api').ExtensionContext} Context */
+/** @typedef {import('@waypoint/api').ListItem} ListItem */
+/** @typedef {import('@waypoint/api').ListSection} ListSection */
+/** @typedef {import('@waypoint/api').ListView} ListView */
+/** @typedef {import('@waypoint/api').ActionResult} ActionResult */
 /** @typedef {import('./deepl.js').Translation} Translation */
 /** @typedef {{ key: string, base: string }} Auth A key, and the server its plan uses. */
 

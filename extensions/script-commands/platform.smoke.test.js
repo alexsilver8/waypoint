@@ -12,9 +12,7 @@ const root = join(tmpdir(), `script-commands-smoke-${process.pid}`);
 const supportPath = join(root, 'support');
 /** @type {Map<string, any>} */
 const data = new Map();
-const search = /** @type {import('../../src/shared/extension-api').CommandImplementation<any>} */ (
-  extension.commands.search
-);
+const search = /** @type {import('@waypoint/api').CommandImplementation<any>} */ (extension.commands.search);
 
 /** @param {string} query */
 const ctx = (query) => ({
