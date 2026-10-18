@@ -1,0 +1,32 @@
+name: Theme submission
+description: Suggest a new built-in colour theme
+labels: [theme]
+body:
+  - type: input
+    id: name
+    attributes:
+      label: Theme name
+      placeholder: e.g. Nord
+    validations:
+      required: true
+  - type: input
+    id: accent
+    attributes:
+      label: Accent colour
+      description: As `#rrggbb`.
+      placeholder: "#88c0d0"
+    validations:
+      required: true
+  - type: input
+    id: tint
+    attributes:
+      label: Tint colour (optional)
+      description: As `#rrggbb`, washed into the panes. Leave empty for neutral panes.
+      placeholder: "#5e81ac"
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Set it up as Custom in Settings → General → Appearance and attach screenshots in light and dark.
+    validations:
+      required: true
