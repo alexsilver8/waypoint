@@ -1,0 +1,58 @@
+{
+  "name": "files",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Find files by name with Spotlight, Everything, Windows Search or locate, and go through your downloads.",
+  "type": "module",
+  "main": "index.js",
+  "license": "MIT",
+  "waypoint": {
+    "title": "Files",
+    "icon": "🗂️",
+    "commands": [
+      {
+        "name": "search",
+        "title": "Search Files",
+        "mode": "view",
+        "icon": "🗂️",
+        "keywords": [
+          "file",
+          "files",
+          "find",
+          "folder",
+          "document",
+          "spotlight",
+          "everything",
+          "locate",
+          "recent"
+        ],
+        "fallback": true
+      },
+      {
+        "name": "downloads",
+        "title": "Search Downloads",
+        "mode": "view",
+        "icon": "📥",
+        "keywords": [
+          "downloads",
+          "downloaded",
+          "recent",
+          "latest",
+          "file"
+        ]
+      },
+      {
+        "name": "open-latest-download",
+        "title": "Open Latest Download",
+        "mode": "no-view",
+        "icon": "📥",
+        "keywords": [
+          "downloads",
+          "newest download",
+          "last download",
+          "recent download"
+        ]
+      }
+    ]
+  }
+}
