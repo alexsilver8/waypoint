@@ -1,11 +1,12 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import type { ActionResult, CommandImplementation, Icon, Json, ListItem, Platform, View } from '../../shared/types';
+import type { ActionResult, CommandImplementation, Json, ListItem, Platform, View } from '../../shared/types';
 import { exec as defaultExec, type Exec, isMissing, reasonOf } from '../exec';
 import { type Disk, ejectDisk, listDisks } from '../system/disks';
 import { asksAppsFirst, type PowerAction, type Program, powerPrograms } from '../system/power';
 import { emptyTrash } from '../system/trash';
 import { setWifiPower, WifiError, wifiPower } from '../system/wifi';
+import { type Confirmation, confirmView } from './confirm';
 import type { BuiltinExtension } from './types';
 
 const run = promisify(execFile);
@@ -52,43 +53,6 @@ async function runFirst(programs: Program[], exec: Exec): Promise<void> {
     }
   }
   throw last ?? Object.assign(new Error('Not available on this system.'), { code: 'ENOENT' });
-}
-
-interface Confirmation {
-  title: string;
-  /** The button, e.g. "Restart Now". */
-  confirm: string;
-  /** What happens, in a sentence. */
-  detail: string;
-  icon: Icon;
-}
-
-/** Asks before doing something you can't take back: ↵ goes ahead, Esc goes back. */
-function confirmView({ title, confirm, detail, icon }: Confirmation): View {
-  return {
-    type: 'list',
-    title,
-    searchPlaceholder: 'Press ↵ to confirm, or Esc to go back',
-    sections: [
-      {
-        items: [
-          {
-            id: 'confirm',
-            title: confirm,
-            subtitle: detail,
-            icon,
-            actions: [{ type: 'callback', id: 'confirm', title: confirm, style: 'destructive' }],
-          },
-          {
-            id: 'cancel',
-            title: 'Cancel',
-            icon: { builtin: 'close', tint: 'gray' },
-            actions: [{ type: 'callback', id: 'cancel', title: 'Cancel' }],
-          },
-        ],
-      },
-    ],
-  };
 }
 
 function confirmed(confirmation: Confirmation, perform: () => Promise<ActionResult>): CommandImplementation {

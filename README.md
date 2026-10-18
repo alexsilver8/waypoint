@@ -24,7 +24,7 @@ Website: [waypoint.alexsilver.dev](https://waypoint.alexsilver.dev/)
 - **Snaps windows** — halves, thirds, quarters, maximize, centre and the next display for the window you were using, and **Restore** to put it back. See [Windows](#windows).
 - **Runs your computer** — lock, sleep, restart, shut down, log out, empty the Trash, eject disks and turn Wi-Fi on or off, with a check before anything you can't undo. See [System](#system).
 - **Comes with extensions** — file search, your downloads and browser bookmarks, what's taking up space on your disk, your own scripts and Shortcuts, Keep Awake, translation and a dictionary, developer tools like Port Manager, Docker and GitHub, plus Media Controls and System Info, described [below](#included-extensions).
-- **Runs extensions** — commands written in JavaScript, each extension in a separate process. They show lists, pages of Markdown and forms. See [Writing extensions](docs/extensions.md).
+- **Runs extensions** — commands written in JavaScript, each extension in a separate process. They show lists, pages of Markdown and forms. Install other people's from npm or GitHub with **Install Extension** (see [Installing extensions](#installing-extensions)), or write your own (see [Writing extensions](docs/extensions.md)).
 - **Everything has actions** — <kbd>⌘</kbd> <kbd>K</kbd> lists what you can do with the selected item.
 - **Gives any command its own shortcut** — press it anywhere to snap a window, search your files or keep your computer awake, without opening the launcher first. See [Command shortcuts](#command-shortcuts).
 - **Looks at home on your desktop** — the launcher is three panes floating on your desktop with nothing around them: the scope dock, the search field, and the results with their preview and action bar. Light or dark. Drag it anywhere that isn't a control to move it: like Raycast, guide lines show the screen's center, its middle and where the launcher opens, and it snaps to them. It opens again where you left it on that display. Settings floats the same way on macOS. The Notes window is liquid glass that blurs what's behind them on macOS and Windows 11; Linux gets the same design on a solid background, since it has no system blur.
@@ -267,9 +267,26 @@ killall Dock && echo "Restarted the Dock"
 
 Raycast's `@raycast.` headers are read the same way, so the scripts in [raycast/script-commands](https://github.com/raycast/script-commands) run as they are. A script runs with the program on its `#!` line, or by its extension (`.sh`, `.py`, `.js`, `.applescript`, `.ps1`, `.cmd`…), with Homebrew's folders added to `PATH`. A batch file gets each argument in `%~1` to `%~3` as typed, though it can't be given double quotes or line breaks. **Create Script Command** starts one from a template.
 
+## Installing extensions
+
+Someone shared an extension? Run **Install Extension** and type where it is:
+
+| You type | Installs |
+| --- | --- |
+| `emoji-picker`, `emoji-picker@1.2.0`, `@you/emoji-picker@next` | A package from npm: the latest version, an exact one, or a tag |
+| `you/emoji-picker`, `github:you/emoji-picker#v1.2.0`, `https://github.com/you/emoji-picker` | A GitHub repository, at its default branch or a branch, tag or commit after `#` |
+| `https://github.com/you/tools/tree/main/emoji-picker` | A folder in a GitHub repository |
+| `https://gitlab.com/you/emoji-picker.git`, `git@gitlab.com:you/emoji-picker.git` | Any other git repository, at its default branch or a branch or tag after `#`. This one needs `git` installed |
+
+Waypoint downloads it and checks it's an extension, then shows what it is, its commands, its version and where it comes from. Nothing is installed until you press <kbd>↵</kbd>. Extensions can do anything you can on your computer, so only install ones you trust.
+
+It goes in your extensions folder, and its commands are there straight away. npm packages and GitHub repositories are downloaded over HTTPS, without npm or git, and no install scripts run. An npm package is checked against the checksum npm published.
+
+**Manage Extensions** lists what you installed, with where it came from. Pick one and choose **Check for Update** from <kbd>⌘</kbd> <kbd>K</kbd>: an npm package moves to its latest version (or its tag's), and a repository to the newest commit of its branch. **Uninstall Extension…** (<kbd>⌘</kbd> <kbd>⌫</kbd>) removes it, after asking; what it saved in `extension-data` stays. **Settings → Extensions** can install and uninstall them too.
+
 ## Settings
 
-Open **Settings** with <kbd>⌘</kbd> <kbd>,</kbd> in the launcher, the **Open Settings** command, or **Settings…** in the tray menu. There you can record a new shortcut, pick light or dark, choose how much clipboard history to keep, move your notes folder, make quicklinks and snippets, manage extensions and give any command a [shortcut](#command-shortcuts) or an [alias](#command-aliases) of its own.
+Open **Settings** with <kbd>⌘</kbd> <kbd>,</kbd> in the launcher, the **Open Settings** command, or **Settings…** in the tray menu. There you can record a new shortcut, pick light or dark, choose how much clipboard history to keep, move your notes folder, make quicklinks and snippets, install and manage extensions and give any command a [shortcut](#command-shortcuts) or an [alias](#command-aliases) of its own.
 
 **Open at login** starts Waypoint quietly in the tray when you log in. On macOS and Windows it's added to the system's login items. On Linux, Waypoint writes `~/.config/autostart/dev.waypoint.app.desktop` (under `$XDG_CONFIG_HOME` if you set it), which GNOME, KDE, Xfce, Cinnamon and most other desktops follow, and turning it off removes the file. An AppImage is started from where the AppImage file is: if you move it, open it once from its new place and the entry follows. It works in the installed app, not when running from source.
 
