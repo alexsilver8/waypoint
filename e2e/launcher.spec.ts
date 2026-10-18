@@ -478,6 +478,34 @@ test('opens Settings from Waypoint in the footer', async () => {
   await expect(settings.getByRole('heading', { name: 'General' })).toBeVisible();
 });
 
+test('shows the Settings shortcut on the gear, and opens Settings with it', async () => {
+  const gear = page.getByRole('button', { name: 'Open Settings' });
+  const shortcut = gear.locator('.dock__shortcut');
+  await expect(gear).toHaveAttribute('aria-keyshortcuts', mod === 'Meta' ? 'Meta+,' : 'Control+,');
+  await expect(shortcut).toBeHidden();
+  // Holding ⌘ shows it, as it shows the rows' quick keys…
+  await page.keyboard.down(mod);
+  await expect(shortcut).toBeVisible();
+  await expect(shortcut).toHaveText(mod === 'Meta' ? '⌘,' : 'Ctrl+,');
+  await page.keyboard.up(mod);
+  await expect(shortcut).toBeHidden();
+  // …and so does pointing at the gear.
+  await gear.hover();
+  await expect(shortcut).toBeVisible();
+  await page.mouse.move(0, 0);
+  await expect(shortcut).toBeHidden();
+  // Not over the action panel, where ⌘, does nothing.
+  await page.keyboard.down(mod);
+  await page.keyboard.press('k');
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(shortcut).toBeHidden();
+  await page.keyboard.up(mod);
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  const [settings] = await Promise.all([app.waitForEvent('window'), page.keyboard.press(`${mod}+Comma`)]);
+  await expect(settings.getByRole('heading', { name: 'General' })).toBeVisible();
+});
+
 test('changes settings in the Settings window', async () => {
   const settingsFile = () => JSON.parse(readFileSync(join(userData, 'settings.json'), 'utf8'));
   await page.keyboard.type('open settings');

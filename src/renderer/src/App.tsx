@@ -456,6 +456,8 @@ export function App() {
     }
   };
 
+  // A held ⌘ shows Settings' ⌘, as it shows the rows' quick keys, but not over the action panel, where ⌘, does nothing.
+  const showSettingsShortcut = modHeld && !panelOpen;
   const scopeLabel = ROOT_FILTERS.find((f) => f.id === filter)?.label;
   const scopeMatches = counts?.[filter] ?? 0;
   const placeholder = isRoot ? PLACEHOLDERS[filter] : (frame.view?.searchPlaceholder ?? 'Search…');
@@ -473,6 +475,7 @@ export function App() {
         value={filter}
         counts={counts}
         inactive={!isRoot}
+        showShortcut={showSettingsShortcut}
         platform={platform}
         onChange={pickScope}
         onSettings={openSettings}

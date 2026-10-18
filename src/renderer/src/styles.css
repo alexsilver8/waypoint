@@ -281,6 +281,21 @@ button {
   color: var(--badge-ink);
 }
 
+/* Settings' shortcut shows while ⌘ (Ctrl) is held, like the rows' quick keys, or while the pointer is on it. */
+.dock__shortcut {
+  visibility: hidden;
+  opacity: 0;
+  transition:
+    opacity 120ms ease,
+    visibility 120ms;
+}
+
+.dock__settings[data-shortcut] .dock__shortcut,
+.dock__settings:hover .dock__shortcut {
+  visibility: visible;
+  opacity: 1;
+}
+
 .dock__divider {
   height: 1px;
   margin: 4px 8px;

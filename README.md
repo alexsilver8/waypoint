@@ -47,7 +47,7 @@ The first time it starts, Waypoint opens a short setup in place of the launcher:
 | <kbd>⌘</kbd> <kbd>1</kbd> … <kbd>9</kbd> | Run one of the first nine results in view (hold <kbd>⌘</kbd> to see the numbers; they follow the scroll) |
 | <kbd>⌘</kbd> <kbd>K</kbd> | Show all actions |
 | <kbd>Esc</kbd> | Go back, clear the search, return to All, then close |
-| <kbd>⌘</kbd> <kbd>,</kbd> | Open settings |
+| <kbd>⌘</kbd> <kbd>,</kbd> | Open settings (the gear at the bottom of the dock shows it while you hold <kbd>⌘</kbd> or point at it) |
 
 The Notes window has its own shortcuts, listed in the [Notes](#notes) section.
 

@@ -17,6 +17,8 @@ interface ScopeDockProps {
   counts: Record<RootFilter, number> | null;
   /** Inside a command's view no scope applies, so none shows as picked. */
   inactive: boolean;
+  /** ⌘ (Ctrl) is held: Settings shows its shortcut, as the rows show their quick keys. */
+  showShortcut: boolean;
   platform: Platform;
   onChange(filter: RootFilter): void;
   onSettings(): void;
@@ -24,10 +26,11 @@ interface ScopeDockProps {
 
 /**
  * What the root search looks through, as a column of icons down the left of the window. Tab
- * cycles through them; while searching, each one's badge counts its matches.
+ * cycles through them; while searching, each one's badge counts its matches. Settings sits at
+ * the foot, its shortcut on a badge while ⌘ (Ctrl) is held or the pointer is on it.
  */
-export function ScopeDock({ value, counts, inactive, platform, onChange, onSettings }: ScopeDockProps) {
-  const settingsKeys = platform === 'darwin' ? '⌘,' : 'Ctrl+,';
+export function ScopeDock({ value, counts, inactive, showShortcut, platform, onChange, onSettings }: ScopeDockProps) {
+  const mac = platform === 'darwin';
   return (
     <nav className="dock" aria-label="Scopes" data-inactive={inactive || undefined}>
       <div className="dock__tabs" role="tablist" aria-label="Show" aria-orientation="vertical">
@@ -63,12 +66,17 @@ export function ScopeDock({ value, counts, inactive, platform, onChange, onSetti
         type="button"
         tabIndex={-1}
         aria-label="Open Settings"
-        title={`Open Settings (${settingsKeys})`}
-        className="dock__button"
+        aria-keyshortcuts={mac ? 'Meta+,' : 'Control+,'}
+        title="Settings"
+        className="dock__button dock__settings"
+        data-shortcut={showShortcut || undefined}
         onMouseDown={(event) => event.preventDefault()}
         onClick={onSettings}
       >
         <Settings size={18} strokeWidth={2} aria-hidden="true" />
+        <span className="dock__badge dock__shortcut" aria-hidden="true">
+          {mac ? '⌘,' : 'Ctrl+,'}
+        </span>
       </button>
     </nav>
   );
