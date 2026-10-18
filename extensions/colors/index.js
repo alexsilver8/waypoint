@@ -4,10 +4,10 @@ import { mkdirSync, readdirSync, statSync, unlinkSync, writeFileSync } from 'nod
 import { join } from 'node:path';
 import { contrast, formatColor, parseColor } from './color.js';
 
-/** @typedef {import('@waypoint/api').Extension} Extension */
-/** @typedef {import('@waypoint/api').ExtensionContext} Context */
-/** @typedef {import('@waypoint/api').ListView} ListView */
-/** @typedef {import('@waypoint/api').Icon} Icon */
+/** @typedef {import('@waypoint-org/api').Extension} Extension */
+/** @typedef {import('@waypoint-org/api').ExtensionContext} Context */
+/** @typedef {import('@waypoint-org/api').ListView} ListView */
+/** @typedef {import('@waypoint-org/api').Icon} Icon */
 /** @typedef {import('./color.js').Color} Color */
 
 const SWATCHES_KEPT = 200;

@@ -1,5 +1,5 @@
 # pnpm settings. The repo is a workspace: the app at the root, and in packages/ what's
-# published to npm on its own (@waypoint/api, the types and helpers for extensions).
+# published to npm on its own (@waypoint-org/api, the types and helpers for extensions).
 packages:
   - packages/*
 

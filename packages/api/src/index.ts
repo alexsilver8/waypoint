@@ -1,9 +1,9 @@
 /**
- * @waypoint/api: the types of Waypoint's extension API, and small helpers that build its plain
+ * @waypoint-org/api: the types of Waypoint's extension API, and small helpers that build its plain
  * objects. Everything an extension returns is plain data, so the helpers are optional: mix them
  * with object literals as you like. See docs/extensions.md in the Waypoint repository.
  *
- *   import { Action, defineExtension, item, list } from '@waypoint/api';
+ *   import { Action, defineExtension, item, list } from '@waypoint-org/api';
  *
  *   export default defineExtension({
  *     commands: {

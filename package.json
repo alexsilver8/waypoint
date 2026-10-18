@@ -12,7 +12,7 @@
     "postinstall": "install-electron",
     "dev": "electron-vite dev",
     "build": "electron-vite build",
-    "build:api": "pnpm --filter @waypoint/api build",
+    "build:api": "pnpm --filter @waypoint-org/api build",
     "preview": "electron-vite preview",
     "start": "electron-vite preview",
     "typecheck": "tsc -p tsconfig.node.json && tsc -p tsconfig.web.json && tsc -p tsconfig.extensions.json && tsc -p packages/api/tsconfig.json",

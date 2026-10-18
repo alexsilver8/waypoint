@@ -20,11 +20,11 @@ import {
   windowsSessionsScript,
 } from './media.js';
 
-/** @typedef {import('@waypoint/api').Extension} Extension */
-/** @typedef {import('@waypoint/api').ExtensionContext} Context */
-/** @typedef {import('@waypoint/api').ListView} ListView */
-/** @typedef {import('@waypoint/api').ListItem} ListItem */
-/** @typedef {import('@waypoint/api').Action} Action */
+/** @typedef {import('@waypoint-org/api').Extension} Extension */
+/** @typedef {import('@waypoint-org/api').ExtensionContext} Context */
+/** @typedef {import('@waypoint-org/api').ListView} ListView */
+/** @typedef {import('@waypoint-org/api').ListItem} ListItem */
+/** @typedef {import('@waypoint-org/api').Action} Action */
 /** @typedef {import('./media.js').Player} Player */
 /** @typedef {import('./media.js').MediaAction} MediaAction */
 
@@ -331,7 +331,7 @@ async function nowPlayingView(ctx) {
   };
 }
 
-/** @param {MediaAction} action @returns {import('@waypoint/api').CommandImplementation<Context>} */
+/** @param {MediaAction} action @returns {import('@waypoint-org/api').CommandImplementation<Context>} */
 function keyCommand(action) {
   return {
     async run(ctx) {

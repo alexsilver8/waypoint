@@ -24,7 +24,7 @@ Run **Open Extensions Folder**, and make a folder there called `hello`, with a `
 and an `index.js`:
 
 ```js
-import { Action, defineExtension, item, list } from '@waypoint/api';
+import { Action, defineExtension, item, list } from '@waypoint-org/api';
 
 export default defineExtension({
   commands: {
@@ -38,7 +38,7 @@ export default defineExtension({
 });
 ```
 
-Run **Reload Extensions**, then search for **Say Hello**: <kbd>↵</kbd> on the greeting copies it. `@waypoint/api` comes with Waypoint, so there's nothing to install; to have your editor complete and check it too, see [Types and helpers](#types-and-helpers).
+Run **Reload Extensions**, then search for **Say Hello**: <kbd>↵</kbd> on the greeting copies it. `@waypoint-org/api` comes with Waypoint, so there's nothing to install; to have your editor complete and check it too, see [Types and helpers](#types-and-helpers).
 
 ## Where extensions are loaded from
 
@@ -104,7 +104,7 @@ export default {
 };
 ```
 
-Wrap the object in `defineExtension()` from `@waypoint/api` to have your editor know `ctx` and check what each function returns; it returns the object as it is. `module.exports = { commands }` works too, in CommonJS.
+Wrap the object in `defineExtension()` from `@waypoint-org/api` to have your editor know `ctx` and check what each function returns; it returns the object as it is. `module.exports = { commands }` works too, in CommonJS.
 
 A command can implement:
 
@@ -332,18 +332,18 @@ Don't give a `paste` action a shortcut with <kbd>⇧</kbd> or <kbd>⌥</kbd>: if
 
 ## Types and helpers
 
-[`@waypoint/api`](../packages/api) has the types of everything on this page, and small helpers that build the same plain objects with less to type. Waypoint gives it to extensions as they run, so `import … from '@waypoint/api'` and `require('@waypoint/api')` work with nothing installed. For your editor, install it as a dev dependency in your extension's folder:
+[`@waypoint-org/api`](../packages/api) has the types of everything on this page, and small helpers that build the same plain objects with less to type. Waypoint gives it to extensions as they run, so `import … from '@waypoint-org/api'` and `require('@waypoint-org/api')` work with nothing installed. For your editor, install it as a dev dependency in your extension's folder:
 
 ```sh
-npm install --save-dev @waypoint/api   # or: pnpm add -D @waypoint/api
+npm install --save-dev @waypoint-org/api   # or: pnpm add -D @waypoint-org/api
 ```
 
-Then the copy in your `node_modules` is the one your extension gets, instead of Waypoint's. In plain JavaScript, put `// @ts-check` at the top of a file to have your editor check it, and name types with JSDoc: `/** @param {import('@waypoint/api').ExtensionContext} ctx */`. TypeScript works too: compile it to JavaScript, and point `main` at the result.
+Then the copy in your `node_modules` is the one your extension gets, instead of Waypoint's. In plain JavaScript, put `// @ts-check` at the top of a file to have your editor check it, and name types with JSDoc: `/** @param {import('@waypoint-org/api').ExtensionContext} ctx */`. TypeScript works too: compile it to JavaScript, and point `main` at the result.
 
 The helpers are optional, and mix with object literals: each returns the plain object.
 
 ```js
-import { Action, Icon, item } from '@waypoint/api';
+import { Action, Icon, item } from '@waypoint-org/api';
 
 // The same item twice: as an object…
 const plain = {

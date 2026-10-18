@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 const home = mkdtempSync(join(tmpdir(), 'bookmarks-home-'));
-/** @type {import('@waypoint/api').Extension} */
+/** @type {import('@waypoint-org/api').Extension} */
 let extension;
 
 /** @param {string} path @param {unknown} json */
