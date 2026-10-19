@@ -2,6 +2,12 @@
 
 Every release of Waypoint. `pnpm release` writes it from the commits, and each GitHub release shows its section.
 
+## 1.0.0 (2026-10-19)
+
+### Other changes
+
+- show the current design in the README's screenshot ([#67](https://github.com/alexsilver8/waypoint/pull/67), [a59782b](https://github.com/alexsilver8/waypoint/commit/a59782b6a423024d658a2711434eb8b15a9f243b))
+
 ## 0.4.1 (2026-10-19)
 
 ### Other changes
