@@ -9,7 +9,7 @@ An open-source, keyboard-first launcher for macOS, Windows and Linux, in the spi
 
 Website: [waypoint.alexsilver.dev](https://waypoint.alexsilver.dev/)
 
-![Waypoint finding a note, with its preview beside the results](docs/images/launcher.png)
+<img src="docs/images/launcher.png" width="816" alt="Waypoint finding a note as you type, with its preview beside the results and the scope icons down the left">
 
 ## What it does
 
