@@ -1,5 +1,5 @@
 name: Roadmap item
-description: Planned work, with what's in it and when it's done
+description: Planned work, laid out so a contributor can pick it up
 labels: [enhancement, roadmap]
 body:
   - type: textarea
@@ -7,6 +7,13 @@ body:
     attributes:
       label: Goal
       description: What people will be able to do once this ships, in a sentence or two.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+      description: The problem it solves, or who asked for it.
     validations:
       required: true
   - type: textarea
@@ -24,6 +31,17 @@ body:
       label: Not in scope
       description: What this deliberately leaves for later.
   - type: textarea
+    id: where
+    attributes:
+      label: Where to start
+      description: The files, docs or existing code a contributor should read first.
+      value: |
+        | What | Where |
+        | --- | --- |
+        |  |  |
+    validations:
+      required: true
+  - type: textarea
     id: done
     attributes:
       label: Done when
@@ -36,8 +54,15 @@ body:
   - type: dropdown
     id: size
     attributes:
-      label: Rough size
+      label: Size
       options:
         - Small (a day)
         - Medium (a few days)
         - Large (a week or more)
+  - type: textarea
+    id: new-here
+    attributes:
+      label: New here?
+      description: Leave as it is.
+      value: |
+        Read [CONTRIBUTING.md](https://github.com/alexsilver8/waypoint/blob/main/CONTRIBUTING.md), run `pnpm install && pnpm dev`, and comment here before you start so nobody duplicates work.
