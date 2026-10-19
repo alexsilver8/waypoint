@@ -2,6 +2,13 @@
 
 Every release of Waypoint. `pnpm release` writes it from the commits, and each GitHub release shows its section.
 
+## 0.4.1 (2026-10-19)
+
+### Other changes
+
+- lay out roadmap items so contributors can pick them up ([#61](https://github.com/alexsilver8/waypoint/pull/61), [b46a236](https://github.com/alexsilver8/waypoint/commit/b46a2364bece1a135be2bb6858ea2dab8735d7bc))
+- add roadmap, extension and theme issue templates ([#60](https://github.com/alexsilver8/waypoint/pull/60), [395d6cd](https://github.com/alexsilver8/waypoint/commit/395d6cdf431c7f0512303541a6996f9292ef1074))
+
 ## 0.4.0 (2026-10-18)
 
 1 feature.
