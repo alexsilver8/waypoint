@@ -5,9 +5,16 @@
  * ("2pi", "3(4+1)"), × and ÷, constants (pi, e, tau) and common functions
  * (sqrt, cbrt, abs, round, floor, ceil, exp, ln, log, log2, sin, cos, tan, asin,
  * acos, atan, min, max).
+ *
+ * A `%` with a number after it is the remainder ("10 % 3"); anywhere else it's a percentage:
+ * "15% of 80", "20% off 80", "80 + 15%" and "80 - 20%" (a share of what comes before),
+ * "80 * 15%" and "50%" on its own.
  */
 
 type Token = { kind: 'number'; value: number } | { kind: 'ident'; value: string } | { kind: 'op'; value: string };
+
+/** Words that follow a percentage rather than start a value of their own. */
+const PERCENT_WORDS = new Set(['of', 'off']);
 
 const CONSTANTS: Record<string, number> = { pi: Math.PI, π: Math.PI, e: Math.E, tau: Math.PI * 2 };
 
@@ -83,6 +90,11 @@ class Parser {
   private pos = 0;
   /** Set once something other than a bare number or constant was evaluated. */
   hasOperation = false;
+  /**
+   * Whether what was last parsed is a percentage on its own ("15%", not "15% of 80" or
+   * "2 * 15%"), which "+" and "-" then take as a share of what comes before them.
+   */
+  private percent = false;
 
   constructor(private readonly tokens: Token[]) {}
 
@@ -101,9 +113,22 @@ class Parser {
     return token?.kind === 'op' && token.value === value;
   }
 
+  private isWord(value: string): boolean {
+    const token = this.peek();
+    return token?.kind === 'ident' && token.value === value;
+  }
+
   private expect(value: string): void {
     if (!this.isOp(value)) throw new ParseError(`Expected "${value}"`);
     this.pos++;
+  }
+
+  /** Whether `token` begins a value: a number, a name or a parenthesis, but not "of" or "off". */
+  private startsValue(token: Token | undefined): boolean {
+    if (!token) return false;
+    if (token.kind === 'number') return true;
+    if (token.kind === 'ident') return !PERCENT_WORDS.has(token.value);
+    return token.value === '(';
   }
 
   // expression := term (("+" | "-") term)*
@@ -112,21 +137,38 @@ class Parser {
     while (this.isOp('+') || this.isOp('-')) {
       const op = (this.tokens[this.pos++] as Token).value;
       const right = this.term();
-      value = op === '+' ? value + right : value - right;
+      // "80 + 15%" is 80 and 15% of it; "80 - 20%" is 80 less 20% of it.
+      const change = this.percent ? value * right : right;
+      value = op === '+' ? value + change : value - change;
       this.hasOperation = true;
     }
     return value;
   }
 
-  // term := unary (("*" | "/" | "%") unary | implicit-multiplication unary)*
+  // term := unary (("*" | "/" | "%") unary | implicit-multiplication unary)* | percentage ("of" | "off") term
   private term(): number {
     let value = this.unary();
+    let percent = this.percent;
     for (;;) {
+      // "15% of 80" and "20% off 80", of everything up to the next + or -: "10% of 20% of 500".
+      if (percent && this.isWord('of')) {
+        this.pos++;
+        value *= this.term();
+        percent = false;
+        continue;
+      }
+      if (percent && this.isWord('off')) {
+        this.pos++;
+        value = this.term() * (1 - value);
+        percent = false;
+        continue;
+      }
       if (this.isOp('*') || this.isOp('/') || this.isOp('%')) {
         const op = (this.tokens[this.pos++] as Token).value;
         const right = this.unary();
         value = op === '*' ? value * right : op === '/' ? value / right : value % right;
         this.hasOperation = true;
+        percent = false;
         continue;
       }
       const next = this.peek();
@@ -134,8 +176,10 @@ class Parser {
       if (next && (next.kind === 'ident' || (next.kind === 'op' && next.value === '('))) {
         value *= this.unary();
         this.hasOperation = true;
+        percent = false;
         continue;
       }
+      this.percent = percent;
       return value;
     }
   }
@@ -159,19 +203,32 @@ class Parser {
     if (this.isOp('^')) {
       this.pos++;
       this.hasOperation = true;
-      return base ** this.unary();
+      const value = base ** this.unary();
+      this.percent = false;
+      return value;
     }
     return base;
   }
 
-  // postfix := primary "!"*
+  // postfix := primary ("!" | "%")*     (a "%" with a value after it is the remainder, read by `term`)
   private postfix(): number {
     let value = this.primary();
-    while (this.isOp('!')) {
-      this.pos++;
-      value = factorial(value);
+    let percent = false;
+    for (;;) {
+      if (this.isOp('!')) {
+        this.pos++;
+        value = factorial(value);
+        percent = false;
+      } else if (this.isOp('%') && !this.startsValue(this.tokens[this.pos + 1])) {
+        this.pos++;
+        value /= 100;
+        percent = true;
+      } else {
+        break;
+      }
       this.hasOperation = true;
     }
+    this.percent = percent;
     return value;
   }
 

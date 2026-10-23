@@ -32,6 +32,36 @@ describe('calculate', () => {
   });
 
   it.each([
+    ['15% of 80', 12],
+    ['15 % of 80', 12],
+    ['12.5% of 80', 10],
+    ['15% of (60 + 20)', 12],
+    ['80 + 15%', 92],
+    ['80 - 20%', 64],
+    ['100 - 20% + 5', 85],
+    ['200 + 10% - 10%', 198],
+    ['(80 + 15%) * 2', 184],
+    ['20% off 80', 64],
+    ['20% off 80 + 1', 65],
+    ['80 * 15%', 12],
+    ['15% * 80', 12],
+    ['50%', 0.5],
+    ['100%', 1],
+    ['-50%', -0.5],
+    ['10% of 20% of 500', 10],
+    ['15% of 80 * 2', 24],
+    ['20% off 10% off 100', 72],
+    // A number after the % keeps it the remainder.
+    ['10 % 3', 1],
+    ['10 % 3 + 1', 2],
+    ['2 ^ 3 % 5', 3],
+    ['10 % (3)', 1],
+    ['10 % pi', 10 % Math.PI],
+  ])('%s = %d (percentages)', (input, expected) => {
+    expect(calculate(input)).toBeCloseTo(expected, 10);
+  });
+
+  it.each([
     [''],
     ['42'],
     ['-5'],
@@ -47,6 +77,14 @@ describe('calculate', () => {
     ['1 / 0'],
     ['2 3'],
     ['hello 2 + 2'],
+    ['%'],
+    ['% of 80'],
+    ['15% of'],
+    ['15 of 80'],
+    ['of 80'],
+    ['80 off 20%'],
+    ['50% off'],
+    ['out of office 2'],
   ])('%j is not a calculation', (input) => {
     expect(calculate(input)).toBeNull();
   });
