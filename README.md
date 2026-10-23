@@ -22,7 +22,7 @@ Website: [waypoint.alexsilver.dev](https://waypoint.alexsilver.dev/)
 - **Quicklinks and snippets** — save a link (a website, a file or folder, a place in an app) or some text you paste often, and open or paste it with a few keys: `gh waypoint` searches GitHub for “waypoint”, `!sig` pastes your signature. See [Quicklinks and snippets](#quicklinks-and-snippets).
 - **Searches the web** — anything that doesn't match falls back to Google, DuckDuckGo or any extension that offers itself.
 - **Learns what you use** — frequently used items rise to the top.
-- **Snaps windows** — halves, thirds, quarters, maximize, centre and the next display for the window you were using, and **Restore** to put it back. See [Windows](#windows).
+- **Snaps windows** — halves, thirds, quarters, sixths, maximize, centre, larger or smaller, and the next display for the window you were using, and **Restore** to put it back. See [Windows](#windows).
 - **Runs your computer** — lock, sleep, restart, shut down, log out, empty the Trash, eject disks and turn Wi-Fi on or off, with a check before anything you can't undo. See [System](#system).
 - **Comes with extensions** — file search, your downloads and browser bookmarks, what's taking up space on your disk, your own scripts and Shortcuts, Keep Awake, translation and a dictionary, developer tools like Port Manager, Docker and GitHub, plus Media Controls and System Info, described [below](#included-extensions).
 - **Runs extensions** — commands written in JavaScript, each extension in a separate process. They show lists, pages of Markdown and forms. Find other people's with **Browse Extensions**, or install them from npm or GitHub with **Install Extension** (see [Installing extensions](#installing-extensions)), or write your own (see [Writing extensions](docs/extensions.md)).
@@ -188,10 +188,12 @@ Type a layout and press <kbd>↵</kbd>: the launcher steps aside and the window 
 
 | Command | |
 | --- | --- |
-| **Left Half**, **Right Half**, **Top Half**, **Bottom Half** | Half the screen |
+| **Left Half**, **Right Half**, **Top Half**, **Bottom Half**, **Center Half** | Half the screen; Center Half is the middle half, across a wide screen and down a tall one |
 | **Top Left Quarter**, **Top Right Quarter**, **Bottom Left Quarter**, **Bottom Right Quarter** | A quarter |
-| **First Third**, **Center Third**, **Last Third**, **First Two Thirds**, **Last Two Thirds** | Thirds, side by side on a wide screen and stacked on a tall one |
+| **First Third**, **Center Third**, **Last Third**, **First Two Thirds**, **Center Two Thirds**, **Last Two Thirds** | Thirds, side by side on a wide screen and stacked on a tall one |
+| **Top Left Sixth**, **Top Center Sixth**, **Top Right Sixth**, **Bottom Left Sixth**, **Bottom Center Sixth**, **Bottom Right Sixth** | Sixths: three across and two down on a wide screen, two across and three down on a tall one, where the centre sixths take the middle row |
 | **Maximize**, **Almost Maximize**, **Center** | Fill the screen, nine-tenths of it, or keep the size and centre it |
+| **Make Larger**, **Make Smaller** | Grow or shrink the window by a tenth of the screen around its centre, keeping it on the screen; Make Smaller stops at a fifth of the screen |
 | **Next Display**, **Previous Display** | The same place on another screen, scaled to fit |
 | **Restore** | Back where the window was before Waypoint first moved it |
 

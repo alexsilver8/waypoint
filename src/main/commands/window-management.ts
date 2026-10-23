@@ -22,6 +22,7 @@ const COMMANDS: WindowCommandInfo[] = [
   { command: 'right-half', title: 'Right Half' },
   { command: 'top-half', title: 'Top Half' },
   { command: 'bottom-half', title: 'Bottom Half' },
+  { command: 'center-half', title: 'Center Half', keywords: ['centre', 'middle'] },
   { command: 'top-left', title: 'Top Left Quarter' },
   { command: 'top-right', title: 'Top Right Quarter' },
   { command: 'bottom-left', title: 'Bottom Left Quarter' },
@@ -30,10 +31,19 @@ const COMMANDS: WindowCommandInfo[] = [
   { command: 'center-third', title: 'Center Third', keywords: ['centre', 'middle'] },
   { command: 'last-third', title: 'Last Third' },
   { command: 'first-two-thirds', title: 'First Two Thirds' },
+  { command: 'center-two-thirds', title: 'Center Two Thirds', keywords: ['centre', 'middle'] },
   { command: 'last-two-thirds', title: 'Last Two Thirds' },
+  { command: 'top-left-sixth', title: 'Top Left Sixth' },
+  { command: 'top-center-sixth', title: 'Top Center Sixth', keywords: ['centre', 'middle'] },
+  { command: 'top-right-sixth', title: 'Top Right Sixth' },
+  { command: 'bottom-left-sixth', title: 'Bottom Left Sixth' },
+  { command: 'bottom-center-sixth', title: 'Bottom Center Sixth', keywords: ['centre', 'middle'] },
+  { command: 'bottom-right-sixth', title: 'Bottom Right Sixth' },
   { command: 'maximize', title: 'Maximize', keywords: ['maximise'] },
   { command: 'almost-maximize', title: 'Almost Maximize', keywords: ['almost maximise'] },
   { command: 'center', title: 'Center', keywords: ['centre', 'middle'] },
+  { command: 'make-larger', title: 'Make Larger', keywords: ['bigger', 'grow', 'resize'] },
+  { command: 'make-smaller', title: 'Make Smaller', keywords: ['shrink', 'resize'] },
   { command: 'next-display', title: 'Next Display', keywords: ['monitor'] },
   { command: 'previous-display', title: 'Previous Display', keywords: ['monitor'] },
   { command: 'restore', title: 'Restore' },
@@ -96,8 +106,8 @@ interface WindowManagementOptions {
 }
 
 /**
- * Snaps the window you were using to halves, thirds, quarters and other displays. The
- * launcher steps aside first, so the window in front is yours.
+ * Snaps the window you were using to halves, thirds, quarters, sixths and other displays, or
+ * grows and shrinks it. The launcher steps aside first, so the window in front is yours.
  */
 export function windowManagementExtension({ platform, launcher }: WindowManagementOptions): BuiltinExtension {
   const manager = new WindowManager();
