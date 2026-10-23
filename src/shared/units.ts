@@ -1,10 +1,22 @@
 /**
  * Units the calculator converts between, by hand rather than from a library: a factor to each
  * kind's base unit (meters, kilograms, liters, kelvins, seconds, bytes, meters per second, square
- * meters), and the names, plurals and symbols people type for them.
+ * meters, pascals, joules, watts, radians), and the names, plurals and symbols people type for them.
  */
 
-export type Dimension = 'length' | 'mass' | 'volume' | 'temperature' | 'time' | 'data' | 'speed' | 'area';
+export type Dimension =
+  | 'length'
+  | 'mass'
+  | 'volume'
+  | 'temperature'
+  | 'time'
+  | 'data'
+  | 'speed'
+  | 'area'
+  | 'pressure'
+  | 'energy'
+  | 'power'
+  | 'angle';
 
 export interface Unit {
   dimension: Dimension;
@@ -135,6 +147,54 @@ export const UNITS: readonly Unit[] = [
   unit('area', 0.83612736, 'yd²', 'Square yards', ['yd2', 'sq yd', 'square yard']),
   unit('area', 4046.8564224, 'acre', 'Acres', ['ac', 'acre'], { plural: 'acres' }),
   unit('area', 2_589_988.110336, 'mi²', 'Square miles', ['mi2', 'sq mi', 'square mile']),
+
+  unit('pressure', 1, 'Pa', 'Pascals', ['pa', 'pascal']),
+  unit('pressure', 1e2, 'hPa', 'Hectopascals', ['hpa', 'hectopascal']),
+  unit('pressure', 1e3, 'kPa', 'Kilopascals', ['kpa', 'kilopascal']),
+  unit('pressure', 1e6, 'MPa', 'Megapascals', ['mpa', 'megapascal']),
+  unit('pressure', 1e5, 'bar', 'Bar', ['bar']),
+  unit('pressure', 1e2, 'mbar', 'Millibar', ['mbar', 'millibar']),
+  unit('pressure', 6894.757293168, 'psi', 'Pounds per square inch', [
+    'psi',
+    'lbf/in2',
+    'pound per square inch',
+    'pounds per square inch',
+  ]),
+  unit('pressure', 101_325, 'atm', 'Atmospheres', ['atm', 'atmosphere']),
+  unit('pressure', 101_325 / 760, 'Torr', 'Torr', ['torr']),
+  unit('pressure', 133.322387415, 'mmHg', 'Millimeters of mercury', [
+    'mmhg',
+    'millimeter of mercury',
+    'millimeters of mercury',
+    'millimetre of mercury',
+    'millimetres of mercury',
+  ]),
+  unit('pressure', 3386.389, 'inHg', 'Inches of mercury', ['inhg', 'inch of mercury', 'inches of mercury']),
+
+  unit('energy', 1, 'J', 'Joules', ['j', 'joule']),
+  unit('energy', 1e3, 'kJ', 'Kilojoules', ['kj', 'kilojoule']),
+  unit('energy', 1e6, 'MJ', 'Megajoules', ['mj', 'megajoule']),
+  unit('energy', 4.184, 'cal', 'Calories', ['cal', 'calorie']),
+  unit('energy', 4184, 'kcal', 'Kilocalories', ['kcal', 'kilocalorie']),
+  unit('energy', 3600, 'Wh', 'Watt-hours', ['wh', 'watt hour', 'watt-hour']),
+  unit('energy', 3.6e6, 'kWh', 'Kilowatt-hours', ['kwh', 'kilowatt hour', 'kilowatt-hour']),
+  unit('energy', 3.6e9, 'MWh', 'Megawatt-hours', ['mwh', 'megawatt hour', 'megawatt-hour']),
+  unit('energy', 1055.05585262, 'BTU', 'British thermal units', ['btu', 'british thermal unit']),
+  unit('energy', 1.602176634e-19, 'eV', 'Electronvolts', ['ev', 'electronvolt', 'electron volt']),
+
+  unit('power', 1, 'W', 'Watts', ['w', 'watt']),
+  unit('power', 1e3, 'kW', 'Kilowatts', ['kw', 'kilowatt']),
+  unit('power', 1e6, 'MW', 'Megawatts', ['mw', 'megawatt']),
+  unit('power', 745.69987158227, 'hp', 'Horsepower', ['hp', 'bhp', 'horsepower', 'mechanical horsepower']),
+  unit('power', 735.49875, 'PS', 'Metric horsepower', ['ps', 'cv', 'metric horsepower']),
+
+  unit('angle', 1, 'rad', 'Radians', ['rad', 'radian']),
+  unit('angle', Math.PI / 180, '°', 'Degrees', ['°', 'deg', 'degree']),
+  unit('angle', Math.PI / 200, 'grad', 'Gradians', ['grad', 'gon', 'gradian']),
+  unit('angle', Math.PI * 2, 'turn', 'Turns', ['turn', 'rev', 'revolution'], { plural: 'turns' }),
+  // ′ and ″ are feet and inches too; the caller picks by what they're converted to.
+  unit('angle', Math.PI / 10_800, '′', 'Arcminutes', ["'", '′', 'arcmin', 'arcminute', 'minute of arc', 'moa']),
+  unit('angle', Math.PI / 648_000, '″', 'Arcseconds', ['"', '″', 'arcsec', 'arcsecond', 'second of arc']),
 ];
 
 function index(units: readonly Unit[], key: (unit: Unit) => readonly string[]): Map<string, Unit[]> {
