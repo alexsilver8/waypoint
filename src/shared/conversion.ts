@@ -114,9 +114,12 @@ export function formatAmount(value: number, measure: Measure, useGrouping = true
   return value.toLocaleString('en-US', { ...options, useGrouping });
 }
 
-/** The unit to write after `formatted`: "3.11 mi", "2 cups", "86.20 EUR". */
+/** Symbols written against the number: "90°", "30′". */
+const ATTACHED = /^[°′″]$/;
+
+/** The unit to write after `formatted`: "3.11 mi", "2 cups", "86.20 EUR", "90°". */
 export function withUnit(formatted: string, measure: Measure): string {
   if (measure.dimension === 'currency') return `${formatted} ${measure.code}`;
   const plural = measure.plural && formatted !== '1' ? measure.plural : measure.symbol;
-  return `${formatted} ${plural}`;
+  return ATTACHED.test(plural) ? `${formatted}${plural}` : `${formatted} ${plural}`;
 }

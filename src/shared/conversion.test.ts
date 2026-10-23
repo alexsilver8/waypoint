@@ -53,6 +53,21 @@ describe('parseConversion', () => {
     ['1e3 m to km', '1 km'],
     ['.5 km to m', '500 m'],
     ['5 km to km', '5 km'],
+    ['32 psi to bar', '2.21 bar'],
+    ['1 atm in mmHg', '760 mmHg'],
+    ['1013 hpa to inhg', '29.91 inHg'],
+    ['500 kcal in kj', '2,092 kJ'],
+    ['2 kwh to btu', '6,824.28 BTU'],
+    ['150 hp to kw', '111.85 kW'],
+    ['100 PS in hp', '98.63 hp'],
+    ['90 deg to rad', '1.57 rad'],
+    ['180 degrees in radians', '3.14 rad'],
+    ['1 turn to deg', '360°'],
+    ['2 turns in degrees', '720°'],
+    ['90° to grad', '100 grad'],
+    ['30′ to deg', '0.5°'],
+    ["45° 30' to deg", '45.5°'],
+    ['1 deg to arcsec', '3,600″'],
   ])('%j = %s', (input, expected) => {
     expect(answer(input)).toBe(expected);
   });
@@ -99,6 +114,10 @@ describe('parseConversion', () => {
     ['1 + 2 = 3'],
     ['10 c 4 f to k'],
     ['192.168.1.1 to mi'],
+    ['72 deg to c'],
+    ['2 bar to go'],
+    ['3 turns to the left'],
+    ['open 2 ps in word'],
   ])('%j is not a conversion', (input) => {
     expect(parseConversion(input)).toBeNull();
   });
@@ -106,6 +125,9 @@ describe('parseConversion', () => {
   it('prefers the meaning that fits what it converts to', () => {
     expect(parseConversion('5 pounds to kg')?.from.dimension).toBe('mass');
     expect(parseConversion('5 pounds to eur')?.from.dimension).toBe('currency');
+    expect(parseConversion("5' to cm")?.from.dimension).toBe('length');
+    expect(parseConversion("5' to deg")?.from.dimension).toBe('angle');
+    expect(parseConversion('72 deg f to c')?.from.dimension).toBe('temperature');
   });
 });
 
@@ -141,5 +163,11 @@ describe('withUnit', () => {
     expect(withUnit('1', unit('cup'))).toBe('1 cup');
     expect(withUnit('2', unit('cup'))).toBe('2 cups');
     expect(withUnit('2', unit('km'))).toBe('2 km');
+  });
+
+  it('writes degrees, arcminutes and arcseconds against the number', () => {
+    expect(withUnit('90', unit('deg'))).toBe('90°');
+    expect(withUnit('30', unit('arcmin'))).toBe('30′');
+    expect(withUnit('22.22', unit('°C'))).toBe('22.22 °C');
   });
 });
