@@ -2,6 +2,7 @@ import { calculate, formatResult } from '../../shared/calculator';
 import { type Conversion, convert, formatAmount, parseConversion, withUnit } from '../../shared/conversion';
 import { type ExchangeRates, formatRatesDate } from '../../shared/currencies';
 import { rankItems, scoreItem } from '../../shared/search';
+import { answerTimeQuery, parseTimeQuery, type TimeQuery } from '../../shared/time-zones';
 import { matchTitleAndText } from '../../shared/title-and-text';
 import type { RootItem, RootKind } from '../../shared/types';
 import type { DisplayItem, DisplaySection } from './model';
@@ -137,16 +138,49 @@ function conversionRow(query: string, conversion: Conversion, rates: ExchangeRat
   };
 }
 
+/** When and where the launcher is, for questions about the time somewhere else. */
+export interface Clock {
+  now: Date;
+  /** The IANA zone the computer is set to. */
+  zone: string;
+}
+
+function localClock(): Clock {
+  return { now: new Date(), zone: Intl.DateTimeFormat().resolvedOptions().timeZone };
+}
+
+/** The time somewhere else, as a card like the calculator's: the time here or there on the left, there on the right. */
+function timeRow(query: string, question: TimeQuery, clock: Clock): DisplayItem {
+  const answer = answerTimeQuery(question, clock.now, clock.zone);
+  const to = question.to.name;
+  const fromLabel = [question.from?.note ?? answer.fromName, answer.fromDay, question.time ? '' : 'now']
+    .filter(Boolean)
+    .join(' · ');
+  const toLabel = [question.to.note ?? to, answer.day, answer.difference].join(' · ');
+  return {
+    id: 'time',
+    title: `${answer.time} in ${to}`,
+    subtitle: query,
+    calculator: { expression: answer.fromTime, result: answer.time, labels: [fromLabel, toLabel] },
+    actions: [
+      { type: 'copy', text: answer.time, title: 'Copy Time' },
+      { type: 'copy', text: `${answer.time} in ${to}`, title: 'Copy with Place' },
+      { type: 'copy', text: `${answer.fromTime} ${answer.fromName} = ${answer.time} ${to}`, title: 'Copy Both Times' },
+    ],
+  };
+}
+
 /**
  * Builds the root list. "All" shows suggestions and commands when empty, and ranked results
  * when searching; a kind's tab shows everything of that kind. `rates` are for converting
- * currencies, once they've arrived.
+ * currencies, once they've arrived, and `clock` is for the time elsewhere.
  */
 export function buildRootSections(
   items: readonly RootItem[],
   rawQuery: string,
   filter: RootFilter = 'all',
   rates: ExchangeRates | null = null,
+  clock: Clock = localClock(),
 ): DisplaySection[] {
   const query = rawQuery.trim();
   if (filter === 'extensions') return buildExtensionsTab(items, query);
@@ -191,6 +225,9 @@ export function buildRootSections(
         },
       ],
     });
+  } else {
+    const question = parseTimeQuery(query);
+    if (question) sections.push({ title: 'Time', items: [timeRow(query, question, clock)] });
   }
 
   const url = asUrl(query);

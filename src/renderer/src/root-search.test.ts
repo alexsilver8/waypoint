@@ -123,6 +123,51 @@ describe('buildRootSections', () => {
     }
   });
 
+  describe('the time elsewhere', () => {
+    // A Friday afternoon in Zurich: 16:14 there, 23:14 in Tokyo, 10:14 in New York.
+    const clock = { now: new Date('2026-10-23T14:14:00Z'), zone: 'Europe/Zurich' };
+    const ask = (query: string) => buildRootSections(items, query, 'all', null, clock);
+
+    it('shows the time somewhere now as a card, with the day and the difference', () => {
+      const [first, second] = ask('time in tokyo');
+      expect(first?.title).toBe('Time');
+      expect(first?.items[0]).toMatchObject({
+        id: 'time',
+        title: '11:14 PM in Tokyo',
+        subtitle: 'time in tokyo',
+        calculator: {
+          expression: '4:14 PM',
+          result: '11:14 PM',
+          labels: ['Zurich · Fri, Oct 23 · now', 'Tokyo · Fri, Oct 23 · 7 hours ahead of you'],
+        },
+      });
+      expect(first?.items[0]?.actions).toEqual([
+        { type: 'copy', text: '11:14 PM', title: 'Copy Time' },
+        { type: 'copy', text: '11:14 PM in Tokyo', title: 'Copy with Place' },
+        { type: 'copy', text: '4:14 PM Zurich = 11:14 PM Tokyo', title: 'Copy Both Times' },
+      ]);
+      expect(second?.title).toBe('Use “time in tokyo” with…');
+    });
+
+    it('moves a time between places, saying how an abbreviation was read', () => {
+      expect(ask('3pm london in new york')[0]?.items[0]?.calculator).toEqual({
+        expression: '3:00 PM',
+        result: '10:00 AM',
+        labels: ['London · Fri, Oct 23', 'New York · Fri, Oct 23 · 5 hours behind London'],
+      });
+      expect(ask('9am cst to cet')[0]?.items[0]?.calculator?.labels).toEqual([
+        'CST taken as Central Time (Chicago) · Fri, Oct 23',
+        'Central European Time (Paris) · Fri, Oct 23 · 7 hours ahead of Central Time (Chicago)',
+      ]);
+    });
+
+    it('is not offered for searches that only look like one, or for sums', () => {
+      for (const query of ['time machine', 'go to london', 'tokyo', '3 in tokyo', '5 km to mi', '12 * 7']) {
+        expect(ask(query).map((section) => section.title)).not.toContain('Time');
+      }
+    });
+  });
+
   it('offers to open things that look like links', () => {
     const [first] = buildRootSections(items, 'github.com/alexsilver8');
     expect(first?.title).toBe('Link');
