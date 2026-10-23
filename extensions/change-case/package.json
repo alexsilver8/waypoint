@@ -1,0 +1,36 @@
+{
+  "name": "change-case",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Any text as camelCase, snake_case, kebab-case, Title Case and more, ready to paste.",
+  "type": "module",
+  "main": "index.js",
+  "license": "MIT",
+  "waypoint": {
+    "title": "Change Case",
+    "icon": "🔠",
+    "commands": [
+      {
+        "name": "change",
+        "title": "Change Case",
+        "mode": "view",
+        "icon": "🔠",
+        "keywords": [
+          "camel",
+          "pascal",
+          "snake",
+          "kebab",
+          "constant",
+          "title",
+          "sentence",
+          "upper",
+          "lower",
+          "capitalize",
+          "rename",
+          "convert"
+        ],
+        "fallback": true
+      }
+    ]
+  }
+}

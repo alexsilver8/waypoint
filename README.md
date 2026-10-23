@@ -16,13 +16,14 @@ Website: [waypoint.alexsilver.dev](https://waypoint.alexsilver.dev/)
 - **Finds everything from one box** — apps, commands, notes and what you copied all show up as you type. <kbd>⇥</kbd>, or the icons down the left of the window, narrow the list to Apps, Commands, Notes or Clipboard, or to **Extensions**, which lists every extension with its commands so you can pick one without remembering its name. A preview beside the results shows the note, copied text or image you've selected.
 - **Opens apps** — finds installed applications on every platform.
 - **Keeps notes, as many as you want** — a floating Notes window that works like Raycast Notes: one note at a time in a small window that grows as you write, **Browse Notes** (<kbd>⌘</kbd> <kbd>P</kbd>), an action panel (<kbd>⌘</kbd> <kbd>K</kbd>), pinned notes, back and forward, find and replace, and Recently Deleted. Every note is a plain Markdown file, so you can sync, back up or edit them with anything. There's no limit on how many you keep.
-- **Calculates as you type** — `1200 * 1.077 + 2^5` shows `1,324.4`; <kbd>↵</kbd> copies it.
+- **Calculates as you type** — `1200 * 1.077 + 2^5` shows `1,324.4`, and percentages work the way you'd say them: `15% of 80`, `20% off 80`, `80 + 15%`, `80 - 20%`. <kbd>↵</kbd> copies the answer.
 - **Converts units and currencies** — `5 km to mi` shows `3.11 mi`, and `72 f in c`, `3 ft 4 in to cm`, `1.5 gb in mb`, `90 min to h`, `2 cups to ml`, `32 psi to bar`, `500 kcal in kj`, `150 hp to kw` and `90 deg to rad` work too: length, weight, volume, temperature, time, data, speed, area, pressure, energy, power and angles, by name, plural or symbol. `100 usd in eur` and `€50 to gbp` use the European Central Bank's rates, fetched once a day and kept for when you're offline; the answer says which day they're from. <kbd>↵</kbd> copies the number.
 - **Remembers your clipboard** — searchable history of copied text and images, skipping anything password managers mark as private. Images are kept as files on your computer; <kbd>↵</kbd> copies one back and <kbd>⌘</kbd> <kbd>↵</kbd> pastes it.
+- **Tells the time elsewhere** — `time in tokyo` shows the time there now, with the day and how far ahead of you it is; `3pm in tokyo`, `15:00 london in new york` and `9am pst to cet` move a time from one place to another. Cities, countries and the usual abbreviations (UTC, PST, CET…) work, and daylight saving is taken care of. <kbd>↵</kbd> copies the time.
 - **Quicklinks and snippets** — save a link (a website, a file or folder, a place in an app) or some text you paste often, and open or paste it with a few keys: `gh waypoint` searches GitHub for “waypoint”, `!sig` pastes your signature. See [Quicklinks and snippets](#quicklinks-and-snippets).
 - **Searches the web** — anything that doesn't match falls back to Google, DuckDuckGo or any extension that offers itself.
 - **Learns what you use** — frequently used items rise to the top.
-- **Snaps windows** — halves, thirds, quarters, maximize, centre and the next display for the window you were using, and **Restore** to put it back. See [Windows](#windows).
+- **Snaps windows** — halves, thirds, quarters, sixths, maximize, centre, larger or smaller, and the next display for the window you were using, and **Restore** to put it back. See [Windows](#windows).
 - **Runs your computer** — lock, sleep, restart, shut down, log out, empty the Trash, eject disks and turn Wi-Fi on or off, with a check before anything you can't undo. See [System](#system).
 - **Comes with extensions** — file search, your downloads and browser bookmarks, what's taking up space on your disk, your own scripts and Shortcuts, Keep Awake, translation and a dictionary, developer tools like Port Manager, Docker and GitHub, plus Media Controls and System Info, described [below](#included-extensions).
 - **Runs extensions** — commands written in JavaScript, each extension in a separate process. They show lists, pages of Markdown and forms. Find other people's with **Browse Extensions**, or install them from npm or GitHub with **Install Extension** (see [Installing extensions](#installing-extensions)), or write your own (see [Writing extensions](docs/extensions.md)).
@@ -188,10 +189,12 @@ Type a layout and press <kbd>↵</kbd>: the launcher steps aside and the window 
 
 | Command | |
 | --- | --- |
-| **Left Half**, **Right Half**, **Top Half**, **Bottom Half** | Half the screen |
+| **Left Half**, **Right Half**, **Top Half**, **Bottom Half**, **Center Half** | Half the screen; Center Half is the middle half, across a wide screen and down a tall one |
 | **Top Left Quarter**, **Top Right Quarter**, **Bottom Left Quarter**, **Bottom Right Quarter** | A quarter |
-| **First Third**, **Center Third**, **Last Third**, **First Two Thirds**, **Last Two Thirds** | Thirds, side by side on a wide screen and stacked on a tall one |
+| **First Third**, **Center Third**, **Last Third**, **First Two Thirds**, **Center Two Thirds**, **Last Two Thirds** | Thirds, side by side on a wide screen and stacked on a tall one |
+| **Top Left Sixth**, **Top Center Sixth**, **Top Right Sixth**, **Bottom Left Sixth**, **Bottom Center Sixth**, **Bottom Right Sixth** | Sixths: three across and two down on a wide screen, two across and three down on a tall one, where the centre sixths take the middle row |
 | **Maximize**, **Almost Maximize**, **Center** | Fill the screen, nine-tenths of it, or keep the size and centre it |
+| **Make Larger**, **Make Smaller** | Grow or shrink the window by a tenth of the screen around its centre, keeping it on the screen; Make Smaller stops at a fifth of the screen |
 | **Next Display**, **Previous Display** | The same place on another screen, scaled to fit |
 | **Restore** | Back where the window was before Waypoint first moved it |
 
@@ -234,6 +237,7 @@ These come with Waypoint and are written with the same [extension API](docs/exte
 | **Search Processes** | Every running program with its CPU and memory, busiest first. <kbd>↵</kbd> quits it, <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>⌫</kbd> forces it. Programs the system needs can't be quit. |
 | **Search Docker Containers**, **Search Docker Images** | Start, stop and restart containers, open the ports they publish, copy their logs, and remove what you no longer need. Works with Docker Desktop, OrbStack, Colima and Rancher Desktop. |
 | **Encode or Decode Text** | Base64, URL and HTML encoding both ways, a JWT's header and claims, and SHA-256, SHA-1, SHA-512 and MD5 hashes. Also from **Use “…” with**. |
+| **Change Case** | The text as `camelCase`, `PascalCase`, `snake_case`, `CONSTANT_CASE`, `kebab-case`, `dot.case`, `path/case`, `Title Case`, `Sentence case`, `lower case` and `UPPER CASE`, with acronyms and numbers split the way you'd expect: `XMLHttpRequest` becomes `xml_http_request`, `version2Beta` becomes `version-2-beta`. <kbd>↵</kbd> pastes one, <kbd>⌘</kbd> <kbd>↵</kbd> copies it. Also from **Use “…” with**. |
 | **Convert Timestamp** | A Unix timestamp (seconds to nanoseconds), an ISO 8601 or RFC 2822 date, or nothing for now, in every common format. |
 | **Convert Color** | Hex, `rgb()`, `hsl()`, `oklch()` or a CSS name, in all of those forms, with its contrast against white and black text. |
 | **Search MDN** | [MDN Web Docs](https://developer.mozilla.org) as you type. Also from **Use “…” with**. |
