@@ -234,6 +234,7 @@ These come with Waypoint and are written with the same [extension API](docs/exte
 | **Search Processes** | Every running program with its CPU and memory, busiest first. <kbd>↵</kbd> quits it, <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>⌫</kbd> forces it. Programs the system needs can't be quit. |
 | **Search Docker Containers**, **Search Docker Images** | Start, stop and restart containers, open the ports they publish, copy their logs, and remove what you no longer need. Works with Docker Desktop, OrbStack, Colima and Rancher Desktop. |
 | **Encode or Decode Text** | Base64, URL and HTML encoding both ways, a JWT's header and claims, and SHA-256, SHA-1, SHA-512 and MD5 hashes. Also from **Use “…” with**. |
+| **Change Case** | The text as `camelCase`, `PascalCase`, `snake_case`, `CONSTANT_CASE`, `kebab-case`, `dot.case`, `path/case`, `Title Case`, `Sentence case`, `lower case` and `UPPER CASE`, with acronyms and numbers split the way you'd expect: `XMLHttpRequest` becomes `xml_http_request`, `version2Beta` becomes `version-2-beta`. <kbd>↵</kbd> pastes one, <kbd>⌘</kbd> <kbd>↵</kbd> copies it. Also from **Use “…” with**. |
 | **Convert Timestamp** | A Unix timestamp (seconds to nanoseconds), an ISO 8601 or RFC 2822 date, or nothing for now, in every common format. |
 | **Convert Color** | Hex, `rgb()`, `hsl()`, `oklch()` or a CSS name, in all of those forms, with its contrast against white and black text. |
 | **Search MDN** | [MDN Web Docs](https://developer.mozilla.org) as you type. Also from **Use “…” with**. |
