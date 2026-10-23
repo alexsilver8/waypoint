@@ -2,6 +2,18 @@
 
 Every release of Waypoint. `pnpm release` writes it from the commits, and each GitHub release shows its section.
 
+## 1.1.0 (2026-10-23)
+
+5 features.
+
+### Features
+
+- **calculator:** convert pressure, energy, power and angles ([#79](https://github.com/alexsilver8/waypoint/pull/79), [f2aee61](https://github.com/alexsilver8/waypoint/commit/f2aee6112129613c1ac3344386fa921bdb22d00f))
+- the time in other places, as you type ([#82](https://github.com/alexsilver8/waypoint/pull/82), [96571cc](https://github.com/alexsilver8/waypoint/commit/96571cc417ba1961faac529f837bc2b84f0a4b4d))
+- **windows:** sixths, Center Half, Center Two Thirds, Make Larger and Make Smaller ([#81](https://github.com/alexsilver8/waypoint/pull/81), [d973e59](https://github.com/alexsilver8/waypoint/commit/d973e594dc9dc626e34367477baa94dd3e3320c3))
+- change the case of any text ([#80](https://github.com/alexsilver8/waypoint/pull/80), [55bb941](https://github.com/alexsilver8/waypoint/commit/55bb941b29b27715f335ac2017e197f30912cfd5))
+- **calculator:** percentages ([#78](https://github.com/alexsilver8/waypoint/pull/78), [139872f](https://github.com/alexsilver8/waypoint/commit/139872fbd5acec5cfcbfbcf408eaaa223fc274b1))
+
 ## 1.0.0 (2026-10-19)
 
 ### Other changes
