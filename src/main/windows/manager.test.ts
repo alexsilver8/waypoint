@@ -50,6 +50,23 @@ describe('WindowManager', () => {
     await expect(manager.apply(backend, 'restore')).rejects.toThrow(/nothing to restore/);
   });
 
+  it('restores after growing, shrinking and a sixth too', async () => {
+    const before = { x: 300, y: 200, width: 400, height: 300 };
+    const windows = { editor: { ...before } };
+    const { backend, moves } = fakeBackend(windows);
+    const manager = new WindowManager();
+    await manager.apply(backend, 'make-larger');
+    await manager.apply(backend, 'make-larger');
+    expect(windows.editor).toEqual({ x: 200, y: 120, width: 600, height: 460 });
+    await manager.apply(backend, 'make-smaller');
+    expect(windows.editor).toEqual({ x: 250, y: 160, width: 500, height: 380 });
+    await manager.apply(backend, 'bottom-right-sixth');
+    expect(windows.editor).toEqual({ x: 667, y: 400, width: 333, height: 400 });
+    await manager.apply(backend, 'restore');
+    expect(windows.editor).toEqual(before);
+    expect(moves).toHaveLength(5);
+  });
+
   it('remembers each window separately', async () => {
     const windows = {
       editor: { x: 10, y: 10, width: 300, height: 200 },
